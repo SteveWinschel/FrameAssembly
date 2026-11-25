@@ -6,12 +6,12 @@
 //! frames or override specific protocol header fields and attributes.
 //!
 //! Canonical `.frasm` syntax:
-//! `a -> b stun [bindingrequest | bindingresponse | bindingerror] [txid <u32>] [xormappedaddr <ip>] [software <str>]`
+//! `a -> b stun [bindingrequest | bindingresponse | bindingerror] [txid <u32>] [xormappedaddr <ip> [<u16>]] [software <str>]`
 
 use core::net::IpAddr;
 /// RFC 8489 Session Traversal Utilities for NAT specification.
 ///
-/// Syntax mapping: `stun [bindingrequest | bindingresponse | bindingerror] [txid <u32>] [xormappedaddr <ip>] [software <str>]`
+/// Syntax mapping: `stun [bindingrequest | bindingresponse | bindingerror] [txid <u32>] [xormappedaddr <ip> [<u16>]] [software <str>]`
 #[doc(alias = "stun")]
 #[doc(alias = "TURN")]
 #[doc(alias = "ICE")]
@@ -37,6 +37,8 @@ pub struct StunSpec<'a> {
     pub txid: Option<u32>,
     /// XOR-MAPPED-ADDRESS attribute IP.
     pub xor_mapped_addr: Option<IpAddr>,
+    /// Optional XOR-MAPPED-ADDRESS attribute port (`xormappedaddr <ip> <port>`).
+    pub xor_mapped_port: Option<u16>,
     /// Software description string.
     pub software: Option<&'a str>,
 }

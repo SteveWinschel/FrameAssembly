@@ -1,11 +1,11 @@
 //! PostgreSQL Frontend/Backend Wire Protocol v3.0 Layer 7 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements fuzz-safe wire-to-AST dissection for `postgres` v3.0 messages over TCP
-//! ports `5432`, `6432` (PgBouncer), and `9999` (Pgpool-II), as well as custom-port `StartupMessage`
-//! frames identified by protocol version `0x0003_0000`. It decodes `StartupMessage` (`startup`,
-//! `user`, `db`), `Query` (`'Q'`, `sql`), `AuthenticationOk` (`'R'`, `authok`), `CommandComplete`
-//! (`'C'`, `commandcomplete`), `ReadyForQuery` (`'Z'`, `readyforquery`), and `ErrorResponse`
-//! (`'E'`, `errorresponse`).
+//! and SCTP ports `5432`, `6432` (PgBouncer), and `9999` (Pgpool-II), as well as custom-port
+//! `StartupMessage` frames identified by protocol version `0x0003_0000`. It decodes `StartupMessage`
+//! (`startup`, `user`, `db`), `Query` (`'Q'`, `sql`), `AuthenticationOk` (`'R'`, `authok`),
+//! `CommandComplete` (`'C'`, `commandcomplete`), `ReadyForQuery` (`'Z'`, `readyforquery`), and
+//! `ErrorResponse` (`'E'`, `errorresponse`).
 
 use alloc::format;
 use alloc::string::String;
@@ -13,12 +13,11 @@ use alloc::string::String;
 use crate::ast::{Protocol, TransportProto};
 use crate::reverse::ProtocolDissection;
 
-/// Checks whether `s` can be emitted inside `"..."` for a parser field that uses
-/// `parse_raw_string_lit` (which strips outer quotes without unescaping).
-fn is_valid_raw_str(s: &str) -> bool {
-    !s.contains('"')
-        && s.chars().all(|c| !c.is_control())
-        && (s.bytes().rev().take_while(|&b| b == b'\\').count() % 2 == 0)
+use super::quote_raw_str;
+
+/// Checks whether `s` contains no control characters so it can safely be emitted as a quoted field.
+fn is_printable_pg_str(s: &str) -> bool {
+    s.chars().all(|c| !c.is_control())
 }
 
 /// Reads a big-endian `u32` from `b[off..off + 4]`.
@@ -33,7 +32,7 @@ pub(crate) fn dissect_postgres(
     dst_port: u16,
     payload: &[u8],
 ) -> Option<ProtocolDissection> {
-    if payload.is_empty() || !matches!(transport, TransportProto::Tcp) {
+    if payload.is_empty() || !matches!(transport, TransportProto::Tcp | TransportProto::Sctp) {
         return None;
     }
 
@@ -48,16 +47,19 @@ pub(crate) fn dissect_postgres(
         let after_dk = after_uk[u_end + 1..].strip_prefix(b"database\0")?;
         let d_end = after_dk.iter().position(|&b| b == 0)?;
         let db = core::str::from_utf8(&after_dk[..d_end]).ok()?;
-        if after_dk.get(d_end + 1) != Some(&0) || !is_valid_raw_str(user) || !is_valid_raw_str(db) {
+        if after_dk.get(d_end + 1) != Some(&0)
+            || !is_printable_pg_str(user)
+            || !is_printable_pg_str(db)
+        {
             return None;
         }
         let residual = &after_dk[d_end + 2..];
         let mut tokens = String::from("postgres startup");
         if user != "postgres" {
-            tokens.push_str(&format!(" user \"{user}\""));
+            tokens.push_str(&format!(" user \"{}\"", quote_raw_str(user)));
         }
         if db != "postgres" {
-            tokens.push_str(&format!(" db \"{db}\""));
+            tokens.push_str(&format!(" db \"{}\"", quote_raw_str(db)));
         }
         return Some(ProtocolDissection {
             protocol: Protocol::Postgres,
@@ -92,12 +94,12 @@ pub(crate) fn dissect_postgres(
         b'C' => {
             let nul = body.iter().position(|&b| b == 0)?;
             let s = core::str::from_utf8(&body[..nul]).ok()?;
-            if !is_valid_raw_str(s) {
+            if !is_printable_pg_str(s) {
                 return None;
             }
             tokens.push_str(" commandcomplete");
             if s != "SELECT 1" {
-                tokens.push_str(&format!(" sql \"{s}\""));
+                tokens.push_str(&format!(" sql \"{}\"", quote_raw_str(s)));
             }
             &body[nul + 1..]
         }
@@ -108,23 +110,23 @@ pub(crate) fn dissect_postgres(
                 return None;
             }
             let s = core::str::from_utf8(&after_hdr[..nul]).ok()?;
-            if !is_valid_raw_str(s) {
+            if !is_printable_pg_str(s) {
                 return None;
             }
             tokens.push_str(" errorresponse");
             if s != "authentication failed" {
-                tokens.push_str(&format!(" sql \"{s}\""));
+                tokens.push_str(&format!(" sql \"{}\"", quote_raw_str(s)));
             }
             &after_hdr[nul + 2..]
         }
         b'Q' => {
             let nul = body.iter().position(|&b| b == 0)?;
             let s = core::str::from_utf8(&body[..nul]).ok()?;
-            if !is_valid_raw_str(s) {
+            if !is_printable_pg_str(s) {
                 return None;
             }
             if s != "SELECT version()" {
-                tokens.push_str(&format!(" sql \"{s}\""));
+                tokens.push_str(&format!(" sql \"{}\"", quote_raw_str(s)));
             }
             &body[nul + 1..]
         }

@@ -1,7 +1,9 @@
 {
   "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "fileTypes": [
+    "frasm"
+  ],
   "name": "FrameAssembly",
-  "scopeName": "source.frameassembly",
   "patterns": [
     {
       "include": "#comments"
@@ -35,35 +37,51 @@
     },
     "strings": {
       "begin": "\"",
-      "end": "\"",
+      "end": "\"|$",
       "name": "string.quoted.double.frameassembly",
       "patterns": [
         {
-          "match": "\\\\(?:[rnt\"'\\\\]|x[0-9a-fA-F]{2}|u[0-9a-fA-F]{4}|.)",
+          "match": "\\\\(?:[0rnt\"'\\\\]|x[0-9a-fA-F]{2}|u\\{[0-9a-fA-F]{1,6}\\}|u[0-9a-fA-F]{4}|.)",
           "name": "constant.character.escape.frameassembly"
         }
       ]
     },
     "keywords": {
-      "match": "\\b(host|flow|compile)\\b",
+      "match": "(?<![A-Za-z0-9_-])(?:host|flow|repeat|compile)(?![A-Za-z0-9_-])",
       "name": "keyword.control.frameassembly"
     },
     "protocols": {
       "patterns": [
         {
-          "match": "\\b(arp|vlan|qinq|lldp|stp|lacp|eapol|mpls|icmp|ndp|igmp|mld|gre|vxlan|geneve|ipsec|esp|ah|ikev2|wireguard|ospf)\\b",
+          "match": "(?<![A-Za-z0-9_-])(?:arp|vlan|qinq|lldp|stp|lacp|eapol|mpls|cdp|ethercat|goose|isis|macsec|nsh|pfc|pppoe|profinet|sv)(?![A-Za-z0-9_-])",
           "name": "entity.name.type.protocol.frameassembly"
         },
         {
-          "match": "\\b(bgp|rip|vrrp|hsrp|pim|bfd|openflow|tcp|udp|sctp|snmp1|snmp2|snmp3|dns|mdns|dhcp|ntp|ptp|radius|tacacs|syslog)\\b",
+          "match": "(?<![A-Za-z0-9_-])(?:icmp|ndp|igmp|mld|gre|vxlan|geneve|ipsec|esp|ah|ikev2|wireguard|ospf|bgp|rip|vrrp|hsrp|pim|bfd|openflow)(?![A-Za-z0-9_-])",
           "name": "entity.name.type.protocol.frameassembly"
         },
         {
-          "match": "\\b(netflow|ipfix|sflow|tftp|ftp|ssh|telnet|http|http2|grpc|websocket|tls|quic|stun|sip|rtp|rtsp|smtp|imap|pop3|kerberos)\\b",
+          "match": "(?<![A-Za-z0-9_-])(?:bmp|erspan|glbp|gtpu|ipip|l2tp|ldp|lisp|rpkirtr|rsvp|srv6)(?![A-Za-z0-9_-])",
           "name": "entity.name.type.protocol.frameassembly"
         },
         {
-          "match": "\\b(ldap|smb|nfs|redis|memcached|mysql|postgres|mqtt|coap|amqp|ssdp|whois|modbus|bacnet|dnp3|s7comm|ethernetip|opcua)\\b",
+          "match": "(?<![A-Za-z0-9_-])(?:tcp|udp|sctp|snmp1|snmp2|snmp3|dns|mdns|dhcp|ntp|ptp|radius|tacacs|syslog|netflow|ipfix|sflow|llmnr|nbns|doh)(?![A-Za-z0-9_-])",
+          "name": "entity.name.type.protocol.frameassembly"
+        },
+        {
+          "match": "(?<![A-Za-z0-9_-])(?:diameter|netconf|twamp|ngap|s1ap|tftp|ftp|ssh|telnet|http|http2|grpc|websocket|tls|quic|stun|turn|sip|rtp|rtcp)(?![A-Za-z0-9_-])",
+          "name": "entity.name.type.protocol.frameassembly"
+        },
+        {
+          "match": "(?<![A-Za-z0-9_-])(?:rtsp|smtp|imap|pop3|kerberos|ldap|ntlm|dcerpc|smb|nfs|iscsi|nvmetcp|redis|memcached|mysql|postgres|mssql|mongodb|tns|mqtt)(?![A-Za-z0-9_-])",
+          "name": "entity.name.type.protocol.frameassembly"
+        },
+        {
+          "match": "(?<![A-Za-z0-9_-])(?:coap|amqp|kafka|ssdp|wsdiscovery|whois|h323|mgcp|sccp|gtpc|pfcp|rocev2|rdp|vnc|socks|ipmi|irc|doip|someip|knxnetip|c1222)(?![A-Za-z0-9_-])",
+          "name": "entity.name.type.protocol.frameassembly"
+        },
+        {
+          "match": "(?<![A-Za-z0-9_-])(?:modbus|bacnet|dnp3|s7comm|s7commplus|ethernetip|opcua|iec104|fins|melsec|gesrtp|mms|bsap|hartip|rocplus|synchrophasor)(?![A-Za-z0-9_-])",
           "name": "entity.name.type.protocol.frameassembly"
         }
       ]
@@ -71,55 +89,95 @@
     "constants": {
       "patterns": [
         {
-          "match": "\\b(abort|accessaccept|accesschallenge|accessreject|accessrequest|accountingrequest|accountingresponse|acct|ack|advertise|aes|alert|announce|appdata|asrep|asreq)\\b",
+          "match": "(?<![A-Za-z0-9_-])(?:abort|accept|acceptsession|accessaccept|accesschallenge|accessreject|accessrequest|accountingrequest|accountingresponse|acct|ack|ackreq|ado|advertise|aes|alert|alerting|alivecheckreq)(?![A-Za-z0-9_-])",
           "name": "constant.language.frameassembly"
         },
         {
-          "match": "\\b(authen|author|basicdeliver|basicpublish|bindingerror|bindingrequest|bindingresponse|bindreq|bindres|bye|cancel|certificate|changed|channelopen|clienthello|close)\\b",
+          "match": "(?<![A-Za-z0-9_-])(?:alivecheckresp|allocate|altercontext|announce|announcement|apiversions|appdata|asrep|asreq|associationsetuprequest|associationsetupresponse|attention|aucx|auep|authen|authenticate|author|basicdeliver)(?![A-Za-z0-9_-])",
           "name": "constant.language.frameassembly"
         },
         {
-          "match": "\\b(con|connack|connect|connectionstart|cookie|cookieack|cookieecho|counter32|counter64|createchildsa|created|cwr|data|dbd|delayreq|delayresp)\\b",
+          "match": "(?<![A-Za-z0-9_-])(?:basicpublish|bind|bindack|bindingerror|bindingrequest|bindingresponse|bindnak|bindreq|bindres|bye|c2hdata|cachereset|cacheresponse|callproceeding|callstate|cancel|cca|ccr)(?![A-Za-z0-9_-])",
           "name": "constant.language.frameassembly"
         },
         {
-          "match": "\\b(delete|des|describe|destunreach|directoperate|disconnect|discover|done|ece|echoreply|echoreq|echorequest|ehlo|err|error|featuresreply)\\b",
+          "match": "(?<![A-Za-z0-9_-])(?:cea|cer|certificate|challenge|changed|channelbind|channeldata|channelopen|chunked|clienthello|close|complexack|con|conclude|connack|connect|connectionstart|cookie)(?![A-Za-z0-9_-])",
           "name": "constant.language.frameassembly"
         },
         {
-          "match": "\\b(featuresreq|fin|finished|flowmod|followup|garp|gauge32|get|getbulk|getnext|goaway|gratuitous|handshake|head|headers|heartbeat)\\b",
+          "match": "(?<![A-Za-z0-9_-])(?:cookieack|cookieecho|counter32|counter64|crcx|createchildsa|created|createpermission|createsessionrequest|createsessionresponse|cwr|data|dataindication|dbd|dcf|delayreq|delayresp|delete)(?![A-Za-z0-9_-])",
           "name": "constant.language.frameassembly"
         },
         {
-          "match": "\\b(heartbeatack|hello|helo|iam|inform|informational|init|initack|initial|initiation|int|invite|ipval|joinprune|keepalive|krberror)\\b",
+          "match": "(?<![A-Za-z0-9_-])(?:deletesessionrequest|deletesessionresponse|des|describe|destunreach|diagack|diagnack|diagnostic|directoperate|disconnect|discover|dlcx|dobit|done|downlinknastransport|drq|dwa|dwr)(?![A-Za-z0-9_-])",
           "name": "constant.language.frameassembly"
         },
         {
-          "match": "\\b(leave|listidentity|listinterfaces|listservices|logoff|lsack|lsr|lsu|md5|msearch|negotiate|neighboradvert|neighborsolicit|non|nop|notfound)\\b",
+          "match": "(?<![A-Za-z0-9_-])(?:ece|echoreply|echoreq|echorequest|echoresponse|ecm|edns0|ehlo|endmarker|endofdata|err|error|errorindication|errorreport|fault|featuresreply|featuresreq|fetch)(?![A-Za-z0-9_-])",
           "name": "constant.language.frameassembly"
         },
         {
-          "match": "\\b(notification|notify|null|nullval|offer|oidval|ok|open|operate|options|packetin|packetout|patch|ping|pingreq|pingresp)\\b",
+          "match": "(?<![A-Za-z0-9_-])(?:fin|findservice|finished|flowmod|followup|garp|gauge32|gcf|get|getbulk|getnamelist|getnext|goaway|gpdu|gratuitous|grq|h2cdata|handshake)(?![A-Za-z0-9_-])",
           "name": "constant.language.frameassembly"
         },
         {
-          "match": "\\b(play|pong|post|preface|psh|puback|publish|put|query|quit|read|readcoils|readdiscreteinputs|readholdingregisters|readinputregisters|redirect)\\b",
+          "match": "(?<![A-Za-z0-9_-])(?:head|headers|heartbeat|heartbeatack|heartbeatrequest|heartbeatresponse|hello|helo|iam|icreq|icresp|identify|inform|informational|init|initack|initial|initialuemessage)(?![A-Za-z0-9_-])",
           "name": "constant.language.frameassembly"
         },
         {
-          "match": "\\b(register|registersession|release|reply|report|request|response|retry|routeradvert|routersolicit|rrq|rst|rstp|sack|sainit|searchdone)\\b",
+          "match": "(?<![A-Za-z0-9_-])(?:initiation|int|invite|ipv4prefix|ipv6prefix|ipval|joinprune|keepalive|keepaliveack|keypadbutton|krberror|l1csnp|l1iih|l1lsp|l1psnp|l2csnp|l2iih|l2lsp)(?![A-Za-z0-9_-])",
           "name": "constant.language.frameassembly"
         },
         {
-          "match": "\\b(searchentry|searchreq|select|sendrrdata|sendunitdata|serverhello|sessionsetup|set|settings|setup|sha|sha256|sha384|sha512|short|shutdown)\\b",
+          "match": "(?<![A-Za-z0-9_-])(?:l2psnp|labelmapping|labelrelease|labelrequest|labelwithdraw|leave|listidentity|listinterfaces|listservices|logoff|logon|logout|lsack|lsr|lsu|m|mapnotify|mapregister)(?![A-Za-z0-9_-])",
           "name": "constant.language.frameassembly"
         },
         {
-          "match": "\\b(shutdownack|solicit|start|string|suback|subscribe|syn|sync|teardown|tgsrep|tgsreq|timeexceeded|timeticks|trap|treeconnect|treedisconnect)\\b",
+          "match": "(?<![A-Za-z0-9_-])(?:mapreply|maprequest|mcs|md5|mdcx|metadata|modifybearerrequest|modifybearerresponse|ms|msearch|nack|ndscom|negotiate|neighboradvert|neighborsolicit|ngsetupfailure|ngsetuprequest|ngsetupresponse)(?![A-Za-z0-9_-])",
           "name": "constant.language.frameassembly"
         },
         {
-          "match": "\\b(unbindreq|unregistersession|unsolicitedresponse|update|urg|v1|v2|v3|windowupdate|write|writemultipleregisters|writesinglecoil|writesingleregister|wrq|zerortt)\\b",
+          "match": "(?<![A-Za-z0-9_-])(?:non|nop|notfound|notification|notify|ns|ntfy|null|nullval|oam|offer|offerservice|offhook|oidval|ok|onhook|open|openreceivechannel)(?![A-Za-z0-9_-])",
+          "name": "constant.language.frameassembly"
+        },
+        {
+          "match": "(?<![A-Za-z0-9_-])(?:openreceivechannelack|operate|options|p2piih|packetin|packetout|padi|pado|padr|pads|padt|patch|patherr|pathtear|peerdown|peerup|ping|pingreq)(?![A-Za-z0-9_-])",
+          "name": "constant.language.frameassembly"
+        },
+        {
+          "match": "(?<![A-Za-z0-9_-])(?:pingresp|play|pong|post|preface|prelogin|probe|produce|psh|puback|publish|put|query|quit|r2t|rcf|read|readcoils)(?![A-Za-z0-9_-])",
+          "name": "constant.language.frameassembly"
+        },
+        {
+          "match": "(?<![A-Za-z0-9_-])(?:readdiscreteinputs|readholdingregisters|readinputregisters|redirect|reflector|refuse|register|registerack|registersession|release|releasecomplete|reply|report|request|requestnoreply|requestsession|resetquery|response)(?![A-Za-z0-9_-])",
+          "name": "constant.language.frameassembly"
+        },
+        {
+          "match": "(?<![A-Za-z0-9_-])(?:resv|resvconf|resverr|resvtear|retry|routemon|routeradvert|routersolicit|routingreq|routingresp|rpc|rpcreply|rqnt|rr|rrq|rsip|rst|rstp)(?![A-Za-z0-9_-])",
+          "name": "constant.language.frameassembly"
+        },
+        {
+          "match": "(?<![A-Za-z0-9_-])(?:s|s1setupfailure|s1setuprequest|s1setupresponse|sack|sainit|scccn|sccrp|sccrq|sdes|searchdone|searchentry|searchreq|select|sendindication|sendrrdata|sendunitdata|serialnotify)(?![A-Za-z0-9_-])",
+          "name": "constant.language.frameassembly"
+        },
+        {
+          "match": "(?<![A-Za-z0-9_-])(?:serialquery|serverhello|serverstart|sessiondeletionrequest|sessiondeletionresponse|sessionestablishmentrequest|sessionestablishmentresponse|sessionmodificationrequest|sessionmodificationresponse|sessionsetup|set|settings|setup|setupresponse|sframe|sha|sha256|sha384)(?![A-Za-z0-9_-])",
+          "name": "constant.language.frameassembly"
+        },
+        {
+          "match": "(?<![A-Za-z0-9_-])(?:sha512|short|shutdown|shutdownack|shutdowncomplete|simulation|solicit|sr|start|startack|startdt|startsessions|starttone|statsreport|stopccn|stopdt|stopsessions|stoptone)(?![A-Za-z0-9_-])",
+          "name": "constant.language.frameassembly"
+        },
+        {
+          "match": "(?<![A-Za-z0-9_-])(?:string|suback|subscribe|subscribeack|syn|sync|szl|teardown|terminate|termination|testfr|tgsrep|tgsreq|timeexceeded|timeticks|trap|treeconnect|treedisconnect)(?![A-Za-z0-9_-])",
+          "name": "constant.language.frameassembly"
+        },
+        {
+          "match": "(?<![A-Za-z0-9_-])(?:udpassociate|uecontextreleasecommand|uecontextreleasecomplete|unbindreq|unregistersession|unsolicitedresponse|update|uplinknastransport|urg|us|v1|v2|v3|v4|v6|vehicleeid|vehicleid|vehiclevin)(?![A-Za-z0-9_-])",
+          "name": "constant.language.frameassembly"
+        },
+        {
+          "match": "(?<![A-Za-z0-9_-])(?:windowupdate|withdraw|write|writemultipleregisters|writesinglecoil|writesingleregister|wrq|x224cc|x224cr|zerortt)(?![A-Za-z0-9_-])",
           "name": "constant.language.frameassembly"
         }
       ]
@@ -127,91 +185,131 @@
     "properties": {
       "patterns": [
         {
-          "match": "\\b(acknum|actorkey|actorport|actorstate|actorsys|addr|advint|agentip|alpn|ansttl|app|area|areaid|arg|args|asn)\\b",
+          "match": "(?<![A-Za-z0-9_-])(?:accookie|acknum|acks|acname|actorkey|actorport|actorstate|actorsys|addr|adp|advint|agentip|alpn|amfueid|an|ansttl|apikey|apn)(?![A-Za-z0-9_-])",
           "name": "support.type.property-name.frameassembly"
         },
         {
-          "match": "\\b(auth|authok|banner|basedn|bgpid|binary|block|body|bos|bridgeid|callid|cas|chaddr|channel|chassisid|checksum)\\b",
+          "match": "(?<![A-Za-z0-9_-])(?:app|appid|area|areaid|arg|args|asn|auth|authok|badchecksum|badfcs|badipchecksum|banner|basedn|bgpid|binary|block|body)(?![A-Za-z0-9_-])",
           "name": "support.type.property-name.frameassembly"
         },
         {
-          "match": "\\b(chunk|chunktype|ciaddr|cipattr|cipclass|ciphersuite|cipinstance|cipservice|clientid|clockid|cmd|cname|code|command|commandcomplete|community)\\b",
+          "match": "(?<![A-Za-z0-9_-])(?:bos|bridgeid|button|ca|calledap|calledid|calledparty|callid|callingap|callingid|callingparty|callref|capabilities|capability|cas|cause|chaddr|channel)(?![A-Za-z0-9_-])",
           "name": "support.type.property-name.frameassembly"
         },
         {
-          "match": "\\b(compound|confirm|contact|contentformat|contenttype|context|contextname|cost|count|counter|crc|create|cseq|db|dbnum|dcid)\\b",
+          "match": "(?<![A-Za-z0-9_-])(?:chassisid|checksum|chunk|chunktype|ciaddr|cipattr|cipclass|ciphersuite|cipinstance|cipservice|circuittype|clientid|clockid|cmd|cmdsn|cname|code|collection)(?![A-Za-z0-9_-])",
           "name": "support.type.property-name.frameassembly"
         },
         {
-          "match": "\\b(deadinterval|dei|df|diag|dnsserver|do|domain|domainid|dont|dpid|drpriority|dscp|dst|dstip|dstmac|dstport)\\b",
+          "match": "(?<![A-Za-z0-9_-])(?:command|commandcomplete|comment|community|compound|confirm|confrev|connid|contact|contentformat|contenttype|context|contextname|correlationid|cos|cost|cot|count)(?![A-Za-z0-9_-])",
           "name": "support.type.property-name.frameassembly"
         },
         {
-          "match": "\\b(eapcode|eapid|eapmethod|eappacket|ecn|endpointurl|engineboots|engineid|enginetime|enterprise|eof|errcode|errmsg|errorresponse|ethertype|etype)\\b",
+          "match": "(?<![A-Za-z0-9_-])(?:counter|crc|create|criticality|cseq|ctxid|cycle|da1|da2|datastatus|datset|db|dbnum|dcid|deadinterval|dei|desktop|destqp)(?![A-Za-z0-9_-])",
           "name": "support.type.property-name.frameassembly"
         },
         {
-          "match": "\\b(exchange|exp|exptime|facility|filename|filter|finbit|flags|flowlabel|forwarddelay|fragoffset|framedip|from|func|gateway|gentrap)\\b",
+          "match": "(?<![A-Za-z0-9_-])(?:device|deviceid|devicename|df|diag|direction|dna|dnsserver|do|domain|domainid|dont|dpid|drpriority|dscp|dst|dsthost|dstip)(?![A-Za-z0-9_-])",
           "name": "support.type.property-name.frameassembly"
         },
         {
-          "match": "\\b(greeting|grekey|greproto|greseq|group|grpcstatus|handshakeversion|header|hellointerval|hellotime|hexpayload|holdtime|hosthdr|hostname|icv|id)\\b",
+          "match": "(?<![A-Za-z0-9_-])(?:dstmac|dstport|dstrealm|eapcode|eapid|eapmethod|eappacket|ecn|edclass|eid|enable|enbid|enbname|enbueid|endcode|endid|endpoint|endpointip)(?![A-Za-z0-9_-])",
           "name": "support.type.property-name.frameassembly"
         },
         {
-          "match": "\\b(identity|initiatorspi|innervlan|invokeid|ip|ipid|isresponse|iv|kexinit|key|label|leasetime|li|location|login|mac)\\b",
+          "match": "(?<![A-Za-z0-9_-])(?:endpointport|endpointurl|engineboots|engineid|enginetime|enterprise|eof|epsemctrl|errcode|errmsg|errorestimate|errorresponse|ethertype|etype|exchange|exp|expire|exptime)(?![A-Za-z0-9_-])",
           "name": "support.type.property-name.frameassembly"
         },
         {
-          "match": "\\b(mailfrom|man|marker|maskkey|maxage|maxrepetitions|maxresp|maxrespdelay|method|metric|mf|minrx|mintx|mode|mplsttl|msg)\\b",
+          "match": "(?<![A-Za-z0-9_-])(?:facility|fcs|filename|filter|finbit|flags|flowlabel|forwarddelay|forwarder|fracsec|fraction|fragoffset|framedip|frameid|from|func|gateway|gentrap)(?![A-Za-z0-9_-])",
           "name": "support.type.property-name.frameassembly"
         },
         {
-          "match": "\\b(msgcode|msgid|msgtype|mss|mult|multicastaddr|mx|mydisc|nasip|newkeys|nextheader|nexthop|nextpayload|nlri|nodeid|nonrepeaters)\\b",
+          "match": "(?<![A-Za-z0-9_-])(?:gid|gnbid|gocbref|goid|greeting|grekey|greproto|greseq|group|grpcstatus|handshakeversion|header|height|hellointerval|hellotime|hexpayload|holdtime|hopid)(?![A-Za-z0-9_-])",
           "name": "support.type.property-name.frameassembly"
         },
         {
-          "match": "\\b(nt|nts|objectinstance|objecttype|octets|offset|oid|opaque|opcode|optclass|option|opttype|packets|param|partnerkey|partnerport)\\b",
+          "match": "(?<![A-Za-z0-9_-])(?:hosthdr|hostname|hostuniq|icf|icv|id|identity|idx|ifacever|iid|imsi|index|initiator|initiatorspi|innerdscp|innerttl|innervlan|instanceid)(?![A-Za-z0-9_-])",
           "name": "support.type.property-name.frameassembly"
         },
         {
-          "match": "\\b(partnerstate|partnersys|path|payload|pcp|pduref|pktid|pktnum|pkttype|plccontrol|poll|portid|ppid|precision|prefix|pri)\\b",
+          "match": "(?<![A-Za-z0-9_-])(?:invokeid|invversion|io|ioa|ip|ipid|irq|isresponse|item|itt|iv|jitter|join|kexinit|key|label|labelspace|lanid)(?![A-Za-z0-9_-])",
           "name": "support.type.property-name.frameassembly"
         },
         {
-          "match": "\\b(priority|priv|proc|procid|propertyid|proto|protocolheader|protocoltype|protoid|pt|qname|qos|qtype|rcode|rcptto|rdata)\\b",
+          "match": "(?<![A-Za-z0-9_-])(?:leasetime|li|lifetime|line|localopts|location|login|lost|lspid|lsrid|lun|mac|mailfrom|majorver|man|marker|maskkey|maxage)(?![A-Za-z0-9_-])",
           "name": "support.type.property-name.frameassembly"
         },
         {
-          "match": "\\b(readproperty|readvar|readyforquery|realm|reason|receiver|recordversion|refid|registrar|replytype|reqid|responderspi|resultcode|retain|returncode|rootid)\\b",
+          "match": "(?<![A-Za-z0-9_-])(?:maxlen|maxrepetitions|maxresp|maxrespdelay|mdtype|mediaport|method|methodid|metric|mf|minorver|minrx|mintx|mmeueid|mode|mplsttl|msg|msgcode)(?![A-Za-z0-9_-])",
           "name": "support.type.property-name.frameassembly"
         },
         {
-          "match": "\\b(rosctr|router|routerid|routerlifetime|routingkey|rp|sackperm|samples|scid|securechannelid|sender|senderip|sendermac|seq|seqid|seqnum)\\b",
+          "match": "(?<![A-Za-z0-9_-])(?:msgid|msgtype|mss|mult|multicastaddr|mx|mydisc|nasip|naspdu|nativevlan|nbtype|netfn|network|newkeys|nextheader|nexthop|nextpayload|nextproto)(?![A-Za-z0-9_-])",
           "name": "support.type.property-name.frameassembly"
         },
         {
-          "match": "\\b(serverversion|service|servicetype|session|sessionhandle|sessionid|setupcomm|severity|share|siaddr|slla|sname|sni|software|source|spa)\\b",
+          "match": "(?<![A-Za-z0-9_-])(?:nick|nlri|nochecksum|nodeid|nonce|nonrepeaters|npdu|nr|nsid|nt|nts|numdatsetentries|objectinstance|objecttype|octets|offset|oid|opaque)(?![A-Za-z0-9_-])",
           "name": "support.type.property-name.frameassembly"
         },
         {
-          "match": "\\b(spectrap|spi|sql|src|srcip|srcmac|srcport|ssn|ssrc|st|startup|state|status|stratum|stream|streamid)\\b",
+          "match": "(?<![A-Za-z0-9_-])(?:opcode|operation|opnum|optclass|option|opttype|originhost|ownerid|packets|padding|param|partition|partnerkey|partnerport|partnerstate|partnersys|password|path)(?![A-Za-z0-9_-])",
           "name": "support.type.property-name.frameassembly"
         },
         {
-          "match": "\\b(subagentid|subnetmask|sysdesc|sysname|sysuptime|tableid|tag|target|targetip|targetmac|tc|text|tha|timestamp|tlla|to)\\b",
+          "match": "(?<![A-Za-z0-9_-])(?:payload|pc|pcp|pduref|peerip|peertype|pkey|pktid|pktnum|pkttype|platform|plccontrol|plmn|pn|poll|port|portid|ppid)(?![A-Za-z0-9_-])",
           "name": "support.type.property-name.frameassembly"
         },
         {
-          "match": "\\b(token|tokenid|topic|tpa|transport|transporthdr|treeid|tsecr|tsn|tsval|ttl|txid|txtimestamp|type|unitid|uptime)\\b",
+          "match": "(?<![A-Za-z0-9_-])(?:pppproto|precision|prefix|pri|priority|priv|privmsg|proc|proccode|procid|propertyid|proto|protocolheader|protocoltype|protoid|protover|pt|q0)(?![A-Za-z0-9_-])",
           "name": "support.type.property-name.frameassembly"
         },
         {
-          "match": "\\b(urgent|uri|uripath|user|useragent|usn|value|varbind|variation|vers|version|via|vip|vn|vni|vnid)\\b",
+          "match": "(?<![A-Za-z0-9_-])(?:q1|q2|q3|q4|q5|q6|q7|qfi|qid|qname|qos|qtype|quanta|ranname|ranueid|rasaddr|rat|rcode)(?![A-Za-z0-9_-])",
           "name": "support.type.property-name.frameassembly"
         },
         {
-          "match": "\\b(vrid|vtag|wait|will|win|window|wont|writeproperty|writevar|wscale|xid|xormappedaddr|yiaddr|yourdisc)\\b",
+          "match": "(?<![A-Za-z0-9_-])(?:rcptto|rdata|readproperty|readvar|readyforquery|real|realm|reason|receiver|recordversion|recovery|refid|refresh|registrar|replytype|reqid|requestedtransport|responderspi)(?![A-Za-z0-9_-])",
+          "name": "support.type.property-name.frameassembly"
+        },
+        {
+          "match": "(?<![A-Za-z0-9_-])(?:responseto|resultcode|retain|returncode|rloc|rootid|rosctr|router|routeralert|routerid|routerlifetime|routingkey|rp|rqseq|rxseq|sa1|sa2|sackblock)(?![A-Za-z0-9_-])",
+          "name": "support.type.property-name.frameassembly"
+        },
+        {
+          "match": "(?<![A-Za-z0-9_-])(?:sackperm|samples|sci|scid|scope|scopes|sdservice|sdttl|securechannelid|securitytype|segleft|seid|sender|senderip|sendermac|senderttl|seq|seqid)(?![A-Za-z0-9_-])",
+          "name": "support.type.property-name.frameassembly"
+        },
+        {
+          "match": "(?<![A-Za-z0-9_-])(?:seqnum|serial|serverversion|service|serviceid|servicename|servicetype|session|sessionhandle|sessionid|setupcomm|severity|share|si|siaddr|sid|sl|slla)(?![A-Za-z0-9_-])",
+          "name": "support.type.property-name.frameassembly"
+        },
+        {
+          "match": "(?<![A-Za-z0-9_-])(?:smpcnt|smprate|smpsynch|sna|sname|sni|software|source|spa|spectrap|spi|spid|sql|sqnum|src|srcip|srcmac|srcport)(?![A-Za-z0-9_-])",
+          "name": "support.type.property-name.frameassembly"
+        },
+        {
+          "match": "(?<![A-Za-z0-9_-])(?:ssn|ssrc|st|startup|state|station|statsn|status|stnum|stratum|stream|streamid|subagentid|subcmd|subnetmask|svid|swversion|sysdesc)(?![A-Za-z0-9_-])",
+          "name": "support.type.property-name.frameassembly"
+        },
+        {
+          "match": "(?<![A-Za-z0-9_-])(?:sysid|sysname|sysuptime|tableid|tac|tag|target|targetip|targetmac|targetport|tc|tci|tcpmd5|teid|text|tfo|tha|timeout)(?![A-Za-z0-9_-])",
+          "name": "support.type.property-name.frameassembly"
+        },
+        {
+          "match": "(?<![A-Za-z0-9_-])(?:timer|timestamp|timetolive|tlla|to|token|tokenid|tone|topic|tpa|transferstatus|transport|transporthdr|treeid|tsecr|tsn|tsval|ttl)(?![A-Za-z0-9_-])",
+          "name": "support.type.property-name.frameassembly"
+        },
+        {
+          "match": "(?<![A-Za-z0-9_-])(?:tunnelid|txid|txseq|txtimestamp|type|typeid|types|udpsize|unitid|uptime|urgent|uri|uripath|user|useragent|usn|uuid|value)(?![A-Za-z0-9_-])",
+          "name": "support.type.property-name.frameassembly"
+        },
+        {
+          "match": "(?<![A-Za-z0-9_-])(?:varbind|variation|vers|version|via|vid|vin|vip|vmac|vn|vni|vnid|vrid|vtag|wait|weight|width|will)(?![A-Za-z0-9_-])",
+          "name": "support.type.property-name.frameassembly"
+        },
+        {
+          "match": "(?<![A-Za-z0-9_-])(?:win|window|wkc|wont|workstation|writeproperty|writevar|wscale|xaddrs|xid|xormappedaddr|xorpeeraddr|xorrelayedaddr|xpos|yiaddr|yourdisc|ypos)(?![A-Za-z0-9_-])",
           "name": "support.type.property-name.frameassembly"
         }
       ]
@@ -223,34 +321,35 @@
     "numbers": {
       "patterns": [
         {
-          "match": "\\b(?:([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}|([0-9a-fA-F]{2}-){5}[0-9a-fA-F]{2}|[0-9a-fA-F]{4}\\.[0-9a-fA-F]{4}\\.[0-9a-fA-F]{4})\\b",
+          "match": "(?<![A-Za-z0-9_-])(?:(?:[0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}|(?:[0-9a-fA-F]{2}-){5}[0-9a-fA-F]{2}|[0-9a-fA-F]{4}\\.[0-9a-fA-F]{4}\\.[0-9a-fA-F]{4})(?![A-Za-z0-9_-])",
           "name": "constant.numeric.mac.frameassembly"
         },
         {
-          "match": "(?:::|::[0-9a-fA-F:.]+|\\b[0-9a-fA-F]{1,4}(:[0-9a-fA-F:.]+)+)",
+          "match": "(?<![A-Za-z0-9_-])(?:(?:[0-9a-fA-F]{1,4}(?::[0-9a-fA-F:.]+)+)|::[0-9a-fA-F:.]*)(?![A-Za-z0-9_-])",
           "name": "constant.numeric.ipv6.frameassembly"
         },
         {
-          "match": "\\b[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+\\b",
+          "match": "(?<![A-Za-z0-9_.-])[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+(?![A-Za-z0-9_.-])",
           "name": "constant.numeric.ip.frameassembly"
         },
         {
-          "match": "\\b0[xX][0-9a-fA-F]+\\b",
+          "match": "(?<![A-Za-z0-9_-])0[xX][0-9a-fA-F]+(?![A-Za-z0-9_-])",
           "name": "constant.numeric.hex.frameassembly"
         },
         {
-          "match": "(?:\\B\\.|\\b)[0-9]+(?:\\.[0-9]+)+",
+          "match": "(?<![A-Za-z0-9_.-])(?:\\.[0-9]+(?:\\.[0-9]+)*|[0-9]+(?:\\.[0-9]+)+)(?![A-Za-z0-9_.-])",
           "name": "constant.numeric.oid.frameassembly"
         },
         {
-          "match": "\\b[0-9]+(ns|us|ms|s|m)\\b",
+          "match": "(?<![A-Za-z0-9_-])[0-9]+(?:ns|us|ms|s|m)(?![A-Za-z0-9_-])",
           "name": "constant.numeric.duration.frameassembly"
         },
         {
-          "match": "-?\\b[0-9]+\\b",
+          "match": "(?<![A-Za-z0-9_-])-?[0-9]+(?![A-Za-z0-9_-])",
           "name": "constant.numeric.integer.frameassembly"
         }
       ]
     }
-  }
+  },
+  "scopeName": "source.frameassembly"
 }

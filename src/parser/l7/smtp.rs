@@ -2,9 +2,9 @@
 //!
 //! This module implements the `winnow` parser combinator for RFC 5321 `smtp` mail submission and
 //! relay exchanges in FrameAssembly `.frasm` specifications. It recognizes the `smtp` protocol
-//! keyword, shorthand command verbs (`ehlo`, `helo`, `mailfrom`, `rcptto`, `quit` with optional
-//! inline string parameters), explicit `cmd` and `param` attributes, 3-digit server status codes
-//! (`code`), reply strings (`reply`), and message `body` content.
+//! keyword, shorthand command verbs (`ehlo`, `helo`, `mailfrom`, `rcptto`, `data`, `quit` with
+//! optional inline string parameters), explicit `cmd` and `param` attributes, 3-digit server status
+//! codes (`code`), reply strings (`reply`), and message `body` content.
 
 use winnow::ModalResult as PResult;
 use winnow::combinator::{alt, cut_err};
@@ -44,6 +44,8 @@ pub(crate) fn parse_smtp_field<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<Pa
                 .map(|(_, s)| ParsedField::L7StringField("CMD", "MAIL FROM", (s.start, s.len()))),
             tag(Token::RcptTo)
                 .map(|(_, s)| ParsedField::L7StringField("CMD", "RCPT TO", (s.start, s.len()))),
+            tag(Token::Data)
+                .map(|(_, s)| ParsedField::L7StringField("CMD", "DATA", (s.start, s.len()))),
             tag(Token::Quit)
                 .map(|(_, s)| ParsedField::L7StringField("CMD", "QUIT", (s.start, s.len()))),
         )),

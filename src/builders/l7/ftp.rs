@@ -11,27 +11,35 @@ use crate::ast::*;
 use crate::builders::WireContext;
 use alloc::vec::Vec;
 
+/// Returns `true` when the resolved source port identifies an FTP server control endpoint.
+fn is_ftp_server_src(ctx: &WireContext) -> bool {
+    (matches!(ctx.src_port, 21 | 2121) && !matches!(ctx.dst_port, 21 | 2121))
+        || (ctx.src_port < 1024 && ctx.dst_port >= 1024)
+}
+
 /// Builds an RFC 959 FTP command or reply string.
 /// Syntax mapping: `ftp [cmd <str>] [arg <str>] [code <u16>] [reply <str>]`
 #[doc(alias = "FTP")]
 #[doc(alias = "RFC959")]
 #[doc(alias = "RFC2428")]
 pub fn build_ftp_payload(
-    _ctx: &WireContext,
+    ctx: &WireContext,
     spec: &FtpSpec,
     payload_bytes: &[u8],
 ) -> Vec<u8> {
     let formatted = if spec.code.is_some() || spec.reply.is_some() {
         let code = spec.code.unwrap_or(220);
         let reply = spec.reply.unwrap_or("Service ready");
-        format!("{} {}\r\n", code, reply)
+        format!("{code} {reply}\r\n")
     } else if spec.cmd.is_some() || spec.arg.is_some() {
         let cmd = spec.cmd.unwrap_or("USER");
         if let Some(arg) = spec.arg {
-            format!("{} {}\r\n", cmd, arg)
+            format!("{cmd} {arg}\r\n")
         } else {
-            format!("{}\r\n", cmd)
+            format!("{cmd}\r\n")
         }
+    } else if is_ftp_server_src(ctx) {
+        "220 Service ready\r\n".to_string()
     } else {
         "USER anonymous\r\n".to_string()
     };

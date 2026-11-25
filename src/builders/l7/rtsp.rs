@@ -26,30 +26,42 @@ pub fn build_rtsp_payload(
     let mut out = String::new();
 
     if let Some(status) = spec.status {
-        out.push_str(&format!("RTSP/1.0 {} OK\r\nCSeq: {}\r\n", status, cseq));
+        let reason = match status {
+            200 => "OK",
+            400 => "Bad Request",
+            404 => "Not Found",
+            454 => "Session Not Found",
+            500 => "Internal Server Error",
+            _ => "OK",
+        };
+        out.push_str(&format!("RTSP/1.0 {status} {reason}\r\nCSeq: {cseq}\r\n"));
         if let Some(sess) = spec.session {
-            out.push_str(&format!("Session: {}\r\n", sess));
+            out.push_str(&format!("Session: {sess}\r\n"));
         }
         if let Some(trans) = spec.transport_hdr {
-            out.push_str(&format!("Transport: {}\r\n", trans));
+            out.push_str(&format!("Transport: {trans}\r\n"));
         }
-        out.push_str("\r\n");
     } else {
         let method = spec.method.unwrap_or("OPTIONS");
         let uri = spec.uri.unwrap_or("rtsp://localhost/live");
-        out.push_str(&format!("{} {} RTSP/1.0\r\nCSeq: {}\r\n", method, uri, cseq));
+        out.push_str(&format!("{method} {uri} RTSP/1.0\r\nCSeq: {cseq}\r\n"));
         if let Some(sess) = spec.session {
-            out.push_str(&format!("Session: {}\r\n", sess));
+            out.push_str(&format!("Session: {sess}\r\n"));
         }
         if let Some(trans) = spec.transport_hdr {
-            out.push_str(&format!("Transport: {}\r\n", trans));
+            out.push_str(&format!("Transport: {trans}\r\n"));
+        } else if method.eq_ignore_ascii_case("SETUP") {
+            out.push_str("Transport: RTP/AVP;unicast;client_port=8000-8001\r\n");
         }
-        out.push_str("\r\n");
     }
 
-    let mut bytes = out.into_bytes();
     if !payload_bytes.is_empty() {
+        out.push_str(&format!("Content-Length: {}\r\n\r\n", payload_bytes.len()));
+        let mut bytes = out.into_bytes();
         bytes.extend_from_slice(payload_bytes);
+        bytes
+    } else {
+        out.push_str("\r\n");
+        out.into_bytes()
     }
-    bytes
 }

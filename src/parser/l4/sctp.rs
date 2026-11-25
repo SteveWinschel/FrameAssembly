@@ -50,6 +50,9 @@ pub(crate) fn parse_sctp_field<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<Pa
                 .map(|(_, s)| ParsedField::Chunk("SHUTDOWN".to_string(), (s.start, s.len()))),
             tag(Token::ShutdownAck)
                 .map(|(_, s)| ParsedField::Chunk("SHUTDOWN_ACK".to_string(), (s.start, s.len()))),
+            tag(Token::ShutdownComplete).map(|(_, s)| {
+                ParsedField::Chunk("SHUTDOWN_COMPLETE".to_string(), (s.start, s.len()))
+            }),
             tag(Token::CookieEcho)
                 .map(|(_, s)| ParsedField::Chunk("COOKIE_ECHO".to_string(), (s.start, s.len()))),
             tag(Token::CookieAck)

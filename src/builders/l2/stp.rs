@@ -13,7 +13,7 @@
 use crate::ast::*;
 use crate::builders::WireContext;
 use crate::error::CompilerError;
-use crate::packet::build_ethernet_and_l2;
+use crate::packet::build_ieee8023_llc_frame;
 use alloc::vec::Vec;
 
 /// Parses a bridge or root identifier string into an 8-byte IEEE 802.1D Bridge ID (`2B Priority + 6B MAC`).
@@ -152,17 +152,23 @@ pub fn build_stp_frame(
 
     bpdu.extend_from_slice(payload);
 
-    // IEEE 802.3 LLC Framing: DSAP 0x42, SSAP 0x42, Control 0x03
-    let mut llc_packet = Vec::with_capacity(3 + bpdu.len());
-    llc_packet.push(0x42);
-    llc_packet.push(0x42);
-    llc_packet.push(0x03);
-    llc_packet.extend_from_slice(&bpdu);
-
-    // 802.3 Length field
-    let length_field = llc_packet.len() as u16;
+    // IEEE 802.3 LLC Framing requires total length (3B LLC + BPDU) <= 1500 bytes
+    let llc_len = 3usize.saturating_add(bpdu.len());
+    if llc_len > 1500 {
+        return Err(CompilerError::BackendError(alloc::format!(
+            "IEEE 802.3 STP LLC length ({llc_len} bytes) exceeds 1500-byte maximum"
+        )));
+    }
     let dst_mac = ctx.l2.dst_mac.unwrap_or([0x01, 0x80, 0xc2, 0x00, 0x00, 0x00]);
 
-    Ok(build_ethernet_and_l2(ctx.src_mac, dst_mac, ctx.l2, length_field, &llc_packet))
+    Ok(build_ieee8023_llc_frame(
+        ctx.src_mac,
+        dst_mac,
+        ctx.l2,
+        0x42,
+        0x42,
+        0x03,
+        &bpdu,
+    ))
 }
 

@@ -9,7 +9,7 @@
 //! `Next Hop` (`nexthop`), and 32-bit hop-count `Metric` (`metric`, `1..=16` where `16` = infinity).
 //!
 //! Canonical `.frasm` syntax:
-//! `a -> b rip [request | response] [prefix <ip>] [metric <1..16>] [nexthop <ip>] [tag <u16>]`
+//! `a -> b rip [request | response | command <str|u8>] [prefix <ip>] [metric <1..16>] [nexthop <ip>] [tag <u16>]`
 
 use core::marker::PhantomData;
 use core::net::IpAddr;
@@ -26,7 +26,7 @@ pub enum RipCommand {
 
 /// Routing Information Protocol (RFC 2453 RIPv2 / RFC 2080 RIPng) specification over UDP `520` / `521`.
 ///
-/// Syntax mapping: `rip [request | response] [prefix <ip>] [metric <1..16>] [nexthop <ip>] [tag <u16>]`
+/// Syntax mapping: `rip [request | response | command <str|u8>] [prefix <ip>] [metric <1..16>] [nexthop <ip>] [tag <u16>]`
 #[doc(alias = "rip")]
 #[doc(alias = "RIPv2")]
 #[doc(alias = "RIPng")]
@@ -36,6 +36,7 @@ pub enum RipCommand {
 #[doc(alias = "RFC2080")]
 #[doc(alias = "request")]
 #[doc(alias = "response")]
+#[doc(alias = "command")]
 #[doc(alias = "prefix")]
 #[doc(alias = "metric")]
 #[doc(alias = "nexthop")]

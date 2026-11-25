@@ -2,10 +2,12 @@
 //!
 //! This module implements [`build_bacnet_payload`], which serializes a [`BacnetSpec`]
 //! AST specification into an ANSI/ASHRAE 135 BACnet/IP frame over UDP port 47808 (`0xBAC0`). It
-//! builds the APDU for unconfirmed `Who-Is` / `I-Am` or confirmed `ReadProperty` (`0x0C`) /
-//! `WriteProperty` (`0x0F`) services (packing the 32-bit Object Identifier `(object_type << 22) |
-//! instance`, context-tagged Property ID, and application-tagged value), wraps it in a 2-byte NPDU
-//! header, and prepends the 4-byte BVLC header (`0x81`, `0x0A` Unicast or `0x0B` Broadcast, length).
+//! builds the APDU for unconfirmed `Who-Is` / `I-Am`, confirmed `ReadProperty` (`0x0C`) /
+//! `WriteProperty` (`0x0F`), and `Complex-ACK` (`0x30`) services (packing the 32-bit Object
+//! Identifier `(object_type << 22) | instance`, context-tagged Property ID, opening/closing Tag 3
+//! `[3e ... 3f]` value wrappers, and application-tagged Unsigned `0x24` or IEEE-754 Real `0x44`),
+//! wraps it in a 2-byte NPDU header, and prepends the 4-byte BVLC header (`0x81`, `0x0A` Unicast
+//! or `0x0B` Broadcast, length).
 
 use crate::ast::*;
 use crate::builders::WireContext;
@@ -22,6 +24,19 @@ fn push_bacnet_property_id(apdu: &mut Vec<u8>, prop_id: u32) {
     }
 }
 
+/// Encodes Context Tag 3 (`PropertyValue`, `[0x3E ... 0x3F]`) wrapping Application Tag 4 (`0x44` Real) or Tag 2 (`0x24` Unsigned).
+fn push_bacnet_property_value(apdu: &mut Vec<u8>, spec: &BacnetSpec) {
+    apdu.push(0x3E); // Context Tag 3 Opening Tag (PropertyValue)
+    if let Some(real_bits) = spec.real_value {
+        apdu.push(0x44); // Application Tag 4 (Real, len 4)
+        apdu.extend_from_slice(&real_bits.to_be_bytes());
+    } else {
+        apdu.push(0x24); // Application Tag 2 (Unsigned Int, len 4)
+        apdu.extend_from_slice(&spec.value.unwrap_or(0).to_be_bytes());
+    }
+    apdu.push(0x3F); // Context Tag 3 Closing Tag
+}
+
 /// Builds an ANSI/ASHRAE 135 BACnet/IP packet payload with BVLC and NPDU headers.
 pub fn build_bacnet_payload(
     _ctx: &WireContext,
@@ -29,12 +44,30 @@ pub fn build_bacnet_payload(
     payload_bytes: &[u8],
 ) -> Vec<u8> {
     let mut apdu = Vec::new();
+    let has_prop_val = spec.value.is_some() || spec.real_value.is_some();
     let is_write = spec.is_write_property
-        || (spec.value.is_some() && !spec.is_read_property && !spec.is_i_am && !spec.is_who_is);
-    let is_broadcast =
-        spec.is_who_is || (!spec.is_i_am && !spec.is_read_property && !is_write);
+        || (has_prop_val
+            && !spec.is_complex_ack
+            && !spec.is_read_property
+            && !spec.is_i_am
+            && !spec.is_who_is);
+    let is_broadcast = spec.is_who_is
+        || (!spec.is_i_am && !spec.is_read_property && !is_write && !spec.is_complex_ack);
 
-    if is_write {
+    if spec.is_complex_ack {
+        // Complex-ACK APDU (Type 3): ReadProperty-ACK (Service Choice 12)
+        apdu.push(0x30); // PDU Type 3: Complex-ACK
+        apdu.push(spec.invoke_id.unwrap_or(1)); // Invoke ID
+        apdu.push(0x0C); // Service Choice: ReadProperty (12)
+
+        let obj_type = spec.object_type.unwrap_or(8); // Device (8)
+        let obj_inst = spec.object_instance.unwrap_or(1234);
+        let obj_id = ((obj_type as u32) << 22) | (obj_inst & 0x3FFFFF);
+        apdu.push(0x0C); // Context Tag 0 (ObjectIdentifier, len 4)
+        apdu.extend_from_slice(&obj_id.to_be_bytes());
+        push_bacnet_property_id(&mut apdu, spec.property_id.unwrap_or(85)); // 85: Present_Value
+        push_bacnet_property_value(&mut apdu, spec);
+    } else if is_write {
         // Confirmed-Request APDU (Type 0): WriteProperty (Service Choice 15)
         apdu.push(0x00); // PDU Type 0: Confirmed-REQ
         apdu.push(0x05); // Max Seg / Max Resp (1476 octets)
@@ -47,10 +80,7 @@ pub fn build_bacnet_payload(
         apdu.push(0x0C); // Context Tag 0 (ObjectIdentifier, len 4)
         apdu.extend_from_slice(&obj_id.to_be_bytes());
         push_bacnet_property_id(&mut apdu, spec.property_id.unwrap_or(85)); // 85: Present_Value
-        apdu.push(0x3E); // Context Tag 3 Opening Tag (PropertyValue)
-        apdu.push(0x24); // Application Tag 2 (Unsigned Int, len 4)
-        apdu.extend_from_slice(&spec.value.unwrap_or(0).to_be_bytes());
-        apdu.push(0x3F); // Context Tag 3 Closing Tag
+        push_bacnet_property_value(&mut apdu, spec);
     } else if spec.is_read_property {
         // Confirmed-Request APDU (Type 0): ReadProperty (Service Choice 12)
         apdu.push(0x00); // PDU Type 0: Confirmed-REQ
@@ -61,14 +91,11 @@ pub fn build_bacnet_payload(
         let obj_type = spec.object_type.unwrap_or(8); // Device (8)
         let obj_inst = spec.object_instance.unwrap_or(1234);
         let obj_id = ((obj_type as u32) << 22) | (obj_inst & 0x3FFFFF);
-        apdu.extend_from_slice(&[0x0C]); // Context Tag 0 (ObjectIdentifier, len 4)
+        apdu.push(0x0C); // Context Tag 0 (ObjectIdentifier, len 4)
         apdu.extend_from_slice(&obj_id.to_be_bytes());
         push_bacnet_property_id(&mut apdu, spec.property_id.unwrap_or(85)); // 85: Present_Value
-        if let Some(val) = spec.value {
-            apdu.push(0x3E);
-            apdu.push(0x24);
-            apdu.extend_from_slice(&val.to_be_bytes());
-            apdu.push(0x3F);
+        if has_prop_val {
+            push_bacnet_property_value(&mut apdu, spec);
         }
     } else if spec.is_i_am {
         // Unconfirmed-Request APDU (Type 1): I-Am (Service Choice 0)
@@ -82,7 +109,10 @@ pub fn build_bacnet_payload(
         apdu.extend_from_slice(&[0x22, 0x04, 0x00]); // Max APDU length accepted: 1024
         apdu.extend_from_slice(&[0x91, 0x00]); // Segmentation supported: no-segmentation (0)
         apdu.extend_from_slice(&[0x21, 0x01]); // Vendor ID: 1
-        if let Some(val) = spec.value {
+        if let Some(real_bits) = spec.real_value {
+            apdu.push(0x44);
+            apdu.extend_from_slice(&real_bits.to_be_bytes());
+        } else if let Some(val) = spec.value {
             apdu.push(0x24);
             apdu.extend_from_slice(&val.to_be_bytes());
         }
@@ -90,7 +120,10 @@ pub fn build_bacnet_payload(
         // Default: Who-Is Unconfirmed-Request APDU (Type 1): Who-Is (Service Choice 8)
         apdu.push(0x10); // Unconfirmed-REQ
         apdu.push(0x08); // Service Choice: Who-Is (8)
-        if let Some(val) = spec.value {
+        if let Some(real_bits) = spec.real_value {
+            apdu.push(0x44);
+            apdu.extend_from_slice(&real_bits.to_be_bytes());
+        } else if let Some(val) = spec.value {
             apdu.push(0x24);
             apdu.extend_from_slice(&val.to_be_bytes());
         }
@@ -101,7 +134,7 @@ pub fn build_bacnet_payload(
     }
 
     let npdu = [0x01, 0x00]; // Version 1, Control 0 (no network routing)
-    let total_len = (4 + npdu.len() + apdu.len()) as u16;
+    let total_len = u16::try_from(4 + npdu.len() + apdu.len()).unwrap_or(u16::MAX);
 
     let bvlc_func = if is_broadcast {
         0x0B // Original-Broadcast-NPDU

@@ -2,6 +2,9 @@
 
 /**
  * Compiles `.frasm` source into a standards-compliant PCAPNG byte array (`compileFasm` 2.x alias).
+ *
+ * # Errors
+ * Returns a JavaScript `Error` if `source` exceeds [`MAX_WASM_SOURCE_BYTES`] or compilation fails.
  * @param {string} source
  * @returns {Uint8Array}
  */
@@ -19,6 +22,9 @@ export function compileFasm(source) {
 
 /**
  * Compiles `.frasm` source into a standards-compliant PCAPNG byte array (`compileFrasm` alias).
+ *
+ * # Errors
+ * Returns a JavaScript `Error` if `source` exceeds [`MAX_WASM_SOURCE_BYTES`] or compilation fails.
  * @param {string} source
  * @returns {Uint8Array}
  */
@@ -38,7 +44,8 @@ export function compileFrasm(source) {
  * Compiles `.frasm` source into a classic libpcap (`.pcap`) byte array (`compileFrasmToPcap` JS `Uint8Array`).
  *
  * # Errors
- * Returns a JavaScript `JsValue` error if parsing, validation, or serialization fails.
+ * Returns a JavaScript `JsValue` error if `source` exceeds [`MAX_WASM_SOURCE_BYTES`] or if
+ * parsing, validation, or serialization fails.
  * @param {string} source
  * @returns {Uint8Array}
  */
@@ -55,7 +62,10 @@ export function compileFrasmToPcap(source) {
 }
 
 /**
- * Compiles `.frasm` source into a standards-compliant PCAPNG byte array (JS `Uint8Array`).
+ * Compiles `.frasm` source into a standards-compliant PCAPNG byte array (`compile_fasm_to_pcapng` 2.x alias).
+ *
+ * # Errors
+ * Returns a JavaScript `Error` if `source` exceeds [`MAX_WASM_SOURCE_BYTES`] or compilation fails.
  * @param {string} source
  * @returns {Uint8Array}
  */
@@ -75,7 +85,8 @@ export function compile_fasm_to_pcapng(source) {
  * Compiles `.frasm` source into a classic libpcap (`.pcap`) byte array (`compile_frasm_to_pcap` JS alias).
  *
  * # Errors
- * Returns a JavaScript `JsValue` error if parsing, validation, or serialization fails.
+ * Returns a JavaScript `JsValue` error if `source` exceeds [`MAX_WASM_SOURCE_BYTES`] or if
+ * parsing, validation, or serialization fails.
  * @param {string} source
  * @returns {Uint8Array}
  */
@@ -93,6 +104,9 @@ export function compile_frasm_to_pcap(source) {
 
 /**
  * Compiles `.frasm` source into a standards-compliant PCAPNG byte array (JS `Uint8Array`).
+ *
+ * # Errors
+ * Returns a JavaScript `Error` if `source` exceeds [`MAX_WASM_SOURCE_BYTES`] or compilation fails.
  * @param {string} source
  * @returns {Uint8Array}
  */
@@ -110,6 +124,10 @@ export function compile_frasm_to_pcapng(source) {
 
 /**
  * Returns decoded frame metadata for `.frasm` source (`inspectFrasm` camelCase alias).
+ *
+ * # Errors
+ * Returns a JavaScript `Error` if `source` exceeds [`MAX_WASM_SOURCE_BYTES`], compilation fails,
+ * or JS serialization fails.
  * @param {string} source
  * @returns {PacketPreview[]}
  */
@@ -124,7 +142,11 @@ export function inspectFrasm(source) {
 }
 
 /**
- * Returns decoded frame metadata, endpoint/protocol summaries, and hex strings for packet ladder inspectors.
+ * Returns decoded frame metadata, endpoint/protocol summaries, and hex strings (`inspect_fasm` 2.x alias).
+ *
+ * # Errors
+ * Returns a JavaScript `Error` if `source` exceeds [`MAX_WASM_SOURCE_BYTES`], compilation fails,
+ * or JS serialization fails.
  * @param {string} source
  * @returns {PacketPreview[]}
  */
@@ -140,6 +162,10 @@ export function inspect_fasm(source) {
 
 /**
  * Returns decoded frame metadata, endpoint/protocol summaries, and hex strings for `.frasm` source.
+ *
+ * # Errors
+ * Returns a JavaScript `Error` if `source` exceeds [`MAX_WASM_SOURCE_BYTES`], compilation fails,
+ * or JS serialization fails.
  * @param {string} source
  * @returns {PacketPreview[]}
  */
@@ -157,8 +183,8 @@ export function inspect_frasm(source) {
  * Decompiles an in-memory `.pcap` or `.pcapng` capture (`reversePcap` camelCase alias).
  *
  * # Errors
- * Returns a structured `JsValue` error object (`{ success: false, error, message }`) if
- * `pcap_bytes` is not a valid `.pcap` or `.pcapng` capture.
+ * Returns a structured plain `JsValue` error object (`{ success: false, error, message }`) if
+ * `pcap_bytes` exceeds [`MAX_WASM_PCAP_BYTES`] or is not a valid `.pcap` or `.pcapng` capture.
  * @param {Uint8Array | number[]} pcap_bytes
  * @returns {ReversePcapResult}
  */
@@ -177,8 +203,8 @@ export function reversePcap(pcap_bytes) {
  * source code and summary counts (`{ success: true, frasm, fasm, packetCount, hostCount }`).
  *
  * # Errors
- * Returns a structured `JsValue` error object (`{ success: false, error, message }`) if
- * `pcap_bytes` is not a valid `.pcap` or `.pcapng` capture.
+ * Returns a structured plain `JsValue` error object (`{ success: false, error, message }`) if
+ * `pcap_bytes` exceeds [`MAX_WASM_PCAP_BYTES`] or is not a valid `.pcap` or `.pcapng` capture.
  * @param {Uint8Array | number[]} pcap_bytes
  * @returns {ReversePcapResult}
  */
@@ -194,6 +220,9 @@ export function reverse_pcap(pcap_bytes) {
 
 /**
  * Validates `.frasm` source and returns UTF-16 line/column diagnostics (`validateFasm` 2.x alias).
+ *
+ * # Errors
+ * Returns a JavaScript `Error` if diagnostic serialization fails.
  * @param {string} source
  * @returns {IdeDiagnostic[]}
  */
@@ -209,6 +238,9 @@ export function validateFasm(source) {
 
 /**
  * Validates `.frasm` source and returns UTF-16 line/column diagnostics (`validateFrasm` camelCase alias).
+ *
+ * # Errors
+ * Returns a JavaScript `Error` if diagnostic serialization fails.
  * @param {string} source
  * @returns {IdeDiagnostic[]}
  */
@@ -223,7 +255,10 @@ export function validateFrasm(source) {
 }
 
 /**
- * Validates `.frasm` source and returns UTF-16 line/column diagnostics for Monaco, CodeMirror, and VS Code.
+ * Validates `.frasm` source and returns UTF-16 line/column diagnostics (`validate_fasm` 2.x alias).
+ *
+ * # Errors
+ * Returns a JavaScript `Error` if diagnostic serialization fails.
  * @param {string} source
  * @returns {IdeDiagnostic[]}
  */
@@ -239,6 +274,9 @@ export function validate_fasm(source) {
 
 /**
  * Validates `.frasm` source and returns UTF-16 line/column diagnostics for Monaco, CodeMirror, and VS Code.
+ *
+ * # Errors
+ * Returns a JavaScript `Error` if diagnostic serialization fails.
  * @param {string} source
  * @returns {IdeDiagnostic[]}
  */

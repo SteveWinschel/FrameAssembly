@@ -35,6 +35,8 @@ pub(crate) fn parse_ethernetip_field<'i, 'a>(
             tag(Token::ListServices).map(|(_, s)| {
                 ParsedField::L7StringField("CMD", "LIST_SERVICES", (s.start, s.len()))
             }),
+        )),
+        alt((
             tag(Token::RegisterSession).map(|(_, s)| {
                 ParsedField::L7StringField("CMD", "REGISTER_SESSION", (s.start, s.len()))
             }),
@@ -47,10 +49,10 @@ pub(crate) fn parse_ethernetip_field<'i, 'a>(
             tag(Token::SendUnitData).map(|(_, s)| {
                 ParsedField::L7StringField("CMD", "SEND_UNIT_DATA", (s.start, s.len()))
             }),
-        )),
-        alt((
             (tag(Token::Cmd), parse_any_str)
                 .map(|((_, s), v)| ParsedField::L7StringField("CMD", v, (s.start, s.end - s.start))),
+        )),
+        alt((
             (tag(Token::Status), parse_u32).map(|((_, s), v)| {
                 ParsedField::L7U32Field("STATUS", v, (s.start, s.end - s.start))
             }),

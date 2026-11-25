@@ -37,8 +37,8 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-$ReleaseVersion = '3.2.2'
-$VsixVersion = '3.2.2'
+$ReleaseVersion = '3.3.0'
+$VsixVersion = '3.3.0'
 $GitHubReleaseBase = "https://github.com/SteveWinschel/FrameAssembly/releases/download/v$ReleaseVersion"
 $VsixReleaseUrl = "$GitHubReleaseBase/frameassembly-vscode.vsix"
 $VsixRawUrl = "https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/frameassembly-vscode/frameassembly-vscode-$VsixVersion.vsix"

@@ -3,13 +3,51 @@
 //! This module implements [`build_smb_payload`], which constructs a Microsoft `[MS-SMB2]` packet
 //! encapsulated in a 4-byte big-endian NetBIOS Session Service stream header over TCP port 445
 //! (or port 139). It populates the 64-byte little-endian SMB2 header (`\xFESMB` protocol magic,
-//! `StructureSize = 64`, `Status`, `Command` opcode `0x0000..=0x0009`, `Flags`, `MessageId`,
-//! `TreeId`, and `SessionId`) and appends command-specific request/response structures plus UTF-16LE
-//! encoded `share` or `filename` buffers.
+//! `StructureSize = 64`, `Status`, `Command` opcode `0x0000..=0x0011` (`NEGOTIATE`,
+//! `SESSION_SETUP`, `LOGOFF`, `TREE_CONNECT`, `TREE_DISCONNECT`, `CREATE`, `CLOSE`, `READ`,
+//! `WRITE`, `IOCTL`, `ECHO`, or numeric/hex code), `Flags`, `MessageId`, `TreeId`, and
+//! `SessionId`) and appends command-specific request/response structures plus UTF-16LE encoded
+//! `share` or `filename` buffers.
 
 use crate::ast::*;
 use crate::builders::WireContext;
 use alloc::vec::Vec;
+
+/// Resolves an SMB2 command name or decimal/hexadecimal code string to a 16-bit opcode.
+fn parse_smb_command(raw: &str) -> u16 {
+    let trimmed = raw.trim();
+    if let Some(hex) = trimmed
+        .strip_prefix("0x")
+        .or_else(|| trimmed.strip_prefix("0X"))
+        && let Ok(val) = u16::from_str_radix(hex, 16)
+    {
+        return val;
+    }
+    if let Ok(val) = trimmed.parse::<u16>() {
+        return val;
+    }
+    match trimmed.to_ascii_uppercase().replace(['_', '-'], "").as_str() {
+        "NEGOTIATE" => 0x0000,
+        "SESSIONSETUP" => 0x0001,
+        "LOGOFF" => 0x0002,
+        "TREECONNECT" => 0x0003,
+        "TREEDISCONNECT" => 0x0004,
+        "CREATE" => 0x0005,
+        "CLOSE" => 0x0006,
+        "FLUSH" => 0x0007,
+        "READ" => 0x0008,
+        "WRITE" => 0x0009,
+        "LOCK" => 0x000A,
+        "IOCTL" => 0x000B,
+        "CANCEL" => 0x000C,
+        "ECHO" => 0x000D,
+        "QUERYDIRECTORY" => 0x000E,
+        "CHANGENOTIFY" => 0x000F,
+        "QUERYINFO" => 0x0010,
+        "SETINFO" => 0x0011,
+        _ => 0x0000,
+    }
+}
 
 /// Builds an MS-SMB2 Server Message Block packet payload.
 pub fn build_smb_payload(
@@ -24,23 +62,7 @@ pub fn build_smb_payload(
     } else {
         "negotiate"
     };
-    let cmd_norm = spec
-        .command
-        .unwrap_or(default_cmd)
-        .to_ascii_uppercase()
-        .replace(['_', '-'], "");
-    let cmd_code: u16 = match cmd_norm.as_str() {
-        "NEGOTIATE" => 0x0000,
-        "SESSIONSETUP" => 0x0001,
-        "LOGOFF" => 0x0002,
-        "TREECONNECT" => 0x0003,
-        "TREEDISCONNECT" => 0x0004,
-        "CREATE" => 0x0005,
-        "CLOSE" => 0x0006,
-        "READ" => 0x0008,
-        "WRITE" => 0x0009,
-        _ => 0x0000,
-    };
+    let cmd_code = parse_smb_command(spec.command.unwrap_or(default_cmd));
 
     let mut smb_hdr = [0u8; 64];
     smb_hdr[0..4].copy_from_slice(&[0xFE, b'S', b'M', b'B']); // Magic
@@ -101,7 +123,8 @@ pub fn build_smb_payload(
         body.extend_from_slice(&9u16.to_le_bytes()); // StructureSize 9
         body.extend_from_slice(&0u16.to_le_bytes()); // Flags/Reserved
         body.extend_from_slice(&72u16.to_le_bytes()); // PathOffset (64 + 8)
-        body.extend_from_slice(&(utf16.len() as u16).to_le_bytes()); // PathLength
+        let path_len = u16::try_from(utf16.len()).unwrap_or(u16::MAX);
+        body.extend_from_slice(&path_len.to_le_bytes()); // PathLength
         if utf16.is_empty() {
             body.extend_from_slice(&[0, 0]);
         } else {
@@ -123,7 +146,8 @@ pub fn build_smb_payload(
         body.extend_from_slice(&1u32.to_le_bytes()); // CreateDisposition (FILE_OPEN)
         body.extend_from_slice(&0x0000_0040u32.to_le_bytes()); // CreateOptions (Non-Directory)
         body.extend_from_slice(&120u16.to_le_bytes()); // NameOffset (64 + 56)
-        body.extend_from_slice(&(utf16.len() as u16).to_le_bytes()); // NameLength
+        let name_len = u16::try_from(utf16.len()).unwrap_or(u16::MAX);
+        body.extend_from_slice(&name_len.to_le_bytes()); // NameLength
         body.extend_from_slice(&0u32.to_le_bytes()); // CreateContextsOffset
         body.extend_from_slice(&0u32.to_le_bytes()); // CreateContextsLength
         if utf16.is_empty() {
@@ -143,10 +167,31 @@ pub fn build_smb_payload(
         body.extend_from_slice(&4096u32.to_le_bytes()); // Read Length (4096)
         body.extend_from_slice(&[0u8; 41]); // Offset + FileId + MinCount + Channel + Remaining + ChannelInfo + Buffer
     } else if cmd_code == 0x0009 {
-        // WRITE Request (StructureSize 49)
+        // WRITE Request (StructureSize 49 = 48-byte fixed header + variable Buffer)
         body.extend_from_slice(&49u16.to_le_bytes()); // StructureSize 49
         body.extend_from_slice(&112u16.to_le_bytes()); // DataOffset (64 + 48)
-        body.extend_from_slice(&[0u8; 45]); // Length + Offset + FileId + Channel + Remaining + WriteChannelInfo + Flags + Buffer
+        let write_len = u32::try_from(payload_bytes.len()).unwrap_or(u32::MAX);
+        body.extend_from_slice(&write_len.to_le_bytes()); // Length
+        body.extend_from_slice(&[0u8; 40]); // Offset (8) + FileId (16) + Channel (4) + Remaining (4) + WriteChannelInfo (4) + Flags (4)
+        if payload_bytes.is_empty() {
+            body.push(0); // MS-SMB2 minimum 1-byte Buffer when Length == 0
+        }
+    } else if cmd_code == 0x000B {
+        // IOCTL Request (StructureSize 57 = 56-byte fixed header + variable Buffer)
+        body.extend_from_slice(&57u16.to_le_bytes()); // StructureSize 57
+        body.extend_from_slice(&0u16.to_le_bytes()); // Reserved
+        body.extend_from_slice(&0x0014_01FCu32.to_le_bytes()); // CtlCode (FSCTL_SRV_REQUEST_RESUME_KEY)
+        body.extend_from_slice(&[0u8; 16]); // FileId
+        body.extend_from_slice(&120u32.to_le_bytes()); // InputOffset (64 + 56)
+        let input_count = u32::try_from(payload_bytes.len()).unwrap_or(u32::MAX);
+        body.extend_from_slice(&input_count.to_le_bytes()); // InputCount
+        body.extend_from_slice(&[0u8; 24]); // MaxInputResponse + OutputOffset + OutputCount + MaxOutputResponse + Flags + Reserved2
+        if payload_bytes.is_empty() {
+            body.push(0); // Minimum 1-byte Buffer when InputCount == 0
+        }
+    } else if cmd_code == 0x000D {
+        // ECHO Request/Response (StructureSize 4)
+        body.extend_from_slice(&[0x04, 0x00, 0x00, 0x00]);
     }
 
     if cmd_code != 0x0003
@@ -170,7 +215,7 @@ pub fn build_smb_payload(
     }
 
     // Direct TCP NetBIOS Transport header (4 bytes: 0x00 + 3-byte length)
-    let length = body.len() as u32;
+    let length = u32::try_from(body.len()).unwrap_or(0xFF_FFFF).min(0xFF_FFFF);
     let mut pkt = Vec::with_capacity(4 + body.len());
     pkt.push(0);
     pkt.push((length >> 16) as u8);

@@ -2,6 +2,12 @@
 
 All notable changes to the `frameassembly-vscode` extension are documented in this file.
 
+## [3.3.0] - 2026-11-25
+- Expanded syntax highlighting (`syntaxes/frameassembly.tmLanguage.json`) and bundled `frameassembly-wasm` (`3.3.0`) validation with 65 new Layer 2, Layer 3, and Layer 7 protocols, bringing native support from 81 to 146 protocols (`18` L2, `31` L3, `3` L4, `94` L7) plus `repeat` blocks, `fcs`/`badfcs`, `routeralert`, `badipchecksum`, `tcpmd5`, `tfo`, and `comment` metadata.
+- Added a hyphen-aware `wordPattern` to `language-configuration.json` so dashed host identifiers (`fw-dmz-01`) select as whole words without swallowing packet direction arrows (`->`, `<-`).
+- Hardened `extension.js` with a dedicated `FrameAssembly` Output channel for WebAssembly load/validation diagnostics, safe EOF squiggle clamping on empty and non-empty trailing lines, and word-boundary guards on Quick Fix replacements so longer or hyphenated identifiers are never clipped.
+- Bumped extension version to `3.3.0` and synchronized protocol counts and examples across the extension README and manifest.
+
 ## [3.2.2] - 2026-11-23
 - Scoped the Quick Fix code action provider to `FrameAssembly` diagnostics (`diagnostic.source === 'FrameAssembly'`) so external linters are left untouched.
 - Synchronized bundled `frameassembly-wasm` (`3.2.2`) with SNMPv3 RFC 7860 SHA-2 truncated MAC lengths and default documentation fixes, and bumped extension version to `3.2.2`.

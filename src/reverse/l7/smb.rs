@@ -1,10 +1,10 @@
 //! Server Message Block v2/v3 (SMB2, MS-SMB2) Layer 7 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements fuzz-safe wire-to-AST dissection for `smb` packets encapsulated inside
-//! 4-byte NetBIOS Session Service headers (`\x00...\xFESMB`) over TCP (ports `445`, `139`, and
-//! custom ports matching the 64-byte SMB2 header signature). It decodes `negotiate`,
+//! 4-byte NetBIOS Session Service headers (`\x00...\xFESMB`) over TCP and SCTP (ports `445`,
+//! `139`, and custom ports matching the 64-byte SMB2 header signature). It decodes `negotiate`,
 //! `sessionsetup`, `"logoff"`, `treeconnect` (with UTF-16LE `share`), `treedisconnect`, `create`
-//! (with UTF-16LE `filename`), `"close"`, `"read"`, and `"write"` commands into canonical `.frasm` tokens.
+//! (with UTF-16LE `filename`), `"close"`, `"read"`, `"write"`, `"ioctl"`, and `"echo"` commands.
 
 use alloc::format;
 use alloc::string::String;
@@ -13,12 +13,11 @@ use alloc::vec::Vec;
 use crate::ast::{Protocol, TransportProto};
 use crate::reverse::ProtocolDissection;
 
-/// Checks whether `s` can be emitted inside `"..."` for a parser field that uses
-/// `parse_raw_string_lit` (which strips outer quotes without unescaping).
-fn is_valid_raw_str(s: &str) -> bool {
-    !s.contains('"')
-        && s.chars().all(|c| !c.is_control())
-        && (s.bytes().rev().take_while(|&b| b == b'\\').count() % 2 == 0)
+use super::quote_raw_str;
+
+/// Checks whether `s` contains no control characters so it can safely be emitted as a quoted field.
+fn is_printable_smb_str(s: &str) -> bool {
+    s.chars().all(|c| !c.is_control())
 }
 
 /// Decodes a UTF-16LE byte slice into a UTF-8 `String`.
@@ -59,14 +58,14 @@ fn le_u64(b: &[u8], off: usize) -> u64 {
     ])
 }
 
-/// Dissects an `SMB2` packet encapsulated in a 4-byte NetBIOS Session Service header over TCP.
+/// Dissects an `SMB2` packet encapsulated in a 4-byte NetBIOS Session Service header over TCP or SCTP.
 pub(crate) fn dissect_smb(
     transport: TransportProto,
     _src_port: u16,
     _dst_port: u16,
     payload: &[u8],
 ) -> Option<ProtocolDissection> {
-    if !matches!(transport, TransportProto::Tcp)
+    if !matches!(transport, TransportProto::Tcp | TransportProto::Sctp)
         || payload.len() < 68
         || payload[0] != 0x00
         || &payload[4..8] != b"\xFESMB"
@@ -137,7 +136,7 @@ pub(crate) fn dissect_smb(
             } else {
                 decode_utf16le(&body[8..8 + path_len])?
             };
-            if !is_valid_raw_str(&s) {
+            if !is_printable_smb_str(&s) {
                 return None;
             }
             share_opt = Some(s);
@@ -163,7 +162,7 @@ pub(crate) fn dissect_smb(
             } else {
                 decode_utf16le(&body[56..56 + name_len])?
             };
-            if !is_valid_raw_str(&f) {
+            if !is_printable_smb_str(&f) {
                 return None;
             }
             file_opt = Some(f);
@@ -187,14 +186,52 @@ pub(crate) fn dissect_smb(
             residual = &body[49..];
         }
         0x0009 => {
-            if body.len() < 49
+            if body.len() < 48
                 || &body[0..4] != b"\x31\x00\x70\x00"
-                || body[4..49].iter().any(|&b| b != 0)
+                || body[8..48].iter().any(|&b| b != 0)
             {
                 return None;
             }
+            let write_len = le_u32(body, 4) as usize;
             tokens.push_str(" command \"write\"");
-            residual = &body[49..];
+            if write_len == 0 {
+                if body.len() < 49 || body[48] != 0 {
+                    return None;
+                }
+                residual = &body[49..];
+            } else {
+                if body.len() != 48usize.checked_add(write_len)? {
+                    return None;
+                }
+                residual = &body[48..];
+            }
+        }
+        0x000B => {
+            if body.len() < 56
+                || &body[0..8] != b"\x39\x00\x00\x00\xFC\x01\x14\x00"
+                || body[8..24].iter().any(|&b| b != 0)
+                || &body[24..28] != b"\x78\x00\x00\x00"
+                || body[32..56].iter().any(|&b| b != 0)
+            {
+                return None;
+            }
+            let input_count = le_u32(body, 28) as usize;
+            tokens.push_str(" command \"ioctl\"");
+            if input_count == 0 {
+                if body.len() < 57 || body[56] != 0 {
+                    return None;
+                }
+                residual = &body[57..];
+            } else {
+                if body.len() != 56usize.checked_add(input_count)? {
+                    return None;
+                }
+                residual = &body[56..];
+            }
+        }
+        0x000D => {
+            tokens.push_str(" command \"echo\"");
+            residual = body.strip_prefix(&[0x04, 0x00, 0x00, 0x00])?;
         }
         _ => return None,
     }
@@ -216,12 +253,12 @@ pub(crate) fn dissect_smb(
     if let Some(sh) = share_opt.as_deref()
         && sh != "\\\\localhost\\IPC$"
     {
-        tokens.push_str(&format!(" share \"{sh}\""));
+        tokens.push_str(&format!(" share \"{}\"", quote_raw_str(sh)));
     }
     if let Some(fl) = file_opt.as_deref()
         && fl != "file.txt"
     {
-        tokens.push_str(&format!(" filename \"{fl}\""));
+        tokens.push_str(&format!(" filename \"{}\"", quote_raw_str(fl)));
     }
 
     Some(ProtocolDissection {

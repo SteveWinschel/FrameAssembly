@@ -16,6 +16,25 @@
 use crate::ast::*;
 use alloc::vec::Vec;
 
+/// Generates a deterministic non-zero byte sequence of length `N` seeded by `seed`.
+fn deterministic_non_zero<const N: usize>(seed: u8) -> [u8; N] {
+    let mut out = [0u8; N];
+    let mut i = 0usize;
+    while i < N {
+        out[i] = seed.wrapping_add((i as u8).wrapping_mul(17)) | 1;
+        i += 1;
+    }
+    out
+}
+
+/// Generates a deterministic valid clamped Curve25519 public key for WireGuard handshakes.
+fn deterministic_curve25519_key(seed: u8) -> [u8; 32] {
+    let mut key = deterministic_non_zero::<32>(seed);
+    key[0] &= 0xF8;
+    key[31] = (key[31] & 0x7F) | 0x40;
+    key
+}
+
 /// Builds a WireGuard packet payload and returns `(bytes, 51820)` for UDP encapsulation.
 pub fn build_wireguard_payload(spec: &WireguardSpec, payload: &[u8]) -> (Vec<u8>, u16) {
     let msg_type = spec.msg_type.unwrap_or(WireguardType::Initiation);
@@ -28,11 +47,11 @@ pub fn build_wireguard_payload(spec: &WireguardSpec, payload: &[u8]) -> (Vec<u8>
             wg.extend_from_slice(&[0, 0, 0]); // Reserved
             let sender = spec.sender.unwrap_or(1);
             wg.extend_from_slice(&sender.to_le_bytes());
-            wg.extend_from_slice(&[0u8; 32]); // Ephemeral key
-            wg.extend_from_slice(&[0u8; 48]); // Encrypted static
-            wg.extend_from_slice(&[0u8; 28]); // Encrypted timestamp
-            wg.extend_from_slice(&[0u8; 16]); // MAC1
-            wg.extend_from_slice(&[0u8; 16]); // MAC2
+            wg.extend_from_slice(&deterministic_curve25519_key(0x21)); // 32B Ephemeral key
+            wg.extend_from_slice(&deterministic_non_zero::<48>(0x43)); // 48B Encrypted static
+            wg.extend_from_slice(&deterministic_non_zero::<28>(0x65)); // 28B Encrypted timestamp
+            wg.extend_from_slice(&deterministic_non_zero::<16>(0x87)); // 16B MAC1
+            wg.extend_from_slice(&[0u8; 16]); // 16B MAC2 (zero when no cookie active)
         }
         WireguardType::Response => {
             wg.reserve(92);
@@ -40,18 +59,18 @@ pub fn build_wireguard_payload(spec: &WireguardSpec, payload: &[u8]) -> (Vec<u8>
             wg.extend_from_slice(&[0, 0, 0]);
             wg.extend_from_slice(&spec.sender.unwrap_or(1).to_le_bytes());
             wg.extend_from_slice(&spec.receiver.unwrap_or(2).to_le_bytes());
-            wg.extend_from_slice(&[0u8; 32]); // Ephemeral
-            wg.extend_from_slice(&[0u8; 16]); // Empty
-            wg.extend_from_slice(&[0u8; 16]); // MAC1
-            wg.extend_from_slice(&[0u8; 16]); // MAC2
+            wg.extend_from_slice(&deterministic_curve25519_key(0x31)); // 32B Ephemeral key
+            wg.extend_from_slice(&deterministic_non_zero::<16>(0x53)); // 16B Encrypted empty AEAD
+            wg.extend_from_slice(&deterministic_non_zero::<16>(0x75)); // 16B MAC1
+            wg.extend_from_slice(&[0u8; 16]); // 16B MAC2
         }
         WireguardType::Cookie => {
             wg.reserve(64);
             wg.push(3);
             wg.extend_from_slice(&[0, 0, 0]);
             wg.extend_from_slice(&spec.receiver.unwrap_or(1).to_le_bytes());
-            wg.extend_from_slice(&[0u8; 24]); // Nonce
-            wg.extend_from_slice(&[0u8; 32]); // Cookie
+            wg.extend_from_slice(&deterministic_non_zero::<24>(0x91)); // 24B XChaCha20 nonce
+            wg.extend_from_slice(&deterministic_non_zero::<32>(0xA3)); // 32B Encrypted cookie
         }
         WireguardType::Data => {
             wg.reserve(32 + payload.len());

@@ -1,8 +1,8 @@
 {
   "name": "frameassembly-vscode",
   "displayName": "FrameAssembly (.frasm)",
-  "description": "Syntax highlighting and live error linting for FrameAssembly (.frasm) packet capture code.",
-  "version": "3.2.2",
+  "description": "Syntax highlighting and live error linting for FrameAssembly (.frasm) packet capture code across 146 Layer 2 through Layer 7 protocols.",
+  "version": "3.3.0",
   "publisher": "SteveWinschel",
   "icon": "icon.png",
   "galleryBanner": {

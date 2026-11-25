@@ -64,18 +64,25 @@ pub(crate) fn tag<'i, 'a: 'i>(
     )
 }
 
-/// Helper to parse a raw string literal token and extract its inner value without quotes.
+/// Helper to parse a raw string literal token and extract its inner value without quotes,
+/// validating escape sequences before returning.
 pub(crate) fn parse_raw_string_lit<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<&'a str> {
+    let saved = *input;
     let (t, _, _) = any
         .verify(|(t, _, _)| matches!(t, Token::StringLit(_)))
         .parse_next(input)?;
-    match t {
-        Token::StringLit(s) => Ok(s
+    let inner = match t {
+        Token::StringLit(s) => s
             .strip_prefix('"')
             .and_then(|s| s.strip_suffix('"'))
-            .unwrap_or(s)),
+            .unwrap_or(s),
         _ => unreachable!(),
+    };
+    if ident::unescape_bytes(inner).is_err() {
+        *input = saved;
+        return Err(winnow::error::ErrMode::Cut(ContextError::new()));
     }
+    Ok(inner)
 }
 
 /// Parses a raw hex payload string into bytes.
@@ -121,13 +128,23 @@ pub(crate) fn parse_hex_bytes<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<Vec
     .parse_next(input)
 }
 
-/// Parses an IP address from a token stream.
-pub(crate) fn parse_ip<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<IpAddr> {
-    any.verify_map(|(t, _, _)| match t {
-        Token::IpAddress(s) | Token::OidStr(s) => IpAddr::from_str(s).ok(),
-        _ => None,
+/// Parses an IP address from a token stream, returning both the IP and its source span.
+pub(crate) fn parse_spanned_ip<'i, 'a>(
+    input: &mut Stream<'i, 'a>,
+) -> PResult<(IpAddr, (usize, usize))> {
+    any.verify_map(|(t, span, _): (Token<'a>, core::ops::Range<usize>, &'a str)| {
+        let ip = match t {
+            Token::IpAddress(s) | Token::OidStr(s) => IpAddr::from_str(s).ok(),
+            _ => None,
+        }?;
+        Some((ip, (span.start, span.end - span.start)))
     })
     .parse_next(input)
+}
+
+/// Parses an IP address from a token stream.
+pub(crate) fn parse_ip<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<IpAddr> {
+    parse_spanned_ip.map(|(ip, _)| ip).parse_next(input)
 }
 
 /// Parses a MAC address string in colon (`00:1a:2b:3c:4d:5e`), hyphen (`00-1A-2B-3C-4D-5E`),
@@ -232,6 +249,22 @@ pub(crate) fn parse_u32<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<u32> {
     parse_spanned_u32.map(|(v, _)| v).parse_next(input)
 }
 
+/// Parses an `i8` signed integer (`-128..=127`).
+pub(crate) fn parse_i8<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<i8> {
+    any.verify_map(|(t, _, _)| {
+        if let Token::Number(s) = t {
+            if let Some(hex) = s.strip_prefix("0x").or_else(|| s.strip_prefix("0X")) {
+                i8::from_str_radix(hex, 16).ok()
+            } else {
+                i8::from_str(s).ok()
+            }
+        } else {
+            None
+        }
+    })
+    .parse_next(input)
+}
+
 /// Parses an `i32` signed integer.
 pub(crate) fn parse_i32<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<i32> {
     any.verify_map(|(t, _, _)| {
@@ -264,7 +297,7 @@ pub(crate) fn parse_u64<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<u64> {
     .parse_next(input)
 }
 
-/// Parses a `HOST` block definition with precision `cut_err`.
+/// Parses a `HOST` block definition with precision `cut_err` and duplicate `ip`/`mac` rejection.
 pub(crate) fn parse_host_def<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<HostDef<'a>> {
     let (_, host_kw_span) = tag(Token::Host).parse_next(input)?;
     let name_spanned = cut_err(parse_spanned_ident).parse_next(input)?;
@@ -273,14 +306,28 @@ pub(crate) fn parse_host_def<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<Host
     let mut ip = None;
     let mut mac = None;
 
-    let (): () = repeat(
-        0..,
-        alt((
-            (tag(Token::Ip), cut_err(parse_ip)).map(|(_, i)| ip = Some(i)),
-            (tag(Token::Mac), cut_err(parse_mac)).map(|(_, m)| mac = Some(m)),
-        )),
-    )
-    .parse_next(input)?;
+    loop {
+        let saved = *input;
+        match input.first().map(|(t, _, _)| t) {
+            Some(Token::Ip) => {
+                if ip.is_some() {
+                    *input = saved;
+                    return Err(winnow::error::ErrMode::Cut(ContextError::new()));
+                }
+                let (_, parsed_ip) = (tag(Token::Ip), cut_err(parse_ip)).parse_next(input)?;
+                ip = Some(parsed_ip);
+            }
+            Some(Token::Mac) => {
+                if mac.is_some() {
+                    *input = saved;
+                    return Err(winnow::error::ErrMode::Cut(ContextError::new()));
+                }
+                let (_, parsed_mac) = (tag(Token::Mac), cut_err(parse_mac)).parse_next(input)?;
+                mac = Some(parsed_mac);
+            }
+            _ => break,
+        }
+    }
 
     let saved_before_rbrace = *input;
     let (_, rbrace_span) = cut_err(tag(Token::RBrace)).parse_next(input)?;
@@ -307,6 +354,29 @@ pub(crate) fn parse_direction<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<Dir
     .parse_next(input)
 }
 
+/// Parses a statement inside a `flow` body (packet frame statement, nested flow call, or `repeat` block).
+pub(crate) fn parse_flow_statement<'i, 'a>(
+    input: &mut Stream<'i, 'a>,
+) -> PResult<FlowStatement<'a>> {
+    if matches!(input.first().map(|(t, _, _)| t), Some(Token::Repeat)) {
+        let (_, rep_span) = tag(Token::Repeat).parse_next(input)?;
+        let count = cut_err(parse_u64).parse_next(input)?;
+        let _ = cut_err(tag(Token::LBrace)).parse_next(input)?;
+        let body: Vec<FlowStatement<'a>> =
+            cut_err(repeat(0.., parse_flow_statement)).parse_next(input)?;
+        let (_, rbrace_span) = cut_err(tag(Token::RBrace)).parse_next(input)?;
+        Ok(FlowStatement::Repeat {
+            count,
+            body,
+            span: (rep_span.start, rbrace_span.end - rep_span.start),
+        })
+    } else if input.len() >= 2 && matches!(input[1].0, Token::RightArrow | Token::LeftArrow) {
+        parse_frame_statement(input).map(|f| FlowStatement::Frame(alloc::boxed::Box::new(f)))
+    } else {
+        parse_template_invocation(input).map(FlowStatement::Invocation)
+    }
+}
+
 /// Parses a `FLOW` block definition with precision `cut_err`.
 pub(crate) fn parse_flow_def<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<FlowDef<'a>> {
     let (_, flow_kw_span) = tag(Token::Flow).parse_next(input)?;
@@ -319,15 +389,24 @@ pub(crate) fn parse_flow_def<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<Flow
     let _ = cut_err(tag(Token::RParen)).parse_next(input)?;
     let _ = cut_err(tag(Token::LBrace)).parse_next(input)?;
 
-    let statements: Vec<FrameStatement<'a>> =
-        cut_err(repeat(0.., parse_frame_statement)).parse_next(input)?;
+    let body: Vec<FlowStatement<'a>> =
+        cut_err(repeat(0.., parse_flow_statement)).parse_next(input)?;
 
     let (_, rbrace_span) = cut_err(tag(Token::RBrace)).parse_next(input)?;
+
+    let statements: Vec<FrameStatement<'a>> = body
+        .iter()
+        .filter_map(|item| match item {
+            FlowStatement::Frame(stmt) => Some((**stmt).clone()),
+            _ => None,
+        })
+        .collect();
 
     Ok(FlowDef {
         name: name.node,
         params,
         statements,
+        body,
         span: (flow_kw_span.start, rbrace_span.end - flow_kw_span.start),
     })
 }
@@ -359,11 +438,23 @@ pub(crate) fn parse_template_invocation<'i, 'a>(
     })
 }
 
-/// Parses a statement inside the `compile` block (inline frame statement or single flow invocation) with precision `cut_err`.
+/// Parses a statement inside the `compile` block (inline frame statement, flow invocation, or `repeat` block) with precision `cut_err`.
 pub(crate) fn parse_run_statement<'i, 'a>(
     input: &mut Stream<'i, 'a>,
 ) -> PResult<RunStatement<'a>> {
-    if input.len() >= 2 && matches!(input[1].0, Token::RightArrow | Token::LeftArrow) {
+    if matches!(input.first().map(|(t, _, _)| t), Some(Token::Repeat)) {
+        let (_, rep_span) = tag(Token::Repeat).parse_next(input)?;
+        let count = cut_err(parse_u64).parse_next(input)?;
+        let _ = cut_err(tag(Token::LBrace)).parse_next(input)?;
+        let body: Vec<RunStatement<'a>> =
+            cut_err(repeat(0.., parse_run_statement)).parse_next(input)?;
+        let (_, rbrace_span) = cut_err(tag(Token::RBrace)).parse_next(input)?;
+        Ok(RunStatement::Repeat {
+            count,
+            body,
+            span: (rep_span.start, rbrace_span.end - rep_span.start),
+        })
+    } else if input.len() >= 2 && matches!(input[1].0, Token::RightArrow | Token::LeftArrow) {
         parse_frame_statement(input).map(|f| RunStatement::Frame(alloc::boxed::Box::new(f)))
     } else {
         parse_template_invocation(input).map(RunStatement::Invocation)
@@ -453,8 +544,8 @@ enum EnclosingBlock<'a> {
     Compile,
 }
 
-/// Suggests a canonical v3.0.0 strict-lowercase `.frasm` keyword for common typos or muscle-memory aliases.
-fn suggest_canonical_keyword(raw: &str) -> Option<&'static str> {
+/// Suggests a canonical modifier keyword (excluding block and protocol keywords) when inside an active protocol.
+fn suggest_canonical_modifier(raw: &str) -> Option<&'static str> {
     let lower = raw.to_ascii_lowercase();
     match lower.as_str() {
         "sport" | "source_port" | "sourceport" | "srcprot" => return Some("srcport"),
@@ -469,30 +560,76 @@ fn suggest_canonical_keyword(raw: &str) -> Option<&'static str> {
         "vlan_id" | "vlanid" | "vid" => return Some("vlan"),
         "svlan" | "outer_vlan" | "outervlan" => return Some("qinq"),
         "cvlan" | "inner_vlan_id" | "innervlanid" => return Some("innervlan"),
-        "snmp" | "snmpv2" | "snmpv2c" => return Some("snmp2"),
-        "snmpv1" => return Some("snmp1"),
-        "snmpv3" => return Some("snmp3"),
-        "icmpv6" | "ping" => return Some("icmp"),
-        "dhcpv6" | "dhcpv4" => return Some("dhcp"),
         "request_id" | "requestid" => return Some("reqid"),
         "boots" => return Some("engineboots"),
         "dest_mac" | "destmac" => return Some("dstmac"),
         "dest_ip" | "destip" => return Some("dstip"),
         "paylaod" | "paylod" => return Some("payload"),
+        _ => {}
+    }
+
+    const MODIFIER_CANDIDATES: &[&str] = &[
+        "wait", "payload", "hexpayload", "comment", "fcs", "badfcs", "routeralert",
+        "badipchecksum", "badchecksum", "nochecksum", "srcport", "dstport", "srcmac", "dstmac",
+        "ttl", "dscp", "ecn", "vlan", "pcp", "dei", "qinq", "innervlan", "mpls", "seq", "acknum",
+        "win", "mss", "wscale", "sackperm", "sackblock", "tsval", "tsecr", "tcpmd5", "tfo",
+        "urgent", "syn", "ack", "fin", "rst", "psh", "urg", "ece", "cwr", "shutdowncomplete",
+        "varbind", "engineid", "engineboots", "enginetime", "reqid", "hosthdr", "sessionid",
+        "msgtype", "deviceid", "nativevlan", "nextproto", "segleft", "teid", "vtag", "ppid",
+        "proccode", "amfueid", "mmeueid", "correlationid", "apiversions", "prelogin", "rasaddr",
+        "xorrelayedaddr", "xorpeeraddr",
+    ];
+
+    if lower.len() < 3 {
+        return None;
+    }
+
+    let mut best: Option<(&'static str, usize)> = None;
+    for &cand in MODIFIER_CANDIDATES {
+        if cand.len().abs_diff(lower.len()) > 2 {
+            continue;
+        }
+        let dist = edit_distance(&lower, cand);
+        if dist > 0 && dist <= 2 && best.is_none_or(|(_, d)| dist < d) {
+            best = Some((cand, dist));
+        }
+    }
+    best.map(|(c, _)| c)
+}
+
+/// Suggests a canonical v3.0.0 strict-lowercase `.frasm` keyword for common typos or muscle-memory aliases.
+fn suggest_canonical_keyword(raw: &str) -> Option<&'static str> {
+    if let Some(m) = suggest_canonical_modifier(raw) {
+        return Some(m);
+    }
+    let lower = raw.to_ascii_lowercase();
+    match lower.as_str() {
+        "snmp" | "snmpv2" | "snmpv2c" => return Some("snmp2"),
+        "snmpv1" => return Some("snmp1"),
+        "snmpv3" => return Some("snmp3"),
+        "icmpv6" | "ping" => return Some("icmp"),
+        "dhcpv6" | "dhcpv4" => return Some("dhcp"),
         "complie" | "compil" | "run" => return Some("compile"),
         "hots" | "hsot" | "endpoint" | "node" => return Some("host"),
         "flwo" | "folw" => return Some("flow"),
+        "tds" => return Some("mssql"),
+        "rfb" => return Some("vnc"),
+        "skinny" => return Some("sccp"),
+        "knx" => return Some("knxnetip"),
         _ => {}
     }
 
     const CANDIDATES: &[&str] = &[
-        "host", "flow", "compile", "ip", "mac", "wait", "payload", "hexpayload", "srcport",
-        "dstport", "srcmac", "dstmac", "ttl", "dscp", "ecn", "vlan", "pcp", "dei", "qinq",
-        "innervlan", "mpls", "seq", "acknum", "win", "mss", "wscale", "sackperm", "tsval",
-        "tsecr", "urgent", "syn", "ack", "fin", "rst", "psh", "urg", "ece", "cwr", "tcp", "udp",
-        "sctp", "icmp", "ndp", "arp", "dns", "mdns", "dhcp", "http", "http2", "tls", "quic",
-        "snmp1", "snmp2", "snmp3", "varbind", "engineid", "engineboots", "enginetime", "reqid",
-        "hosthdr", "modbus", "bgp", "ospf", "vxlan", "wireguard",
+        "host", "flow", "repeat", "compile", "ip", "mac", "tcp", "udp", "sctp", "icmp", "ndp",
+        "arp", "cdp", "isis", "macsec", "pfc", "pppoe", "nsh", "profinet", "goose", "sv",
+        "ethercat", "ipip", "srv6", "erspan", "rsvp", "ldp", "bmp", "rpkirtr", "l2tp", "lisp",
+        "glbp", "gtpu", "dns", "mdns", "llmnr", "nbns", "dhcp", "http", "http2", "doh", "tls",
+        "quic", "snmp1", "snmp2", "snmp3", "dcerpc", "ntlm", "rdp", "socks", "vnc", "wsdiscovery",
+        "irc", "modbus", "dnp3", "iec104", "mms", "s7comm", "s7commplus", "synchrophasor",
+        "hartip", "fins", "melsec", "someip", "doip", "c1222", "gesrtp", "rocplus", "bsap",
+        "knxnetip", "rocev2", "ipmi", "twamp", "netconf", "gtpc", "pfcp", "diameter", "ngap",
+        "s1ap", "mssql", "kafka", "mongodb", "tns", "iscsi", "nvmetcp", "rtcp", "turn", "h323",
+        "sccp", "mgcp", "bgp", "ospf", "vxlan", "wireguard",
     ];
 
     if lower.len() < 3 {
@@ -597,6 +734,22 @@ fn diagnose_parse_error<'a>(
     let span = (span_range.start, span_range.end - span_range.start);
     let lower = raw_slice.to_ascii_lowercase();
 
+    // 0. Check invalid string literal escape sequence before generic token fallback
+    if let Token::StringLit(lit) = tok {
+        let inner = lit
+            .strip_prefix('"')
+            .and_then(|s| s.strip_suffix('"'))
+            .unwrap_or(lit);
+        if let Err(esc_err) = ident::unescape_bytes(inner) {
+            return (
+                alloc::format!(
+                    "Syntax error: invalid escape sequence in string literal: {esc_err}"
+                ),
+                span,
+            );
+        }
+    }
+
     // 1. Duplicate compile block
     if *tok == Token::Compile && brace_depth == 0 && compile_count >= 1 {
         return (
@@ -641,6 +794,32 @@ fn diagnose_parse_error<'a>(
         has_ip_or_mac,
     } = enclosing
     {
+        if *tok == Token::Ip || *tok == Token::Mac {
+            let mut j = err_idx;
+            let mut found_dup = false;
+            while j > 0 {
+                j -= 1;
+                if tokens[j].0 == Token::LBrace {
+                    break;
+                }
+                if tokens[j].0 == *tok {
+                    found_dup = true;
+                    break;
+                }
+            }
+            if found_dup {
+                let field_kw = if *tok == Token::Ip { "ip" } else { "mac" };
+                return (
+                    alloc::format!(
+                        "Syntax error: duplicate '{}' declaration inside host '{}'. Each host block allows at most one '{}' field",
+                        field_kw,
+                        name,
+                        field_kw
+                    ),
+                    span,
+                );
+            }
+        }
         if *tok == Token::RBrace && !has_ip_or_mac {
             return (
                 alloc::format!(
@@ -703,7 +882,7 @@ fn diagnose_parse_error<'a>(
         if raw_slice.eq_ignore_ascii_case("loop") {
             return (
                 alloc::format!(
-                    "Syntax error: unexpected '{}'. The 'loop' block was removed in FrameAssembly 2.0; invoke flows or frame statements directly inside 'compile {{ ... }}'.",
+                    "Syntax error: unexpected '{}'. The 'loop' block was removed in FrameAssembly 2.0: replace 'loop' with 'repeat' (or invoke flows or frame statements directly inside 'compile {{ ... }}').",
                     raw_slice
                 ),
                 span,
@@ -857,7 +1036,8 @@ fn diagnose_parse_error<'a>(
     if matches!(lower.as_str(), "sport" | "source_port" | "sourceport") {
         return (
             alloc::format!(
-                "Syntax error: unexpected token '{}'. Did you mean 'srcport'?",
+                "Syntax error: unexpected token '{}'. Did you mean 'srcport'? (replace '{}' with 'srcport')",
+                raw_slice,
                 raw_slice
             ),
             span,
@@ -869,7 +1049,8 @@ fn diagnose_parse_error<'a>(
     ) {
         return (
             alloc::format!(
-                "Syntax error: unexpected token '{}'. Did you mean 'dstport'?",
+                "Syntax error: unexpected token '{}'. Did you mean 'dstport'? (replace '{}' with 'dstport')",
+                raw_slice,
                 raw_slice
             ),
             span,
@@ -891,7 +1072,8 @@ fn diagnose_parse_error<'a>(
     ) {
         return (
             alloc::format!(
-                "Syntax error: unexpected token '{}'. Did you mean 'acknum <number>'?",
+                "Syntax error: unexpected token '{}'. Did you mean 'acknum <number>'? (replace '{}' with 'acknum')",
+                raw_slice,
                 raw_slice
             ),
             span,
@@ -900,8 +1082,26 @@ fn diagnose_parse_error<'a>(
     if matches!(lower.as_str(), "hoplimit" | "hop_limit" | "hlim") {
         return (
             alloc::format!(
-                "Syntax error: unexpected token '{}'. FrameAssembly uses 'ttl' for both IPv4 Time-to-Live and IPv6 Hop Limit (for example: ttl 64 or ttl 255)",
+                "Syntax error: unexpected token '{}'. FrameAssembly uses 'ttl' for both IPv4 Time-to-Live and IPv6 Hop Limit (replace '{}' with 'ttl')",
+                raw_slice,
                 raw_slice
+            ),
+            span,
+        );
+    }
+    if matches!(lower.as_str(), "tds" | "rfb" | "skinny" | "knx") {
+        let replacement = match lower.as_str() {
+            "tds" => "mssql",
+            "rfb" => "vnc",
+            "skinny" => "sccp",
+            _ => "knxnetip",
+        };
+        return (
+            alloc::format!(
+                "Syntax error: unexpected protocol alias '{}': replace '{}' with '{}'",
+                raw_slice,
+                raw_slice,
+                replacement
             ),
             span,
         );
@@ -966,12 +1166,72 @@ fn diagnose_parse_error<'a>(
             span,
         );
     }
+    if matches!(
+        tok,
+        Token::StringLit(_) | Token::Ident(_) | Token::Number(_) | Token::OidStr(_)
+    ) && err_idx >= 1
+    {
+        let prev_tok = &tokens[err_idx - 1].0;
+        if matches!(prev_tok, Token::Dcid | Token::Scid) {
+            return (
+                alloc::format!(
+                    "Syntax error: invalid QUIC connection ID '{}' (expected even-length hex up to 20 bytes)",
+                    raw_slice
+                ),
+                span,
+            );
+        }
+        if *prev_tok == Token::Area {
+            return (
+                alloc::format!(
+                    "Syntax error: invalid S7comm area '{}' (expected numeric 0..=255 or PE, I, PA, Q, MK, M, DB, CT, C, TM, T)",
+                    raw_slice
+                ),
+                span,
+            );
+        }
+        if *prev_tok == Token::Command {
+            return (
+                alloc::format!(
+                    "Syntax error: invalid command '{}' (expected request/1 or response/2 for RIP)",
+                    raw_slice
+                ),
+                span,
+            );
+        }
+        if *prev_tok == Token::Real {
+            return (
+                alloc::format!(
+                    "Syntax error: invalid BACnet real '{}' (expected a finite floating-point number)",
+                    raw_slice
+                ),
+                span,
+            );
+        }
+    }
     if let Token::Number(num_str) = tok {
         let prev_kw = if err_idx >= 1 {
             tokens[err_idx - 1].2
         } else {
             "field"
         };
+        if err_idx >= 1 {
+            let prev_tok = &tokens[err_idx - 1].0;
+            if *prev_tok == Token::Precision {
+                return (
+                    alloc::format!("NTP precision {raw_slice} out of range (-128..=127)"),
+                    span,
+                );
+            }
+            if matches!(prev_tok, Token::Etype | Token::MsgId) && num_str.starts_with('-') {
+                return (
+                    alloc::format!(
+                        "{prev_kw} {raw_slice} out of range (-2147483648..=2147483647)"
+                    ),
+                    span,
+                );
+            }
+        }
         if num_str.starts_with('-') {
             return (
                 alloc::format!(
@@ -1052,6 +1312,7 @@ fn diagnose_parse_error<'a>(
                 | Token::Priority
                 | Token::Id
                 | Token::GreProto
+                | Token::UdpSize
                 | Token::Tag => Some(alloc::format!(
                     "{prev_kw} {raw_slice} out of range (0..=65535)"
                 )),
@@ -1068,6 +1329,24 @@ fn diagnose_parse_error<'a>(
                 | Token::MacAddress(_)
                 | Token::OidStr(_)
                 | Token::Number(_) => None,
+                Token::Repeat => {
+                    let parsed_u64 = if let Some(h) = num_str
+                        .strip_prefix("0x")
+                        .or_else(|| num_str.strip_prefix("0X"))
+                    {
+                        u64::from_str_radix(h, 16).ok()
+                    } else {
+                        num_str.parse::<u64>().ok()
+                    };
+                    if parsed_u64.is_none() {
+                        Some(alloc::format!(
+                            "repeat count {raw_slice} out of range (0..={})",
+                            u64::MAX
+                        ))
+                    } else {
+                        None
+                    }
+                }
                 _ => {
                     let parsed_u64 = if let Some(h) = num_str
                         .strip_prefix("0x")
@@ -1092,10 +1371,99 @@ fn diagnose_parse_error<'a>(
         }
     }
 
+    // Fail-closed active protocol check BEFORE generic keyword fuzzy suggestions so inside an active
+    // protocol statement (e.g. `ospf hello area`), unrelated protocol keywords like `arp` are never suggested.
+    if matches!(enclosing, EnclosingBlock::Flow | EnclosingBlock::Compile)
+        && !matches!(
+            tok,
+            Token::RightArrow
+                | Token::LeftArrow
+                | Token::LBrace
+                | Token::RBrace
+                | Token::LParen
+                | Token::RParen
+                | Token::Repeat
+        )
+    {
+        let mut active_proto: Option<&str> = None;
+        let mut j = err_idx;
+        while j > 0 {
+            j -= 1;
+            let (ptok, _pspan, pslice) = &tokens[j];
+            if matches!(
+                ptok,
+                Token::RightArrow | Token::LeftArrow | Token::LBrace | Token::RBrace | Token::RParen
+            ) {
+                break;
+            }
+            let probe = &tokens[j..=j];
+            let mut probe_stream: Stream<'_, 'a> = probe;
+            if fields::parse_protocol_keyword(&mut probe_stream).is_ok() {
+                active_proto = Some(*pslice);
+            }
+        }
+        if let Some(proto_kw) = active_proto {
+            if proto_kw.eq_ignore_ascii_case("coap")
+                && *tok == Token::Token
+                && tokens
+                    .get(err_idx + 1)
+                    .is_some_and(|(t, _, _)| matches!(t, Token::StringLit(_) | Token::Number(_) | Token::Ident(_)))
+            {
+                return (
+                    "Syntax error: invalid CoAP token (expected 0..=8 bytes ASCII or valid hex literal)".to_string(),
+                    span,
+                );
+            }
+            if proto_kw.eq_ignore_ascii_case("rip") && *tok == Token::Command {
+                return (
+                    "Syntax error: invalid RIP command (expected request/1 or response/2)".to_string(),
+                    span,
+                );
+            }
+            if proto_kw.eq_ignore_ascii_case("ospf") && lower == "area" {
+                return (
+                    alloc::format!(
+                        "Syntax error: unexpected modifier '{}' for protocol 'ospf' (replace '{}' with 'areaid')",
+                        raw_slice,
+                        raw_slice
+                    ),
+                    span,
+                );
+            }
+            if let Some(suggestion) = suggest_canonical_modifier(raw_slice) {
+                return (
+                    alloc::format!(
+                        "Syntax error: unexpected modifier '{}' for protocol '{}' (protocol '{}' does not accept '{}'). Did you mean '{}'? (replace '{}' with '{}')",
+                        raw_slice,
+                        proto_kw,
+                        proto_kw,
+                        raw_slice,
+                        suggestion,
+                        raw_slice,
+                        suggestion
+                    ),
+                    span,
+                );
+            }
+            return (
+                alloc::format!(
+                    "Syntax error: unexpected modifier '{}' for protocol '{}' (protocol '{}' does not accept '{}')",
+                    raw_slice,
+                    proto_kw,
+                    proto_kw,
+                    raw_slice
+                ),
+                span,
+            );
+        }
+    }
+
     if let Some(suggestion) = suggest_canonical_keyword(raw_slice) {
         return (
             alloc::format!(
-                "Syntax error: unexpected token '{}', expected a valid statement or protocol modifier. Did you mean '{}'?",
+                "Syntax error: unexpected token '{}', expected a valid statement or protocol modifier. Did you mean '{}'? (replace '{}' with '{}')",
+                raw_slice,
+                suggestion,
                 raw_slice,
                 suggestion
             ),

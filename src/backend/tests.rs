@@ -179,3 +179,75 @@ compile {
     // Clean up
     let _ = std::fs::remove_file(&temp_pcap);
 }
+
+/// Tests broadcast IPv4 MAC mapping, SCTP L4 transport exclusion, and emitted frame limit guard.
+#[test]
+fn test_v33_broadcast_mac_sctp_transport_and_repeat_cap() {
+    let bcast_ip = Some(IpAddr::V4(Ipv4Addr::new(255, 255, 255, 255)));
+    assert_eq!(derive_mac(None, None, bcast_ip, false), [0xFF; 6]);
+    assert!(!is_tcp_protocol(&Protocol::Http, Some(TransportProto::Sctp)));
+    assert!(!is_tcp_protocol(&Protocol::Dns, Some(TransportProto::Sctp)));
+
+    let ok_dsl = r#"
+        host c { ip 10.0.0.1 }
+        host s { ip 10.0.0.2 }
+        compile {
+            c -> s udp comment "repeat probe"
+        }
+    "#;
+    let mut prog = crate::parser::parse_program(ok_dsl).expect("base program should parse");
+    let frame_item = prog.compile_block.pop().expect("one frame");
+    prog.compile_block.push(RunStatement::Repeat {
+        count: (MAX_EMITTED_FRAMES as u64) + 1,
+        body: vec![match frame_item {
+            RunStatement::Frame(s) => RunStatement::Frame(s),
+            other => other,
+        }],
+        span: (0, 10),
+    });
+    let err = compile_program_with_metadata(&prog)
+        .expect_err("Should reject exceeding MAX_EMITTED_FRAMES");
+    assert!(err.contains("100000"));
+}
+
+/// Tests TCP high-water sequence tracking, post-teardown port rotation, s -> c reply ports,
+/// SCTP L7 carrier, RFC TTL defaults, and PCAPNG metadata propagation.
+#[test]
+fn test_v33_tcp_state_reply_ports_ttl_and_metadata() {
+    let dsl = r#"
+        host c { ip 10.0.0.1 }
+        host s { ip 10.0.0.2 }
+        compile {
+            c -> s tcp syn
+            c -> s tcp psh ack payload "hello!"
+            c -> s tcp psh ack seq 1001 payload "hello!"
+            c -> s tcp psh ack
+            c -> s tcp fin ack
+            c -> s tcp syn comment "reopen"
+            c -> s radius accessrequest id 1 user "alice"
+            s -> c radius accessaccept id 1
+            c -> s ospf hello
+            c -> s http transport sctp
+        }
+    "#;
+    let prog = crate::parser::parse_program(dsl).expect("v3.3 DSL should parse");
+    let (frames, hosts) = compile_program_with_metadata(&prog).expect("v3.3 program should compile");
+    assert_eq!(frames.len(), 10);
+    assert_eq!(hosts.len(), 2);
+    // Frame 3 after rexmit preserves high-water mark (1001 + 6 = 1007)
+    let data2_seq = u32::from_be_bytes(frames[3].data[38..42].try_into().unwrap());
+    assert_eq!(data2_seq, 1007);
+    // Frame 5 fresh SYN after FIN rotates client port 12345 -> 12346 and resets ISN to 1000
+    let syn2_sport = u16::from_be_bytes(frames[5].data[34..36].try_into().unwrap());
+    let syn2_seq = u32::from_be_bytes(frames[5].data[38..42].try_into().unwrap());
+    assert_eq!((syn2_sport, syn2_seq), (12346, 1000));
+    assert_eq!(frames[5].comment.as_deref(), Some("reopen"));
+    // Frame 7 s -> c RADIUS reply keeps srcport 1812 without clobbering dstport
+    let rad_sport = u16::from_be_bytes(frames[7].data[34..36].try_into().unwrap());
+    let rad_dport = u16::from_be_bytes(frames[7].data[36..38].try_into().unwrap());
+    assert_eq!((rad_sport, rad_dport), (1812, 12345));
+    // Frame 8 OSPF omitted TTL defaults to 1
+    assert_eq!(frames[8].data[22], 1);
+    // Frame 9 HTTP over SCTP emits IP protocol 132
+    assert_eq!(frames[9].data[23], 132);
+}

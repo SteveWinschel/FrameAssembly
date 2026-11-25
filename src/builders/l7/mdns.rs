@@ -1,11 +1,10 @@
 //! Multicast DNS (mDNS) (RFC 6762 / RFC 6763 (DNS-SD)) Layer 7 wire packet builder.
 //!
 //! This module synthesizes deterministic on-the-wire Multicast DNS (mDNS) frames over UDP port 5353 (IPv4 multicast 224.0.0.251 / IPv6 ff02::fb).
-//! The wire encoder constructs a 12-byte RFC 1035 DNS wire header (16-bit ID usually 0x0000, 16-bit Flags 0x0000 query or 0x8400 authoritative response, QDCOUNT, ANCOUNT, NSCOUNT, ARCOUNT) carrying link-local .local domain labels, PTR/SRV/TXT/A/AAAA resource records, and cache-flush class bits. When optional fields in [`MdnsSpec`]
-//! are omitted in the `.frasm` source, RFC-compliant default values are automatically populated.
+//! The wire encoder constructs a 12-byte RFC 1035 DNS wire header (16-bit ID usually 0x0000, 16-bit Flags 0x0000 query or 0x8400 authoritative response, QDCOUNT, ANCOUNT, NSCOUNT, ARCOUNT) carrying `.local` domain labels, PTR/SRV/TXT/SOA/A/AAAA records, and optional EDNS0 `OPT` records (`edns0`, `udpsize`, `dobit`) while staying strictly UDP-framed.
 //!
 //! Canonical `.frasm` syntax:
-//! `a -> b mdns [query | response] [txid <u16>] [qname <str>] [qtype <str>] [rdata <str>] [rcode <u8>] [ansttl <u32>]`
+//! `a -> b mdns [query | response] [txid <u16>] [qname <str>] [qtype <str>] [rdata <str>] [rcode <u8>] [ansttl <u32>] [edns0] [udpsize <u16>] [dobit]`
 
 use crate::ast::*;
 use crate::builders::WireContext;

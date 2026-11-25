@@ -3,7 +3,7 @@
 //! This module implements the `winnow` parser combinator for IEEE 1815 `dnp3` data link,
 //! transport, and application layer frames in FrameAssembly `.frasm` specifications. It recognizes
 //! the `dnp3` protocol keyword, explicit `func` strings, shorthand application function keywords
-//! (`confirm`, `read`, `write`, `select`, `operate`, `directoperate`, `unsolicitedresponse`),
+//! (`confirm`, `read`, `write`, `select`, `operate`, `directoperate`, `response`, `unsolicitedresponse`),
 //! master/outstation addresses (`src`, `dst`), object `group` and `variation` numbers, and data
 //! link `crc` overrides.
 
@@ -39,6 +39,8 @@ pub(crate) fn parse_dnp3_field<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<Pa
             }),
         )),
         alt((
+            tag(Token::Response)
+                .map(|(_, s)| ParsedField::L7StringField("FUNC", "RESPONSE", (s.start, s.len()))),
             (tag(Token::Func), parse_any_str)
                 .map(|((_, s), v)| ParsedField::L7StringField("FUNC", v, (s.start, s.end - s.start))),
             (tag(Token::Src), cut_err(parse_u32))

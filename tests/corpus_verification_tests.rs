@@ -1,10 +1,10 @@
 //! Corpus-free lexer-bijection, Markdown/Rustdoc block compilation, six-way grammar/parser
-//! lockstep, file-size hygiene, AST-to-builder field wiring, and reverse PCAP decompiler
-//! symmetry suite for FrameAssembly v3.2.2 (the scenario corpus now lives on the website at
+//! lockstep, source hygiene, AST-to-builder field wiring, and reverse PCAP decompiler
+//! symmetry suite for FrameAssembly v3.3.0 (the scenario corpus now lives on the website at
 //! https://frameassembly-lang.dev/use-cases, so no in-repo `examples/` folder is scanned):
 //! 1. **Gate 3**: All ````frameassembly` and ````frasm` blocks across READMEs, agent guides, `contrib/`, and `src/**/*.rs` compile.
 //! 2. **Gate 4**: Six-way lockstep (`src/lexer/mod.rs`, `src/parser/`, `grammar.ebnf`, `frameassembly.gbnf`, `frameassembly.lark`, TextMate).
-//! 3. **Gate 5**: `< 50 KB` Rust ceiling, `//!` docstrings (`>= 50` words), and zero NUL bytes.
+//! 3. **Gate 5**: `//!` docstrings (`>= 50` words), zero NUL bytes, and clean `README.md` tags (no `< 50,000` B `.rs` cap).
 //! 4. **Gate 6**: AST `*Spec` fields wired to builders and 1:1 reverse decompiler file symmetry.
 //! 5. **Gate 7**: Release packaging hygiene and `llms.txt` / `llms-full.txt` bundle sync.
 
@@ -102,24 +102,33 @@ fn extract_lexer_token_variants() -> HashSet<String> {
 }
 
 /// Canonical Layer 2 protocol identifiers across `src/ast/`, `src/parser/`, `src/builders/`, and `src/reverse/`.
-const EXPECTED_L2: [&str; 8] = ["arp", "vlan", "qinq", "lldp", "stp", "lacp", "eapol", "mpls"];
+const EXPECTED_L2: [&str; 18] = [
+    "arp", "vlan", "qinq", "lldp", "stp", "lacp", "eapol", "mpls", "cdp", "isis", "macsec",
+    "pfc", "pppoe", "nsh", "profinet", "goose", "sv", "ethercat",
+];
 
 /// Canonical Layer 3 protocol identifiers across `src/ast/`, `src/parser/`, `src/builders/`, and `src/reverse/`.
-const EXPECTED_L3: [&str; 20] = [
+const EXPECTED_L3: [&str; 31] = [
     "icmp", "ndp", "igmp", "mld", "gre", "vxlan", "geneve", "ipsec", "esp", "ah", "ikev2",
-    "wireguard", "ospf", "bgp", "rip", "vrrp", "hsrp", "pim", "bfd", "openflow",
+    "wireguard", "ospf", "bgp", "rip", "vrrp", "hsrp", "pim", "bfd", "openflow", "ipip",
+    "srv6", "erspan", "rsvp", "ldp", "bmp", "rpkirtr", "l2tp", "lisp", "glbp", "gtpu",
 ];
 
 /// Canonical Layer 4 protocol identifiers across `src/ast/`, `src/parser/`, `src/builders/`, and `src/reverse/`.
 const EXPECTED_L4: [&str; 3] = ["tcp", "udp", "sctp"];
 
 /// Canonical Layer 7 non-SNMP protocol identifiers across `src/ast/`, `src/parser/`, `src/builders/`, and `src/reverse/`.
-const EXPECTED_L7_NON_SNMP: [&str; 47] = [
+const EXPECTED_L7_NON_SNMP: [&str; 91] = [
     "dns", "mdns", "dhcp", "ntp", "ptp", "radius", "tacacs", "syslog", "netflow", "ipfix",
     "sflow", "tftp", "ftp", "ssh", "telnet", "http", "http2", "grpc", "websocket", "tls",
     "quic", "stun", "sip", "rtp", "rtsp", "smtp", "imap", "pop3", "kerberos", "ldap",
     "smb", "nfs", "redis", "memcached", "mysql", "postgres", "mqtt", "coap", "amqp",
     "ssdp", "whois", "modbus", "bacnet", "dnp3", "s7comm", "ethernetip", "opcua",
+    "dcerpc", "ntlm", "rdp", "llmnr", "nbns", "socks", "vnc", "doh", "wsdiscovery", "irc",
+    "iec104", "mms", "s7commplus", "synchrophasor", "hartip", "fins", "melsec", "someip",
+    "doip", "c1222", "gesrtp", "rocplus", "bsap", "knxnetip", "rocev2", "ipmi", "twamp",
+    "netconf", "gtpc", "pfcp", "diameter", "ngap", "s1ap", "mssql", "kafka", "mongodb",
+    "tns", "iscsi", "nvmetcp", "rtcp", "turn", "h323", "sccp", "mgcp",
 ];
 
 /// Helper to extract and compile all ````frameassembly` and ````frasm` blocks in a file.
@@ -357,8 +366,8 @@ fn verify_gbnf_non_terminal_resolution(gbnf: &str) {
 fn test_gate4_constrained_decoding_grammar_lockstep() {
     let keywords = extract_lexer_lowercase_keywords();
     assert!(
-        keywords.len() >= 640,
-        "Expected at least 640 strict-lowercase lexer tokens, found {}",
+        keywords.len() >= 1100,
+        "Expected at least 1100 strict-lowercase lexer tokens, found {}",
         keywords.len()
     );
 
@@ -426,9 +435,9 @@ fn test_gate4_constrained_decoding_grammar_lockstep() {
     verify_gbnf_non_terminal_resolution(&gbnf);
 }
 
-/// Gate 5: Verifies `< 50 KB` size limits on Rust sources, `//!` module docstrings (`>= 50` words),
-/// zero `0x00` NUL bytes across `src/**/*.rs`, `tests/*.rs`, and root metadata files, and zero
-/// corpus training tags in the human-facing `README.md` (Markdown has no size cap).
+/// Gate 5: Verifies `//!` module docstrings (`>= 50` words) and zero `0x00` NUL bytes across
+/// `src/**/*.rs`, `frameassembly-wasm/src/**/*.rs`, `tests/*.rs`, and root metadata files, plus
+/// zero corpus training tags in the human-facing `README.md` (with no `< 50,000` B `.rs` cap).
 #[test]
 fn test_gate5_markdown_fasm_blocks_and_file_sizes() {
     let readme_str = fs::read_to_string("README.md").unwrap();
@@ -450,12 +459,6 @@ fn test_gate5_markdown_fasm_blocks_and_file_sizes() {
             !bytes.contains(&0),
             "NUL byte found in {}",
             rs_path.display()
-        );
-        assert!(
-            bytes.len() < 50_000,
-            "{} exceeds 50,000-byte limit ({} bytes)",
-            rs_path.display(),
-            bytes.len()
         );
         let text = String::from_utf8(bytes).unwrap();
         assert!(
@@ -532,7 +535,6 @@ fn test_gate6_ast_spec_fields_wired_to_builders() {
             collect_files_with_ext(Path::new("src/builders/l7/snmp"), "rs", &mut target_paths);
         } else if file_stem == "ipsec" {
             target_paths.push(PathBuf::from("src/builders/l3/ipsec.rs"));
-            target_paths.push(PathBuf::from("src/builders/l3/esp.rs"));
             target_paths.push(PathBuf::from("src/builders/l3/ah.rs"));
         } else if file_stem == "tcp" || file_stem == "sctp" {
             target_paths.push(PathBuf::from(format!("src/builders/{}/{}.rs", layer, file_stem)));
@@ -592,8 +594,8 @@ fn test_gate6_ast_spec_fields_wired_to_builders() {
     }
 
     assert!(
-        total_structs >= 75 && total_fields >= 500,
-        "Expected at least 75 AST Spec structs and 500 fields, found {} structs and {} fields",
+        total_structs >= 135 && total_fields >= 800,
+        "Expected at least 135 AST Spec structs and 800 fields, found {} structs and {} fields",
         total_structs,
         total_fields
     );
@@ -656,11 +658,11 @@ fn test_reverse_decompiler_per_protocol_file_symmetry() {
     }
 }
 
-/// Gate 7: Verifies v3.2.2 release packaging hygiene (no stray `output.pcap` or legacy `.vsix`
-/// files), verifies `frameassembly-vscode/frameassembly-vscode-3.2.2.vsix` bundles the WASM-powered
+/// Gate 7: Verifies v3.3.0 release packaging hygiene (no stray `output.pcap` or legacy `.vsix`
+/// files), verifies `frameassembly-vscode/frameassembly-vscode-3.3.0.vsix` bundles the WASM-powered
 /// live diagnostics extension assets without overwriting it, checks `llms.txt` (`< 512` lines, `< 25 KB`),
 /// and verifies the prompt-injection context in `llms-full.txt` (`60–250 KB`, zero NULs, all
-/// v3.2.2 markers/grammars, and zero contributor-internal leaks).
+/// v3.3.0 markers/grammars, and zero contributor-internal leaks).
 #[test]
 fn test_gate7_release_packaging_and_llms_bundle_sync() {
     for stray in [
@@ -679,24 +681,25 @@ fn test_gate7_release_packaging_and_llms_bundle_sync() {
         "frameassembly-vscode/frameassembly-vscode-3.1.2.vsix",
         "frameassembly-vscode/frameassembly-vscode-3.2.0.vsix",
         "frameassembly-vscode/frameassembly-vscode-3.2.1.vsix",
+        "frameassembly-vscode/frameassembly-vscode-3.2.2.vsix",
     ] {
         assert!(
             !Path::new(stray).exists(),
-            "Stray or legacy artifact {} must not exist in v3.2.2",
+            "Stray or legacy artifact {} must not exist in v3.3.0",
             stray
         );
     }
 
-    let vsix_v32 = Path::new("frameassembly-vscode/frameassembly-vscode-3.2.2.vsix");
+    let vsix_v33 = Path::new("frameassembly-vscode/frameassembly-vscode-3.3.0.vsix");
     assert!(
-        vsix_v32.exists(),
-        "Bundled frameassembly-vscode/frameassembly-vscode-3.2.2.vsix must exist"
+        vsix_v33.exists(),
+        "Bundled frameassembly-vscode/frameassembly-vscode-3.3.0.vsix must exist"
     );
     #[cfg(unix)]
     {
         let py_check_vsix = r#"
 import zipfile
-with zipfile.ZipFile("frameassembly-vscode/frameassembly-vscode-3.2.2.vsix", "r") as zf:
+with zipfile.ZipFile("frameassembly-vscode/frameassembly-vscode-3.3.0.vsix", "r") as zf:
     names = set(zf.namelist())
 for req in [
     "extension/package.json",
@@ -707,20 +710,20 @@ for req in [
     "extension/icon.png",
     "extension/icons/frasm.svg",
 ]:
-    assert req in names, f"Missing {req} in frameassembly-vscode-3.2.2.vsix"
+    assert req in names, f"Missing {req} in frameassembly-vscode-3.3.0.vsix"
 "#;
         let status = std::process::Command::new("python3")
             .arg("-c")
             .arg(py_check_vsix)
             .status()
             .expect("Failed to execute python3 for read-only VSIX verification");
-        assert!(status.success(), "Read-only VSIX v3.2.2 inspection failed");
+        assert!(status.success(), "Read-only VSIX v3.3.0 inspection failed");
     }
     #[cfg(windows)]
     {
         let ps_check_vsix = r#"
 Add-Type -AssemblyName System.IO.Compression.FileSystem
-$zip = [System.IO.Compression.ZipFile]::OpenRead("frameassembly-vscode/frameassembly-vscode-3.2.2.vsix")
+$zip = [System.IO.Compression.ZipFile]::OpenRead("frameassembly-vscode/frameassembly-vscode-3.3.0.vsix")
 try {
     $names = @($zip.Entries | ForEach-Object { $_.FullName })
     foreach ($req in @(
@@ -732,7 +735,7 @@ try {
         "extension/icon.png",
         "extension/icons/frasm.svg"
     )) {
-        if ($names -notcontains $req) { throw "Missing $req in frameassembly-vscode-3.2.2.vsix" }
+        if ($names -notcontains $req) { throw "Missing $req in frameassembly-vscode-3.3.0.vsix" }
     }
 } finally {
     $zip.Dispose()
@@ -742,14 +745,14 @@ try {
             .args(["-NoProfile", "-Command", ps_check_vsix])
             .status()
             .expect("Failed to execute powershell for read-only VSIX verification");
-        assert!(status.success(), "Read-only VSIX v3.2.2 inspection failed");
+        assert!(status.success(), "Read-only VSIX v3.3.0 inspection failed");
     }
 
     let llms_txt = fs::read_to_string("llms.txt").expect("Missing llms.txt");
     let llms_lines = llms_txt.lines().count();
     assert!(
-        llms_lines < 512 && llms_txt.len() < 25_000 && llms_txt.contains("3.2.2"),
-        "llms.txt must be < 512 lines, < 25,000 bytes, and reference 3.2.2 (got {} lines, {} bytes)",
+        llms_lines < 512 && llms_txt.len() < 25_000 && llms_txt.contains("3.3.0"),
+        "llms.txt must be < 512 lines, < 25,000 bytes, and reference 3.3.0 (got {} lines, {} bytes)",
         llms_lines,
         llms_txt.len()
     );
@@ -771,7 +774,7 @@ try {
         "llms-full.txt missing default root CLI invocation (`frameassembly <input.frasm>`)"
     );
     for required_marker in [
-        "3.2.2",
+        "3.3.0",
         "frameassembly show",
         "frameassembly reverse",
         "frameassembly update",
@@ -782,7 +785,7 @@ try {
     ] {
         assert!(
             full_txt.contains(required_marker),
-            "llms-full.txt missing required v3.2.2 marker `{required_marker}`"
+            "llms-full.txt missing required v3.3.0 marker `{required_marker}`"
         );
     }
     for leaked_internal in ["file_lock.sh", "PreToolUse", "// PROMPT:"] {

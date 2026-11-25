@@ -26,9 +26,8 @@ pub fn build_vlan_frame(
 ) -> Result<Vec<u8>, CompilerError> {
     let mut l2 = ctx.l2.clone();
     if l2.vlan.is_none() {
-        let vid = if spec.vid != 0 { spec.vid } else { 1 };
         l2.vlan = Some(VlanSpec {
-            vid,
+            vid: spec.vid,
             pcp: spec.pcp,
             dei: spec.dei,
         });
@@ -43,13 +42,37 @@ pub fn build_vlan_frame(
             payload,
         ));
     }
-    let ethertype = if ctx.src_ip.is_ipv4() { 0x0800 } else { 0x86DD };
-    if payload.is_empty() {
-        let udp = crate::packet::build_udp_datagram(ctx.src_ip, ctx.dst_ip, ctx.src_port, ctx.dst_port, b"")?;
-        let ip = crate::packet::build_ip_packet(ctx.src_ip, ctx.dst_ip, 17, ctx.l3, &udp)?;
-        Ok(build_ethernet_and_l2(ctx.src_mac, ctx.dst_mac, &l2, ethertype, &ip))
-    } else {
-        Ok(build_ethernet_and_l2(ctx.src_mac, ctx.dst_mac, &l2, ethertype, payload))
+    if let Some(explicit_et) = l2.ethertype
+        && !matches!(explicit_et, 0x0800 | 0x86DD)
+    {
+        return Ok(build_ethernet_and_l2(
+            ctx.src_mac,
+            ctx.dst_mac,
+            &l2,
+            explicit_et,
+            payload,
+        ));
     }
+    let ethertype = if ctx.src_ip.is_ipv4() { 0x0800 } else { 0x86DD };
+    let ip_payload = if ctx.l3.frag_offset.unwrap_or(0) > 0 {
+        payload.to_vec()
+    } else {
+        crate::packet::build_udp_datagram_with_opts(
+            ctx.src_ip,
+            ctx.dst_ip,
+            ctx.src_port,
+            ctx.dst_port,
+            payload,
+            ctx.l4,
+        )?
+    };
+    let ip = crate::packet::build_ip_packet(ctx.src_ip, ctx.dst_ip, 17, ctx.l3, &ip_payload)?;
+    Ok(build_ethernet_and_l2(
+        ctx.src_mac,
+        ctx.dst_mac,
+        &l2,
+        ethertype,
+        &ip,
+    ))
 }
 

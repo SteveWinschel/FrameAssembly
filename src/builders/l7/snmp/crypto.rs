@@ -2,8 +2,8 @@
 //!
 //! This module implements the RFC 3414 and RFC 7860 1-megabyte password-to-key stretching and
 //! authoritative `snmpEngineID` key-localization algorithms across MD5, SHA-1, SHA-256, SHA-384,
-//! and SHA-512, alongside truncated HMAC message authentication code calculation (`96`, `128`,
-//! `192`, and `256` bits), RFC 3414 CBC-DES ScopedPDU encryption with zero-padded block alignment,
+//! and SHA-512, alongside truncated HMAC message authentication code calculation (`96`, `192`,
+//! `256`, and `384` bits per RFC 3414 and RFC 7860), RFC 3414 CBC-DES ScopedPDU encryption with zero-padded block alignment,
 //! and RFC 3826 CFB128-AES-128 encryption using the 128-bit engine boots/time/salt IV.
 
 use aes::Aes128;

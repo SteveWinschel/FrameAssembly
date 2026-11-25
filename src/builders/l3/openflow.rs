@@ -83,8 +83,8 @@ pub fn build_openflow_payload(spec: &OpenflowSpec, payload: &[u8]) -> (Vec<u8>, 
         body.extend_from_slice(payload);
     }
 
-    let total_len = (8 + body.len()) as u16;
-    let mut of = Vec::with_capacity(total_len as usize);
+    let total_len = u16::try_from(8 + body.len()).unwrap_or(u16::MAX);
+    let mut of = Vec::with_capacity(usize::from(total_len));
     of.push(version);
     of.push(of_type);
     of.extend_from_slice(&total_len.to_be_bytes());

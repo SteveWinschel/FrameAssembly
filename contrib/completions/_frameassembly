@@ -1,34 +1,55 @@
 #compdef frameassembly
-# zsh completion for frameassembly(1)
+# zsh completion for frameassembly(1) — FrameAssembly v3.3.0
 # https://github.com/SteveWinschel/FrameAssembly
 
 _frameassembly() {
     local ret=1
-    local -a subcommands
+    local -a subcommands stdio_stdin stdio_stdout
     subcommands=(
-        'show:Validate a .frasm file and print its packet ladder table'
-        'reverse:Reverse a .pcap or .pcapng capture file into .frasm code'
+        'show:Inspect a .frasm file or .pcap/.pcapng capture (or - for stdin) as a packet ladder'
+        'reverse:Reverse a .pcap or .pcapng capture (or - for stdin) into .frasm code'
         'update:Update frameassembly to the newest release'
         'version:Print the FrameAssembly version'
         'help:Print help for FrameAssembly or a subcommand'
     )
+    stdio_stdin=('-:Read input stream from stdin')
+    stdio_stdout=('-:Write output stream to stdout')
 
     if (( CURRENT == 2 )); then
         _describe -t commands 'frameassembly subcommand' subcommands && ret=0
         _path_files -/ -g '*.(frasm|FRASM)' && ret=0
+        if [[ "$PREFIX" == - ]]; then
+            _describe -t stdio 'standard input' stdio_stdin && ret=0
+        fi
         return ret
     fi
 
     case "${words[2]}" in
         show)
             if (( CURRENT == 3 )); then
-                _files -g '*.(frasm|FRASM)'
+                _files -g '*.(frasm|FRASM|pcap|PCAP|pcapng|PCAPNG)' && ret=0
+                if [[ "$PREFIX" == - ]]; then
+                    _describe -t stdio 'standard input' stdio_stdin && ret=0
+                fi
+                return ret
             fi
             ;;
         reverse)
             case "$CURRENT" in
-                3) _files -g '*.(pcap|pcapng|PCAP|PCAPNG)' ;;
-                4) _files -g '*.(frasm|FRASM)' ;;
+                3)
+                    _files -g '*.(pcap|pcapng|PCAP|PCAPNG)' && ret=0
+                    if [[ "$PREFIX" == - ]]; then
+                        _describe -t stdio 'standard input' stdio_stdin && ret=0
+                    fi
+                    return ret
+                    ;;
+                4)
+                    _files -g '*.(frasm|FRASM)' && ret=0
+                    if [[ "$PREFIX" == - ]]; then
+                        _describe -t stdio 'standard output' stdio_stdout && ret=0
+                    fi
+                    return ret
+                    ;;
             esac
             ;;
         help)
@@ -36,11 +57,15 @@ _frameassembly() {
                 _describe -t commands 'subcommand' subcommands
             fi
             ;;
-        update|version|-*)
+        update|version|-?*)
             ;;
         *)
             if (( CURRENT == 3 )); then
-                _files -g '*.(pcap|pcapng|PCAP|PCAPNG)'
+                _files -g '*.(pcap|pcapng|PCAP|PCAPNG)' && ret=0
+                if [[ "$PREFIX" == - ]]; then
+                    _describe -t stdio 'standard output' stdio_stdout && ret=0
+                fi
+                return ret
             fi
             ;;
     esac

@@ -21,9 +21,11 @@ use crate::ast::{Direction, Protocol, TcpFlag, TransportProto};
 use crate::backend::is_tcp_protocol;
 use crate::lexer::Token;
 
-use super::oracle::verify_with_oracle;
+use super::oracle::{OracleCache, insert_before_wait, verify_with_oracle_cached};
 use super::topology::{CaptureTopology, DiscoveredHost, ResolvedFrameEndpoints};
-use super::{DissectedPacket, ReverseOutput, format_mac_lower, format_payload_modifier};
+use super::{
+    DissectedPacket, ReverseOutput, escape_fasm_string, format_mac_lower, format_payload_modifier,
+};
 
 /// Default inter-packet wait interval (`10ms` in nanoseconds) used by the forward compiler.
 const DEFAULT_WAIT_NS: u64 = 10_000_000;
@@ -37,26 +39,48 @@ const DEFAULT_TCP_WIN: u16 = 64240;
 /// Default ephemeral source port (`12345`) used by the forward compiler.
 const DEFAULT_SRC_PORT: u16 = 12345;
 
-/// Shadow endpoint-pair port inheritance state mirroring `src/backend/mod.rs`.
-#[derive(Debug, Clone, Default)]
-struct ShadowEndpointPairPorts {
-    /// Last source/caller port associated with the caller endpoint.
-    caller_port: Option<u16>,
-    /// Last destination/callee port associated with the callee endpoint.
-    callee_port: Option<u16>,
-    /// Last protocol executed across this endpoint pair.
-    last_protocol: Option<Protocol>,
-    /// Whether `callee_port` was explicitly overridden by `srcport` or `dstport`.
-    callee_port_explicit: bool,
+/// Transport-layer namespace isolating TCP, UDP, and SCTP shadow port inheritance state.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+enum PortTransportClass {
+    /// Connection-oriented TCP and L7-over-TCP protocols.
+    Tcp,
+    /// Datagram UDP and L3/L7-over-UDP protocols.
+    Udp,
+    /// Stream Control Transmission Protocol (`sctp`).
+    Sctp,
 }
 
-/// Shadow 4-tuple TCP sequence progression state mirroring `src/backend/mod.rs`.
+/// Canonical shadow endpoint-pair port state mirroring `src/backend/mod.rs::EndpointPairPorts`.
+#[derive(Debug, Clone, Default)]
+struct ShadowEndpointPairPorts {
+    /// Port bound to the lexicographically first host (`ep_a`, or initiator on loopback).
+    port_a: Option<u16>,
+    /// Port bound to the lexicographically second host (`ep_b`, or responder on loopback).
+    port_b: Option<u16>,
+    /// Whether `ep_b` (`true`) or `ep_a` (`false`) is the active server/responder endpoint.
+    server_is_b: Option<bool>,
+    /// Last protocol executed across this endpoint pair.
+    last_protocol: Option<Protocol>,
+    /// Whether the server port was explicitly overridden by `srcport` or `dstport`.
+    server_port_explicit: bool,
+}
+
+/// Canonical key `(ep_a, ep_b, transport_class)` for transport-scoped port inheritance.
+type PortPairKey = (String, String, PortTransportClass);
+
+/// Shadow 4-tuple TCP sequence progression state mirroring `src/backend/mod.rs::TcpStreamState`.
 #[derive(Debug, Clone)]
 struct ShadowTcpStreamState {
     /// Next expected sequence number for endpoint 1.
     seq1: u32,
     /// Next expected sequence number for endpoint 2.
     seq2: u32,
+    /// Whether endpoint 1 has already transmitted at least one segment on this stream.
+    sent1: bool,
+    /// Whether endpoint 2 has already transmitted at least one segment on this stream.
+    sent2: bool,
+    /// Whether `FIN` or `RST` teardown has been observed on this 4-tuple.
+    closed: bool,
 }
 
 /// Canonical 4-tuple key ordering two `(IpAddr, u16)` endpoints lexicographically.
@@ -103,6 +127,10 @@ struct ExistingTokens {
     has_qinq: bool,
     /// Whether `mpls` is already present.
     has_mpls: bool,
+    /// Whether `fcs` is already present.
+    has_fcs: bool,
+    /// Whether `badfcs` is already present.
+    has_badfcs: bool,
     /// Whether `ttl` is already present.
     has_ttl: bool,
     /// Whether `dscp` is already present.
@@ -119,6 +147,8 @@ struct ExistingTokens {
     has_mf: bool,
     /// Whether `fragoffset` is already present.
     has_fragoffset: bool,
+    /// Whether `routeralert` is already present.
+    has_routeralert: bool,
     /// Whether `payload` or `hexpayload` is already present.
     has_payload: bool,
 }
@@ -159,6 +189,8 @@ impl ExistingTokens {
                 Token::Vlan => out.has_vlan = true,
                 Token::Qinq => out.has_qinq = true,
                 Token::Mpls => out.has_mpls = true,
+                Token::Fcs => out.has_fcs = true,
+                Token::BadFcs => out.has_badfcs = true,
                 Token::Ttl => out.has_ttl = true,
                 Token::Dscp => out.has_dscp = true,
                 Token::Ecn => out.has_ecn = true,
@@ -167,6 +199,7 @@ impl ExistingTokens {
                 Token::Df => out.has_df = true,
                 Token::Mf => out.has_mf = true,
                 Token::FragOffset => out.has_fragoffset = true,
+                Token::RouterAlert => out.has_routeralert = true,
                 Token::Payload | Token::HexPayload => out.has_payload = true,
                 _ => {}
             }
@@ -175,10 +208,11 @@ impl ExistingTokens {
     }
 }
 
-/// Emits a complete, canonical lowercase `.frasm` program from dissected packets and topology.
+/// Emits a complete, canonical lowercase `.frasm` program from dissected packets, topology, and per-frame comments.
 pub(crate) fn emit_fasm_program(
     packets: &[DissectedPacket],
     topo: &CaptureTopology,
+    comments: &[Option<String>],
 ) -> ReverseOutput {
     if topo.hosts.is_empty() || packets.is_empty() {
         return ReverseOutput {
@@ -196,8 +230,9 @@ pub(crate) fn emit_fasm_program(
     fasm.push('\n');
     fasm.push_str("compile {\n");
 
-    let mut endpoint_ports: HashMap<(String, String), ShadowEndpointPairPorts> = HashMap::new();
+    let mut endpoint_ports: HashMap<PortPairKey, ShadowEndpointPairPorts> = HashMap::new();
     let mut tcp_connections: HashMap<Canonical4Tuple, ShadowTcpStreamState> = HashMap::new();
+    let mut oracle_cache = OracleCache::default();
 
     for (idx, pkt) in packets.iter().enumerate() {
         let ep = topo
@@ -236,7 +271,14 @@ pub(crate) fn emit_fasm_program(
             &tcp_connections,
         );
 
-        let verified = verify_with_oracle(pkt, caller, callee, &ep, &candidate_body);
+        let verified = verify_with_oracle_cached(
+            pkt,
+            caller,
+            callee,
+            &ep,
+            &candidate_body,
+            &mut oracle_cache,
+        );
 
         update_shadow_state_after_statement(
             pkt,
@@ -248,10 +290,22 @@ pub(crate) fn emit_fasm_program(
             &mut tcp_connections,
         );
 
+        let emitted_body = match comments
+            .get(idx)
+            .and_then(|c| c.as_deref())
+            .filter(|s| !s.is_empty())
+        {
+            Some(comment_text) => {
+                let comment_mod = format!("comment \"{}\"", escape_fasm_string(comment_text));
+                insert_before_wait(&verified.statement_body, &comment_mod)
+            }
+            None => verified.statement_body,
+        };
+
         let _ = writeln!(
             fasm,
             "    {} {} {} {}",
-            caller.name, arrow, callee.name, verified.statement_body
+            caller.name, arrow, callee.name, emitted_body
         );
     }
 
@@ -324,10 +378,77 @@ fn quantize_wait_delta(delta_ns: u64) -> Option<String> {
     }
 }
 
+/// Returns `true` when `tokens_str` selects an H.225.0 RAS operation (`grq`/`gcf`/`rrq`/`rcf`/`drq`/`dcf`).
+fn is_h323_ras_tokens(tokens_str: &str) -> bool {
+    Token::lexer(tokens_str).flatten().any(|t| {
+        matches!(
+            t,
+            Token::Grq | Token::Gcf | Token::Rrq | Token::Rcf | Token::Drq | Token::Dcf
+        )
+    })
+}
+
+/// Returns `true` when `tokens_str` selects an RFC 9301 LISP Control-Plane operation (UDP `4342`).
+fn is_lisp_control_tokens(tokens_str: &str) -> bool {
+    let mut has_data = false;
+    let mut has_ctrl = false;
+    for t in Token::lexer(tokens_str).flatten() {
+        if matches!(t, Token::Data) {
+            has_data = true;
+        } else if matches!(
+            t,
+            Token::MapRequest
+                | Token::MapReply
+                | Token::MapRegister
+                | Token::MapNotify
+                | Token::Ecm
+        ) {
+            has_ctrl = true;
+        }
+    }
+    !has_data && has_ctrl
+}
+
+/// Returns `true` when `tokens_str` explicitly selects L2TPv3 (`v3` or `version 3`).
+fn is_l2tp_v3_tokens(tokens_str: &str) -> bool {
+    let mut saw_version = false;
+    for t in Token::lexer(tokens_str).flatten() {
+        if matches!(t, Token::V3) {
+            return true;
+        }
+        if saw_version && matches!(t, Token::Number("3")) {
+            return true;
+        }
+        saw_version = matches!(t, Token::Version);
+    }
+    false
+}
+
+/// Mirrors `src/backend/mod.rs::statement_uses_tcp` using reverse token metadata.
+fn shadow_uses_tcp(
+    protocol: &Protocol,
+    tokens_str: &str,
+    transport_override: Option<TransportProto>,
+) -> bool {
+    if *protocol == Protocol::H323 {
+        if let Some(tr) = transport_override {
+            return tr == TransportProto::Tcp;
+        }
+        return !is_h323_ras_tokens(tokens_str);
+    }
+    is_tcp_protocol(protocol, transport_override)
+}
+
 /// Returns the forward compiler's Stage 1 default destination port for `protocol` and `tokens`.
 fn stage1_default_dst_port(protocol: &Protocol, tokens_str: &str) -> u16 {
     match protocol {
-        Protocol::Tcp | Protocol::Udp | Protocol::Sctp | Protocol::Http | Protocol::Websocket => 80,
+        Protocol::Tcp
+        | Protocol::Udp
+        | Protocol::Sctp
+        | Protocol::Http
+        | Protocol::Websocket
+        | Protocol::Ntlm
+        | Protocol::Doh => 80,
         Protocol::Snmp1 | Protocol::Snmp2 | Protocol::Snmp3 => {
             let is_request_or_resp = Token::lexer(tokens_str).flatten().any(|t| {
                 matches!(
@@ -346,6 +467,13 @@ fn stage1_default_dst_port(protocol: &Protocol, tokens_str: &str) -> u16 {
         Protocol::Rip => 520,
         Protocol::Hsrp => 1985,
         Protocol::Bfd => 3784,
+        Protocol::Ldp => 646,
+        Protocol::Bmp => 1790,
+        Protocol::Rpkirtr => 323,
+        Protocol::L2tp => 1701,
+        Protocol::Lisp => 4341,
+        Protocol::Glbp => 3222,
+        Protocol::Gtpu => 2152,
         Protocol::Dns => 53,
         Protocol::Mdns => 5353,
         Protocol::Dhcp => 67,
@@ -363,9 +491,10 @@ fn stage1_default_dst_port(protocol: &Protocol, tokens_str: &str) -> u16 {
         Protocol::Telnet => 23,
         Protocol::Http2 | Protocol::Tls | Protocol::Quic => 443,
         Protocol::Grpc => 50051,
-        Protocol::Stun => 3478,
+        Protocol::Stun | Protocol::Turn => 3478,
         Protocol::Sip => 5060,
         Protocol::Rtp => 5004,
+        Protocol::Rtcp => 5005,
         Protocol::Rtsp => 554,
         Protocol::Smtp => 25,
         Protocol::Imap => 143,
@@ -386,23 +515,100 @@ fn stage1_default_dst_port(protocol: &Protocol, tokens_str: &str) -> u16 {
         Protocol::Modbus => 502,
         Protocol::Bacnet => 47808,
         Protocol::Dnp3 => 20000,
-        Protocol::S7comm => 102,
+        Protocol::S7comm | Protocol::Mms | Protocol::S7commplus => 102,
         Protocol::Ethernetip => 44818,
         Protocol::Opcua => 4840,
+        Protocol::Dcerpc => 135,
+        Protocol::Rdp => 3389,
+        Protocol::Llmnr => 5355,
+        Protocol::Nbns => 137,
+        Protocol::Socks => 1080,
+        Protocol::Vnc => 5900,
+        Protocol::Wsdiscovery => 3702,
+        Protocol::Irc => 6667,
+        Protocol::Iec104 => 2404,
+        Protocol::Synchrophasor => 4712,
+        Protocol::Hartip => 5094,
+        Protocol::Fins => 9600,
+        Protocol::Melsec => 5000,
+        Protocol::Someip => 30490,
+        Protocol::Doip => 13400,
+        Protocol::C1222 => 1153,
+        Protocol::Gesrtp => 18245,
+        Protocol::Rocplus => 4000,
+        Protocol::Bsap => 1234,
+        Protocol::Knxnetip => 3671,
+        Protocol::Rocev2 => 4791,
+        Protocol::Ipmi => 623,
+        Protocol::Twamp => 862,
+        Protocol::Netconf => 830,
+        Protocol::Gtpc => 2123,
+        Protocol::Pfcp => 8805,
+        Protocol::Diameter => 3868,
+        Protocol::Ngap => 38412,
+        Protocol::S1ap => 36412,
+        Protocol::Mssql => 1433,
+        Protocol::Kafka => 9092,
+        Protocol::Mongodb => 27017,
+        Protocol::Tns => 1521,
+        Protocol::Iscsi => 3260,
+        Protocol::Nvmetcp => 4420,
+        Protocol::H323 => 1720,
+        Protocol::Sccp => 2000,
+        Protocol::Mgcp => 2427,
         _ => 0,
     }
 }
 
+/// Resolves the transport- and spec-adjusted server destination port matching
+/// `resolve_and_record_ports` in `src/backend/mod.rs`.
+fn effective_default_srv_port(
+    protocol: &Protocol,
+    tokens_str: &str,
+    transport_override: Option<TransportProto>,
+) -> u16 {
+    let is_udp = transport_override == Some(TransportProto::Udp)
+        || tokens_str.contains("transport udp");
+    match (protocol, is_udp) {
+        (Protocol::Profinet, true) => 34964,
+        (Protocol::Ethercat, true) => 34980,
+        (Protocol::L2tp, false) if is_l2tp_v3_tokens(tokens_str) => 0,
+        (Protocol::H323, true) => 1719,
+        (Protocol::H323, false) if is_h323_ras_tokens(tokens_str) => 1719,
+        _ => stage1_default_dst_port(protocol, tokens_str),
+    }
+}
+
 /// Returns optional `(src_port_override, dst_port_override)` produced by `build_l7_packet_payload`
-/// in `src/backend/l7_dispatch.rs`.
+/// in `src/backend/l7_dispatch.rs` or L3 builder overrides (`lisp`) in `src/backend/mod.rs`.
 fn l7_builder_port_overrides(
     protocol: &Protocol,
     tokens_str: &str,
+    dir: Direction,
     is_ipv6: bool,
     transport_override: Option<TransportProto>,
 ) -> (Option<u16>, Option<u16>) {
     match protocol {
         Protocol::Mdns => (None, Some(5353)),
+        Protocol::Llmnr => (None, Some(5355)),
+        Protocol::H323 => {
+            let is_udp = transport_override == Some(TransportProto::Udp)
+                || tokens_str.contains("transport udp");
+            let dport = if is_udp || is_h323_ras_tokens(tokens_str) {
+                1719
+            } else {
+                1720
+            };
+            (None, Some(dport))
+        }
+        Protocol::Lisp => {
+            let dport = if is_lisp_control_tokens(tokens_str) {
+                4342
+            } else {
+                4341
+            };
+            (None, Some(dport))
+        }
         Protocol::Dhcp => {
             let is_server_reply = Token::lexer(tokens_str)
                 .flatten()
@@ -422,7 +628,12 @@ fn l7_builder_port_overrides(
                     Token::FollowUp | Token::DelayResp | Token::Announce
                 )
             });
-            (None, Some(if is_general { 320 } else { 319 }))
+            let ptp_port = if is_general { 320 } else { 319 };
+            if dir == Direction::RightToLeft {
+                (Some(ptp_port), None)
+            } else {
+                (None, Some(ptp_port))
+            }
         }
         Protocol::Radius => {
             let is_acct = Token::lexer(tokens_str)
@@ -440,58 +651,196 @@ fn l7_builder_port_overrides(
     }
 }
 
-/// Predicts the wire `(src_port, dst_port)` that `execute_statement` in `src/backend/mod.rs`
-/// would synthesize if `srcport` and `dstport` were omitted on this statement.
+/// Computes the transport-scoped [`PortPairKey`] and `src_is_b` flag matching `src/backend/mod.rs`.
+fn canonical_port_key(
+    protocol: &Protocol,
+    tokens_str: &str,
+    transport_override: Option<TransportProto>,
+    src_name_lower: &str,
+    dst_name_lower: &str,
+    dir: Direction,
+) -> (PortPairKey, bool) {
+    let transport_class = if *protocol == Protocol::Sctp
+        || transport_override == Some(TransportProto::Sctp)
+        || matches!(protocol, Protocol::Ngap | Protocol::S1ap)
+    {
+        PortTransportClass::Sctp
+    } else if shadow_uses_tcp(protocol, tokens_str, transport_override) {
+        PortTransportClass::Tcp
+    } else {
+        PortTransportClass::Udp
+    };
+    let (ep_a, ep_b, src_is_b) = if src_name_lower == dst_name_lower {
+        (
+            src_name_lower.to_string(),
+            dst_name_lower.to_string(),
+            dir == Direction::RightToLeft,
+        )
+    } else if src_name_lower < dst_name_lower {
+        (src_name_lower.to_string(), dst_name_lower.to_string(), false)
+    } else {
+        (dst_name_lower.to_string(), src_name_lower.to_string(), true)
+    };
+    ((ep_a, ep_b, transport_class), src_is_b)
+}
+
+/// Canonicalizes two `(IpAddr, u16)` socket endpoints into `(key, is_forward)`.
+fn canonical_4tuple(src: (IpAddr, u16), dst: (IpAddr, u16)) -> (Canonical4Tuple, bool) {
+    if src <= dst {
+        ((src, dst), true)
+    } else {
+        ((dst, src), false)
+    }
+}
+
+/// Rotates an ephemeral client `src_port` away from a torn-down (`FIN`/`RST`) TCP 4-tuple,
+/// matching `src/backend/mod.rs`.
+fn rotate_closed_client_port(
+    src_ip: IpAddr,
+    src_port: u16,
+    dst_ip: IpAddr,
+    dst_port: u16,
+    tcp_connections: &HashMap<Canonical4Tuple, ShadowTcpStreamState>,
+) -> u16 {
+    let mut candidate = if (1024..65535).contains(&src_port) {
+        src_port + 1
+    } else {
+        12346
+    };
+    for _ in 0..1024 {
+        if candidate == dst_port {
+            candidate = if candidate == 65535 {
+                1024
+            } else {
+                candidate + 1
+            };
+            continue;
+        }
+        let cand_key = canonical_4tuple((src_ip, candidate), (dst_ip, dst_port)).0;
+        if !tcp_connections.contains_key(&cand_key) {
+            break;
+        }
+        candidate = if candidate == 65535 {
+            1024
+        } else {
+            candidate + 1
+        };
+    }
+    candidate
+}
+
+/// Endpoint and transport context used by `predict_wire_ports` to synthesize default wire ports.
+#[derive(Debug, Clone, Copy)]
+struct WirePortContext<'a> {
+    /// Directional arrow (`->` or `<-`) of the emitted statement.
+    dir: Direction,
+    /// Whether the IP header uses IPv6 (`true`) or IPv4 (`false`).
+    is_ipv6: bool,
+    /// Explicit or observed L4 transport override (`tcp`, `udp`, or `sctp`).
+    transport_override: Option<TransportProto>,
+    /// Lowercased source host name used to detect loopback traffic.
+    src_name_lower: &'a str,
+    /// Lowercased destination host name used to detect loopback traffic.
+    dst_name_lower: &'a str,
+    /// Whether the source host corresponds to `ep_b` in the canonical pair key.
+    src_is_b: bool,
+    /// Previously recorded shadow port state for this endpoint pair, if any.
+    pair_ports: Option<&'a ShadowEndpointPairPorts>,
+}
+
+/// Predicts the wire `(src_port, dst_port, src_is_server)` that `execute_statement` in
+/// `src/backend/mod.rs` would synthesize if `srcport` and `dstport` were omitted on this statement.
 fn predict_wire_ports(
     protocol: &Protocol,
     tokens_str: &str,
-    dir: Direction,
-    is_ipv6: bool,
-    transport_override: Option<TransportProto>,
-    pair_ports: Option<&ShadowEndpointPairPorts>,
-) -> (u16, u16) {
+    ctx: &WirePortContext<'_>,
+) -> (u16, u16, bool) {
+    let default_srv_port =
+        effective_default_srv_port(protocol, tokens_str, ctx.transport_override);
+    if default_srv_port == 0 {
+        return (DEFAULT_SRC_PORT, 0, false);
+    }
+
     let is_raw_l4 = matches!(protocol, Protocol::Tcp | Protocol::Udp | Protocol::Sctp);
-    let can_inherit_callee = is_raw_l4
-        || pair_ports.is_some_and(|pp| {
-            pp.callee_port_explicit
+    let src_is_server = match ctx.dir {
+        Direction::RightToLeft => true,
+        Direction::LeftToRight => {
+            ctx.src_name_lower != ctx.dst_name_lower
+                && ctx.pair_ports.is_some_and(|pp| {
+                    pp.server_is_b == Some(ctx.src_is_b)
+                        && (is_raw_l4 || pp.last_protocol.as_ref() == Some(protocol))
+                })
+        }
+    };
+    let active_server_is_b = if src_is_server {
+        ctx.src_is_b
+    } else {
+        !ctx.src_is_b
+    };
+    let effective_pp = ctx
+        .pair_ports
+        .filter(|pp| pp.server_is_b.is_none() || pp.server_is_b == Some(active_server_is_b));
+
+    let (stored_client, stored_server) = match effective_pp {
+        Some(pp) if active_server_is_b => (pp.port_a, pp.port_b),
+        Some(pp) => (pp.port_b, pp.port_a),
+        None => (None, None),
+    };
+
+    let can_inherit_server = is_raw_l4
+        || effective_pp.is_some_and(|pp| {
+            pp.server_port_explicit
                 && (pp.last_protocol.as_ref() == Some(protocol)
                     || matches!(
                         pp.last_protocol,
                         Some(Protocol::Tcp | Protocol::Udp | Protocol::Sctp)
                     ))
         });
-    let inherited_callee_port = if can_inherit_callee {
-        pair_ports.and_then(|pp| pp.callee_port)
+    let inherited_server = if can_inherit_server {
+        stored_server
     } else {
         None
     };
-    let caller_port = pair_ports.and_then(|pp| pp.caller_port);
-    let default_dst = stage1_default_dst_port(protocol, tokens_str);
 
-    let (mut src_port, mut dst_port) = match dir {
-        Direction::LeftToRight => (
-            caller_port.unwrap_or(DEFAULT_SRC_PORT),
-            inherited_callee_port.unwrap_or(default_dst),
-        ),
-        Direction::RightToLeft => (
-            inherited_callee_port.unwrap_or(default_dst),
-            caller_port.unwrap_or(DEFAULT_SRC_PORT),
-        ),
+    let (mut src_port, mut dst_port) = if src_is_server {
+        (
+            inherited_server.unwrap_or(default_srv_port),
+            stored_client.unwrap_or(DEFAULT_SRC_PORT),
+        )
+    } else {
+        (
+            stored_client.unwrap_or(DEFAULT_SRC_PORT),
+            inherited_server.unwrap_or(default_srv_port),
+        )
     };
 
-    let (l7_sp, l7_dp) =
-        l7_builder_port_overrides(protocol, tokens_str, is_ipv6, transport_override);
-    if let Some(sp) = l7_sp {
-        src_port = sp;
-    }
-    if let Some(dp) = l7_dp {
-        if matches!(
-            protocol,
-            Protocol::Radius | Protocol::Ptp | Protocol::Ethernetip
-        ) && dir == Direction::RightToLeft
-        {
-            src_port = dp;
-        } else {
+    let (l7_sp, l7_dp) = l7_builder_port_overrides(
+        protocol,
+        tokens_str,
+        ctx.dir,
+        ctx.is_ipv6,
+        ctx.transport_override,
+    );
+    if matches!(
+        protocol,
+        Protocol::Radius
+            | Protocol::Ethernetip
+            | Protocol::H323
+            | Protocol::Llmnr
+            | Protocol::Lisp
+    ) {
+        if let Some(srv_port) = l7_sp.or(l7_dp) {
+            if src_is_server {
+                src_port = srv_port;
+            } else {
+                dst_port = srv_port;
+            }
+        }
+    } else {
+        if let Some(sp) = l7_sp {
+            src_port = sp;
+        }
+        if let Some(dp) = l7_dp {
             dst_port = dp;
         }
     }
@@ -499,12 +848,12 @@ fn predict_wire_ports(
     // L3-over-UDP protocols in `src/backend/mod.rs` override `final_dport` (and `final_sport` for RIP/HSRP).
     match protocol {
         Protocol::Rip => {
-            let dport = if is_ipv6 { 521 } else { 520 };
+            let dport = if ctx.is_ipv6 { 521 } else { 520 };
             src_port = dport;
             dst_port = dport;
         }
         Protocol::Hsrp => {
-            let is_v2 = is_ipv6 || tokens_str.contains("version 2");
+            let is_v2 = ctx.is_ipv6 || tokens_str.contains("version 2");
             let dport = if is_v2 { 2029 } else { 1985 };
             src_port = dport;
             dst_port = dport;
@@ -517,7 +866,7 @@ fn predict_wire_ports(
         _ => {}
     }
 
-    (src_port, dst_port)
+    (src_port, dst_port, src_is_server)
 }
 
 /// Builds the candidate statement body (everything after `<caller> ->|<- <callee> `) with
@@ -528,7 +877,7 @@ fn build_candidate_statement_body(
     callee: &DiscoveredHost,
     ep: &ResolvedFrameEndpoints,
     wait_opt: Option<&str>,
-    endpoint_ports: &HashMap<(String, String), ShadowEndpointPairPorts>,
+    endpoint_ports: &HashMap<PortPairKey, ShadowEndpointPairPorts>,
     tcp_connections: &HashMap<Canonical4Tuple, ShadowTcpStreamState>,
 ) -> String {
     let existing = ExistingTokens::scan(&pkt.dissection.tokens);
@@ -540,10 +889,12 @@ fn build_candidate_statement_body(
     let transport_override = pkt.dissection.explicit_transport.or(pkt.l4.transport);
     if !existing.has_transport
         && let Some(tp) = transport_override
+        && !(matches!(protocol, Protocol::Ngap | Protocol::S1ap) && tp == TransportProto::Sctp)
     {
         match tp {
             TransportProto::Tcp => parts.push(String::from("transport tcp")),
             TransportProto::Udp => parts.push(String::from("transport udp")),
+            TransportProto::Sctp => parts.push(String::from("transport sctp")),
         }
     }
 
@@ -551,18 +902,22 @@ fn build_candidate_statement_body(
         Direction::LeftToRight => (caller, callee),
         Direction::RightToLeft => (callee, caller),
     };
+    let src_name_lower = src_host.name.to_ascii_lowercase();
+    let dst_name_lower = dst_host.name.to_ascii_lowercase();
     let src_ip = src_host
         .ip
         .or(pkt.src_ip)
         .unwrap_or(IpAddr::V4(Ipv4Addr::UNSPECIFIED));
-    let dst_ip = dst_host
-        .ip
-        .or(pkt.dst_ip)
-        .unwrap_or(IpAddr::V4(Ipv4Addr::UNSPECIFIED));
+    let dst_ip = if pkt.dst_ip.is_some_and(super::topology::is_unicast_ip) {
+        dst_host.ip.or(pkt.dst_ip)
+    } else {
+        pkt.dst_ip.or(dst_host.ip)
+    }
+    .unwrap_or(IpAddr::V4(Ipv4Addr::UNSPECIFIED));
     let is_ipv6 = src_ip.is_ipv6();
 
     // 1. TCP flags, sequence/ack numbers, window, urgent pointer, and TCP options.
-    let is_stream_tcp = is_tcp_protocol(protocol, transport_override);
+    let is_stream_tcp = shadow_uses_tcp(protocol, &pkt.dissection.tokens, transport_override);
     let should_emit_tcp_flags = if *protocol == Protocol::Tcp {
         !existing.has_tcp_flags
     } else {
@@ -595,20 +950,44 @@ fn build_candidate_statement_body(
         }
     }
 
-    // 2. Port elision via shadow `EndpointPairPorts`.
-    let pair_key = (
-        caller.name.to_ascii_lowercase(),
-        callee.name.to_ascii_lowercase(),
-    );
-    let pair_ports = endpoint_ports.get(&pair_key);
-    let (pred_src_port, pred_dst_port) = predict_wire_ports(
+    // 2. Port elision via transport-scoped shadow `EndpointPairPorts`.
+    let (pair_key, src_is_b) = canonical_port_key(
         protocol,
         &pkt.dissection.tokens,
+        transport_override,
+        &src_name_lower,
+        &dst_name_lower,
         ep.dir,
+    );
+    let pair_ports = endpoint_ports.get(&pair_key);
+    let port_ctx = WirePortContext {
+        dir: ep.dir,
         is_ipv6,
         transport_override,
+        src_name_lower: &src_name_lower,
+        dst_name_lower: &dst_name_lower,
+        src_is_b,
         pair_ports,
-    );
+    };
+    let (mut pred_src_port, pred_dst_port, src_is_server) =
+        predict_wire_ports(protocol, &pkt.dissection.tokens, &port_ctx);
+
+    let is_fresh_syn = is_stream_tcp
+        && pkt.l4.tcp_flags.contains(&TcpFlag::Syn)
+        && !pkt.l4.tcp_flags.contains(&TcpFlag::Ack);
+    let tentative_dst_port = pkt.l4.dst_port.unwrap_or(pred_dst_port);
+    if is_fresh_syn && !src_is_server {
+        let initial_key = canonical_4tuple((src_ip, pred_src_port), (dst_ip, tentative_dst_port)).0;
+        if tcp_connections.get(&initial_key).is_some_and(|s| s.closed) {
+            pred_src_port = rotate_closed_client_port(
+                src_ip,
+                pred_src_port,
+                dst_ip,
+                tentative_dst_port,
+                tcp_connections,
+            );
+        }
+    }
 
     let effective_src_port = pkt.l4.src_port.unwrap_or(pred_src_port);
     let effective_dst_port = pkt.l4.dst_port.unwrap_or(pred_dst_port);
@@ -636,16 +1015,13 @@ fn build_candidate_statement_body(
 
     // 3. TCP `seq`, `acknum`, `win`, `urgent`, and RFC 7323 TCP options.
     if is_stream_tcp {
-        let ep1 = (src_ip, effective_src_port);
-        let ep2 = (dst_ip, effective_dst_port);
-        let (key, is_stream_forward) = if ep1 <= ep2 {
-            ((ep1, ep2), true)
-        } else {
-            ((ep2, ep1), false)
-        };
+        let (key, is_stream_forward) =
+            canonical_4tuple((src_ip, effective_src_port), (dst_ip, effective_dst_port));
         let (expected_sender_seq, expected_receiver_seq) =
             if let Some(stream) = tcp_connections.get(&key) {
-                if is_stream_forward {
+                if is_fresh_syn && stream.closed {
+                    (DEFAULT_TCP_ISN, DEFAULT_TCP_ISN)
+                } else if is_stream_forward {
                     (stream.seq1, stream.seq2)
                 } else {
                     (stream.seq2, stream.seq1)
@@ -720,7 +1096,7 @@ fn build_candidate_statement_body(
         }
     }
 
-    // 4. L2 & L3 universal modifiers (`srcmac`, `dstmac`, `vlan`, `qinq`, `mpls`, `ttl`, `dscp`, `ecn`, `flowlabel`, `ipid`, `df`, `mf`, `fragoffset`).
+    // 4. L2 & L3 universal modifiers (`srcmac`, `dstmac`, `vlan`, `qinq`, `mpls`, `fcs`/`badfcs`, `ttl`, `dscp`, `ecn`, `flowlabel`, `ipid`, `df`, `mf`, `fragoffset`, `routeralert`).
     if !existing.has_srcmac
         && let Some(sm) = ep.emit_src_mac
     {
@@ -768,24 +1144,31 @@ fn build_candidate_statement_body(
                 parts.push(format!("dei {dei}"));
             }
         }
-        if !existing.has_mpls
-            && let Some(m) = &pkt.l2.mpls
-        {
-            parts.push(format!("mpls {}", m.label));
-            if let Some(exp) = m.exp
-                && exp != 0
-            {
-                parts.push(format!("exp {exp}"));
-            }
-            if let Some(bos) = m.bos
-                && bos != 1
-            {
-                parts.push(format!("bos {bos}"));
-            }
-            if let Some(ttl) = m.ttl
-                && ttl != 64
-            {
-                parts.push(format!("mplsttl {ttl}"));
+        let mpls_entries: &[crate::ast::MplsSpec] = if !pkt.l2.mpls_stack.is_empty() {
+            &pkt.l2.mpls_stack
+        } else {
+            pkt.l2.mpls.as_slice()
+        };
+        if !existing.has_mpls && !mpls_entries.is_empty() {
+            let total = mpls_entries.len();
+            for (idx, m) in mpls_entries.iter().enumerate() {
+                parts.push(format!("mpls {}", m.label));
+                if let Some(exp) = m.exp
+                    && exp != 0
+                {
+                    parts.push(format!("exp {exp}"));
+                }
+                let default_bos = u8::from(idx + 1 == total);
+                if let Some(bos) = m.bos
+                    && bos != default_bos
+                {
+                    parts.push(format!("bos {bos}"));
+                }
+                if let Some(ttl) = m.ttl
+                    && ttl != 64
+                {
+                    parts.push(format!("mplsttl {ttl}"));
+                }
             }
         }
     } else if !pkt.has_ip_header
@@ -796,11 +1179,31 @@ fn build_candidate_statement_body(
         parts.push(format!("ethertype 0x{:04x}", pkt.inner_ethertype));
     }
 
+    if !existing.has_fcs && pkt.l2.fcs {
+        parts.push(String::from("fcs"));
+    }
+    if !existing.has_badfcs && pkt.l2.bad_fcs {
+        parts.push(String::from("badfcs"));
+    }
+
     if pkt.has_ip_header {
-        let default_ttl = if matches!(protocol, Protocol::Ndp | Protocol::Vrrp)
+        let default_ttl = if matches!(protocol, Protocol::Ndp | Protocol::Vrrp | Protocol::Bfd)
             || (*protocol == Protocol::Arp && is_ipv6)
+            || (*protocol == Protocol::Rip && is_ipv6)
         {
             255
+        } else if matches!(
+            protocol,
+            Protocol::Igmp
+                | Protocol::Mld
+                | Protocol::Ospf
+                | Protocol::Pim
+                | Protocol::Hsrp
+                | Protocol::Glbp
+                | Protocol::Llmnr
+        ) || (*protocol == Protocol::Rip && !is_ipv6)
+        {
+            1
         } else {
             64
         };
@@ -829,25 +1232,26 @@ fn build_candidate_statement_body(
         {
             parts.push(format!("flowlabel 0x{fl:x}"));
         }
-        if !is_ipv6 {
-            if !existing.has_ipid
-                && let Some(ipid) = pkt.l3.ipid
-                && ipid != 0
-            {
-                parts.push(format!("ipid 0x{ipid:04x}"));
-            }
-            if !existing.has_df && pkt.l3.df {
-                parts.push(String::from("df"));
-            }
-            if !existing.has_mf && pkt.l3.mf {
-                parts.push(String::from("mf"));
-            }
-            if !existing.has_fragoffset
-                && let Some(fo) = pkt.l3.frag_offset
-                && fo != 0
-            {
-                parts.push(format!("fragoffset {fo}"));
-            }
+        if !existing.has_ipid
+            && let Some(ipid) = pkt.l3.ipid
+            && (is_ipv6 || ipid != 0)
+        {
+            parts.push(format!("ipid 0x{ipid:04x}"));
+        }
+        if !is_ipv6 && !existing.has_df && pkt.l3.df {
+            parts.push(String::from("df"));
+        }
+        if !existing.has_mf && pkt.l3.mf {
+            parts.push(String::from("mf"));
+        }
+        if !existing.has_fragoffset
+            && let Some(fo) = pkt.l3.frag_offset
+            && fo != 0
+        {
+            parts.push(format!("fragoffset {fo}"));
+        }
+        if !existing.has_routeralert && pkt.l3.router_alert {
+            parts.push(String::from("routeralert"));
         }
     }
 
@@ -880,7 +1284,7 @@ fn update_shadow_state_after_statement(
     callee: &DiscoveredHost,
     ep: &ResolvedFrameEndpoints,
     verified_body: &str,
-    endpoint_ports: &mut HashMap<(String, String), ShadowEndpointPairPorts>,
+    endpoint_ports: &mut HashMap<PortPairKey, ShadowEndpointPairPorts>,
     tcp_connections: &mut HashMap<Canonical4Tuple, ShadowTcpStreamState>,
 ) {
     let scanned = ExistingTokens::scan(verified_body);
@@ -888,6 +1292,7 @@ fn update_shadow_state_after_statement(
     let effective_protocol = match first_tok {
         Some(Token::Tcp) => Protocol::Tcp,
         Some(Token::Udp) => Protocol::Udp,
+        Some(Token::Sctp) => Protocol::Sctp,
         Some(Token::Vlan) => Protocol::Vlan,
         Some(Token::Qinq) => Protocol::Qinq,
         Some(Token::Mpls) => Protocol::Mpls,
@@ -898,40 +1303,83 @@ fn update_shadow_state_after_statement(
         Direction::LeftToRight => (caller, callee),
         Direction::RightToLeft => (callee, caller),
     };
+    let src_name_lower = src_host.name.to_ascii_lowercase();
+    let dst_name_lower = dst_host.name.to_ascii_lowercase();
     let src_ip = src_host
         .ip
         .or(pkt.src_ip)
         .unwrap_or(IpAddr::V4(Ipv4Addr::UNSPECIFIED));
-    let dst_ip = dst_host
-        .ip
-        .or(pkt.dst_ip)
-        .unwrap_or(IpAddr::V4(Ipv4Addr::UNSPECIFIED));
+    let dst_ip = if pkt.dst_ip.is_some_and(super::topology::is_unicast_ip) {
+        dst_host.ip.or(pkt.dst_ip)
+    } else {
+        pkt.dst_ip.or(dst_host.ip)
+    }
+    .unwrap_or(IpAddr::V4(Ipv4Addr::UNSPECIFIED));
     let is_ipv6 = src_ip.is_ipv6();
 
-    let pair_key = (
-        caller.name.to_ascii_lowercase(),
-        callee.name.to_ascii_lowercase(),
-    );
-    let is_raw_l4 = matches!(
-        effective_protocol,
-        Protocol::Tcp | Protocol::Udp | Protocol::Sctp
-    );
+    let transport_override = pkt.dissection.explicit_transport.or(pkt.l4.transport);
+    let default_srv_port =
+        effective_default_srv_port(&effective_protocol, verified_body, transport_override);
 
-    let (mut src_port, mut dst_port) = {
+    let (mut src_port, mut dst_port, port_slot) = if default_srv_port == 0 {
+        let sp = if scanned.has_srcport {
+            pkt.l4.src_port.unwrap_or(DEFAULT_SRC_PORT)
+        } else {
+            DEFAULT_SRC_PORT
+        };
+        let dp = if scanned.has_dstport {
+            pkt.l4.dst_port.unwrap_or(0)
+        } else {
+            0
+        };
+        (sp, dp, None)
+    } else {
+        let is_raw_l4 = matches!(
+            effective_protocol,
+            Protocol::Tcp | Protocol::Udp | Protocol::Sctp
+        );
+        let (pair_key, src_is_b) = canonical_port_key(
+            &effective_protocol,
+            verified_body,
+            transport_override,
+            &src_name_lower,
+            &dst_name_lower,
+            ep.dir,
+        );
         let pair_ports = endpoint_ports.entry(pair_key.clone()).or_default();
-        let can_inherit_callee = is_raw_l4
-            || (pair_ports.callee_port_explicit
+
+        let src_is_server = match ep.dir {
+            Direction::RightToLeft => true,
+            Direction::LeftToRight => {
+                src_name_lower != dst_name_lower
+                    && pair_ports.server_is_b == Some(src_is_b)
+                    && (is_raw_l4 || pair_ports.last_protocol.as_ref() == Some(&effective_protocol))
+            }
+        };
+        let active_server_is_b = if src_is_server { src_is_b } else { !src_is_b };
+        if pair_ports.server_is_b.is_some() && pair_ports.server_is_b != Some(active_server_is_b) {
+            *pair_ports = ShadowEndpointPairPorts::default();
+        }
+        pair_ports.server_is_b = Some(active_server_is_b);
+
+        let (stored_client, stored_server) = if active_server_is_b {
+            (pair_ports.port_a, pair_ports.port_b)
+        } else {
+            (pair_ports.port_b, pair_ports.port_a)
+        };
+
+        let can_inherit_server = is_raw_l4
+            || (pair_ports.server_port_explicit
                 && (pair_ports.last_protocol.as_ref() == Some(&effective_protocol)
                     || matches!(
                         pair_ports.last_protocol,
                         Some(Protocol::Tcp | Protocol::Udp | Protocol::Sctp)
                     )));
-        let inherited_callee_port = if can_inherit_callee {
-            pair_ports.callee_port
+        let inherited_server = if can_inherit_server {
+            stored_server
         } else {
             None
         };
-        let default_dst = stage1_default_dst_port(&effective_protocol, verified_body);
 
         let explicit_sp = if scanned.has_srcport {
             pkt.l4.src_port
@@ -944,102 +1392,135 @@ fn update_shadow_state_after_statement(
             None
         };
 
-        match ep.dir {
-            Direction::LeftToRight => {
-                let s_port = explicit_sp
-                    .or(pair_ports.caller_port)
-                    .unwrap_or(DEFAULT_SRC_PORT);
-                let d_port = explicit_dp.or(inherited_callee_port).unwrap_or(default_dst);
-                if explicit_dp.is_some() {
-                    pair_ports.callee_port_explicit = true;
-                } else if !can_inherit_callee {
-                    pair_ports.callee_port_explicit = false;
-                }
-                pair_ports.caller_port = Some(s_port);
-                pair_ports.callee_port = Some(d_port);
-                pair_ports.last_protocol = Some(effective_protocol.clone());
-                (s_port, d_port)
+        let (s_port, d_port) = if src_is_server {
+            let sp = explicit_sp.or(inherited_server).unwrap_or(default_srv_port);
+            let dp = explicit_dp.or(stored_client).unwrap_or(DEFAULT_SRC_PORT);
+            if explicit_sp.is_some() {
+                pair_ports.server_port_explicit = true;
+            } else if !can_inherit_server {
+                pair_ports.server_port_explicit = false;
             }
-            Direction::RightToLeft => {
-                let s_port = explicit_sp.or(inherited_callee_port).unwrap_or(default_dst);
-                let d_port = explicit_dp
-                    .or(pair_ports.caller_port)
-                    .unwrap_or(DEFAULT_SRC_PORT);
-                if explicit_sp.is_some() {
-                    pair_ports.callee_port_explicit = true;
-                } else if !can_inherit_callee {
-                    pair_ports.callee_port_explicit = false;
-                }
-                pair_ports.callee_port = Some(s_port);
-                pair_ports.caller_port = Some(d_port);
-                pair_ports.last_protocol = Some(effective_protocol.clone());
-                (s_port, d_port)
+            (sp, dp)
+        } else {
+            let sp = explicit_sp.or(stored_client).unwrap_or(DEFAULT_SRC_PORT);
+            let dp = explicit_dp.or(inherited_server).unwrap_or(default_srv_port);
+            if explicit_dp.is_some() {
+                pair_ports.server_port_explicit = true;
+            } else if !can_inherit_server {
+                pair_ports.server_port_explicit = false;
             }
+            (sp, dp)
+        };
+
+        if src_is_b {
+            pair_ports.port_b = Some(s_port);
+            pair_ports.port_a = Some(d_port);
+        } else {
+            pair_ports.port_a = Some(s_port);
+            pair_ports.port_b = Some(d_port);
         }
+        pair_ports.last_protocol = Some(effective_protocol.clone());
+
+        (s_port, d_port, Some((pair_key, src_is_b, src_is_server)))
     };
 
-    let transport_override = pkt.dissection.explicit_transport.or(pkt.l4.transport);
+    let src_is_server = port_slot.as_ref().is_some_and(|(_, _, sis)| *sis);
     let (l7_sp, l7_dp) = l7_builder_port_overrides(
         &effective_protocol,
         verified_body,
+        ep.dir,
         is_ipv6,
         transport_override,
     );
-    if let Some(sp) = l7_sp
-        && !scanned.has_srcport
-    {
-        src_port = sp;
-    }
-    if let Some(dp) = l7_dp {
-        if matches!(
-            effective_protocol,
-            Protocol::Radius | Protocol::Ptp | Protocol::Ethernetip
-        ) && ep.dir == Direction::RightToLeft
-        {
-            if !scanned.has_srcport {
-                src_port = dp;
+    if matches!(
+        effective_protocol,
+        Protocol::Radius
+            | Protocol::Ethernetip
+            | Protocol::H323
+            | Protocol::Llmnr
+            | Protocol::Lisp
+    ) {
+        if let Some(srv_port) = l7_sp.or(l7_dp) {
+            if src_is_server {
+                if !scanned.has_srcport {
+                    src_port = srv_port;
+                }
+            } else if !scanned.has_dstport {
+                dst_port = srv_port;
             }
-        } else if !scanned.has_dstport {
+        }
+    } else {
+        if let Some(sp) = l7_sp
+            && !scanned.has_srcport
+        {
+            src_port = sp;
+        }
+        if let Some(dp) = l7_dp
+            && !scanned.has_dstport
+        {
             dst_port = dp;
         }
     }
     if (l7_sp.is_some() || l7_dp.is_some())
-        && let Some(pair_ports) = endpoint_ports.get_mut(&pair_key)
+        && let Some((ref key, src_is_b, _)) = port_slot
+        && let Some(pair_ports) = endpoint_ports.get_mut(key)
     {
-        match ep.dir {
-            Direction::LeftToRight => {
-                pair_ports.caller_port = Some(src_port);
-                pair_ports.callee_port = Some(dst_port);
-            }
-            Direction::RightToLeft => {
-                pair_ports.callee_port = Some(src_port);
-                pair_ports.caller_port = Some(dst_port);
-            }
+        if src_is_b {
+            pair_ports.port_b = Some(src_port);
+            pair_ports.port_a = Some(dst_port);
+        } else {
+            pair_ports.port_a = Some(src_port);
+            pair_ports.port_b = Some(dst_port);
         }
     }
 
-    if is_tcp_protocol(&effective_protocol, transport_override) {
-        let ep1 = (src_ip, src_port);
-        let ep2 = (dst_ip, dst_port);
-        let (key, is_stream_forward) = if ep1 <= ep2 {
-            ((ep1, ep2), true)
-        } else {
-            ((ep2, ep1), false)
-        };
+    if shadow_uses_tcp(&effective_protocol, verified_body, transport_override) {
+        let is_fresh_syn = pkt.l4.tcp_flags.contains(&TcpFlag::Syn)
+            && !pkt.l4.tcp_flags.contains(&TcpFlag::Ack);
+        let initial_key = canonical_4tuple((src_ip, src_port), (dst_ip, dst_port)).0;
+        if is_fresh_syn && tcp_connections.get(&initial_key).is_some_and(|s| s.closed) {
+            if !scanned.has_srcport && !src_is_server {
+                src_port = rotate_closed_client_port(
+                    src_ip,
+                    src_port,
+                    dst_ip,
+                    dst_port,
+                    tcp_connections,
+                );
+                if let Some((ref key, src_is_b, _)) = port_slot
+                    && let Some(pair_ports) = endpoint_ports.get_mut(key)
+                {
+                    if src_is_b {
+                        pair_ports.port_b = Some(src_port);
+                    } else {
+                        pair_ports.port_a = Some(src_port);
+                    }
+                }
+            } else if let Some(existing) = tcp_connections.get_mut(&initial_key) {
+                existing.seq1 = DEFAULT_TCP_ISN;
+                existing.seq2 = DEFAULT_TCP_ISN;
+                existing.sent1 = false;
+                existing.sent2 = false;
+                existing.closed = false;
+            }
+        }
+
+        let (key, is_stream_forward) = canonical_4tuple((src_ip, src_port), (dst_ip, dst_port));
         let stream = tcp_connections.entry(key).or_insert(ShadowTcpStreamState {
             seq1: DEFAULT_TCP_ISN,
             seq2: DEFAULT_TCP_ISN,
+            sent1: false,
+            sent2: false,
+            closed: false,
         });
-        let sender_seq = if is_stream_forward {
-            &mut stream.seq1
+        let (sender_seq, sender_sent) = if is_stream_forward {
+            (&mut stream.seq1, &mut stream.sent1)
         } else {
-            &mut stream.seq2
+            (&mut stream.seq2, &mut stream.sent2)
         };
 
         let seq_val = if scanned.has_seq {
-            let s = pkt.seq.unwrap_or(*sender_seq);
-            *sender_seq = s;
-            s
+            pkt.seq.unwrap_or(*sender_seq)
         } else {
             *sender_seq
         };
@@ -1053,6 +1534,15 @@ fn update_shadow_state_after_statement(
                 advance += 1;
             }
         }
-        *sender_seq = seq_val.wrapping_add(advance);
+        let candidate_next = seq_val.wrapping_add(advance);
+        if !*sender_sent {
+            *sender_seq = candidate_next;
+            *sender_sent = true;
+        } else {
+            *sender_seq = (*sender_seq).max(candidate_next);
+        }
+        if pkt.l4.tcp_flags.contains(&TcpFlag::Fin) || pkt.l4.tcp_flags.contains(&TcpFlag::Rst) {
+            stream.closed = true;
+        }
     }
 }

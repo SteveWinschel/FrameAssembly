@@ -18,6 +18,9 @@ use crate::reverse::{
 
 /// Decompiles an RFC 4861 IPv6 `ndp` message (`133..=137`) into a [`ProtocolDissection`].
 pub(crate) fn dissect_ndp(b: &[u8], src_mac: [u8; 6], dst_ip: Option<IpAddr>) -> ProtocolDissection {
+    if b.is_empty() {
+        return sd(Protocol::Ndp, String::from("ndp"), Vec::new());
+    }
     let (tp, mut t) = (b[0], String::from("ndp"));
     let dtgt = match dst_ip {
         Some(IpAddr::V6(v6)) if !v6.is_multicast() => IpAddr::V6(v6),

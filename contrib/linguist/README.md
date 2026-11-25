@@ -1,6 +1,6 @@
 # GitHub Linguist, `bat` & `Chroma` Syntax Registration Package for FrameAssembly (`.frasm`)
 
-This directory contains the language definitions, disambiguation heuristics, and verified sample corpus required to register **FrameAssembly** (v3.2.2, `.frasm`, media type `text/vnd.frameassembly`) in:
+This directory contains the language definitions, disambiguation heuristics, and verified sample corpus required to register **FrameAssembly** (v3.3.0, `.frasm`, media type `text/vnd.frameassembly`) in:
 
 1. **[GitHub Linguist](https://github.com/github-linguist/linguist)** (`languages.yml`, `heuristics.yml`, TextMate grammar, and `samples/FrameAssembly/`)
 2. **[`sharkdp/bat`](https://github.com/sharkdp/bat)** (`assets/syntaxes/` TextMate `.tmLanguage.json` integration)
@@ -15,13 +15,13 @@ For the normative technical specification and media type registration, see the [
 Before an upstream pull request is merged into GitHub Linguist and deployed across github.com, repository owners can achieve immediate, 100% accurate syntax highlighting and language classification by adding a rule to [`.gitattributes`](../../.gitattributes):
 
 ```gitattributes
-*.frasm linguist-language=FrameAssembly linguist-detectable=false linguist-documentation=false linguist-vendored=false linguist-generated=false text eol=lf
-contrib/linguist/samples/*.frasm linguist-language=FrameAssembly linguist-detectable=false linguist-documentation=false linguist-vendored=false linguist-generated=false text eol=lf
+*.frasm linguist-language=FrameAssembly linguist-detectable=true linguist-documentation=false linguist-vendored=false linguist-generated=false text eol=lf
+contrib/linguist/samples/*.frasm linguist-language=FrameAssembly linguist-detectable=true linguist-documentation=false linguist-vendored=false linguist-generated=false text eol=lf
 ```
 
 This directive instructs GitHub's language detection pipeline to:
 - Classify all `*.frasm` files as **FrameAssembly** rather than legacy assembly heuristics.
-- Keep `.frasm` fixture files excluded from the repository's primary language statistics bar (`linguist-detectable=false`) so Rust remains the primary language while preserving syntax classification.
+- Index `.frasm` source and sample files (`linguist-detectable=true`) while `linguist-generated=true` on lockfiles and `llms-full.txt` keeps Rust as the repository's primary language.
 - Ensure `.frasm` files are recognized as human-authored code rather than generated or vendored boilerplate.
 - Normalize line endings to LF across all platforms (`text eol=lf`).
 
@@ -56,7 +56,7 @@ The assets organized in this directory map directly to upstream targets in the [
 | :--- | :--- | :--- |
 | [`languages.yml`](languages.yml) | `lib/linguist/languages.yml` | Language entry defining `FrameAssembly` (`.frasm`), color (`#2b6cb0`), scope `source.frameassembly`, and editor modes. `language_id` is intentionally omitted. |
 | [`heuristics.yml`](heuristics.yml) | `lib/linguist/heuristics.yml` | Disambiguation rules under the `.frasm` extension entry, prioritizing `FrameAssembly` over `Assembly`. |
-| [`../../frameassembly-vscode/syntaxes/frameassembly.tmLanguage.json`](../../frameassembly-vscode/syntaxes/frameassembly.tmLanguage.json) | `vendor/grammars/` (submodule) | Complete TextMate JSON grammar supporting all 81 L2–L7 protocols, modifiers, and 640+ lexer keywords. |
+| [`../../frameassembly-vscode/syntaxes/frameassembly.tmLanguage.json`](../../frameassembly-vscode/syntaxes/frameassembly.tmLanguage.json) | `vendor/grammars/` (submodule) | Complete TextMate JSON grammar supporting all 146 L2–L7 protocols, modifiers, and 1,130+ lexer keywords. |
 | [`samples/enterprise_snmpv3_and_tls.frasm`](samples/enterprise_snmpv3_and_tls.frasm) | `samples/FrameAssembly/enterprise_snmpv3_and_tls.frasm` | Real-world dual-stack enterprise scenario: VLAN 10, TCP handshake, TLS 1.3, HTTP/1.1, and SNMPv3 USM SHA-256 + AES-128. |
 | [`samples/industrial_ot_modbus_dnp3.frasm`](samples/industrial_ot_modbus_dnp3.frasm) | `samples/FrameAssembly/industrial_ot_modbus_dnp3.frasm` | Real-world industrial SCADA/OT scenario: IEEE 802.1ad QinQ, MPLS, Modbus TCP, IEEE 1815 DNP3, and Siemens S7comm. |
 
@@ -64,7 +64,7 @@ The assets organized in this directory map directly to upstream targets in the [
 
 ## 4. Disambiguation Rules: FrameAssembly (`.frasm`) vs x86 Flat Assembler & FPGA FASM (`.fasm`)
 
-FrameAssembly (v3.0.0–v3.2.2) uses the dedicated `.frasm` extension (`text/vnd.frameassembly`) to eliminate extension collisions with two legacy `.fasm` formats across software and hardware engineering:
+FrameAssembly (v3.0.0–v3.3.0) uses the dedicated `.frasm` extension (`text/vnd.frameassembly`) to eliminate extension collisions with two legacy `.fasm` formats across software and hardware engineering:
 
 1. **FrameAssembly (`.frasm`, `text/vnd.frameassembly`)**:
    - *Domain*: Network packet capture specification ("Packets as Code").
@@ -94,7 +94,7 @@ disambiguations:
           - '^\s*host\s+[A-Za-z_][A-Za-z0-9_-]*\s*\{\s*(?:ip|mac)\b'
           - '^\s*flow\s+[A-Za-z_][A-Za-z0-9_-]*\s*\([A-Za-z0-9_,\s-]*\)\s*\{'
           - '^\s*compile\s*\{\s*(?:[A-Za-z_][A-Za-z0-9_-]*\s*\(|[A-Za-z_][A-Za-z0-9_-]*\s*(?:->|<-))'
-          - '\b[A-Za-z_][A-Za-z0-9_-]*\s*(?:->|<-)\s*[A-Za-z_][A-Za-z0-9_-]*\s+(?:srcmac|dstmac|ethertype|vlan|qinq|mpls|ttl|dscp|ecn|flowlabel|ipid|df|mf|fragoffset|srcport|dstport|transport|seq|acknum|win|window|mss|wscale|sackperm|tsval|tsecr|urgent|arp|lldp|stp|lacp|eapol|icmp|ndp|igmp|mld|gre|vxlan|geneve|ipsec|esp|ah|ikev2|wireguard|ospf|bgp|rip|vrrp|hsrp|pim|bfd|openflow|tcp|udp|sctp|snmp[123]|dns|mdns|dhcp|ntp|ptp|radius|tacacs|syslog|netflow|ipfix|sflow|tftp|ftp|ssh|telnet|http|http2|grpc|websocket|tls|quic|stun|sip|rtp|rtsp|smtp|imap|pop3|kerberos|ldap|smb|nfs|redis|memcached|mysql|postgres|mqtt|coap|amqp|ssdp|whois|modbus|bacnet|dnp3|s7comm|ethernetip|opcua)\b'
+          - '\b[A-Za-z_][A-Za-z0-9_-]*\s*(?:->|<-)\s*[A-Za-z_][A-Za-z0-9_-]*\s+(?:srcmac|dstmac|ethertype|vlan|qinq|mpls|fcs|badfcs|ttl|dscp|ecn|flowlabel|ipid|df|mf|fragoffset|routeralert|badipchecksum|srcport|dstport|transport|seq|acknum|win|window|mss|wscale|sackperm|sackblock|tsval|tsecr|urgent|badchecksum|nochecksum|tcpmd5|tfo|arp|lldp|stp|lacp|eapol|cdp|isis|macsec|pfc|pppoe|nsh|profinet|goose|sv|ethercat|icmp|ndp|igmp|mld|gre|vxlan|geneve|ipsec|esp|ah|ikev2|wireguard|ospf|bgp|rip|vrrp|hsrp|pim|bfd|openflow|ipip|srv6|erspan|rsvp|ldp|bmp|rpkirtr|l2tp|lisp|glbp|gtpu|tcp|udp|sctp|snmp[123]|dns|mdns|dhcp|ntp|ptp|radius|tacacs|syslog|netflow|ipfix|sflow|tftp|ftp|ssh|telnet|http2|http|grpc|websocket|tls|quic|stun|sip|rtp|rtsp|smtp|imap|pop3|kerberos|ldap|smb|nfs|redis|memcached|mysql|postgres|mqtt|coap|amqp|ssdp|whois|modbus|bacnet|dnp3|s7commplus|s7comm|ethernetip|opcua|dcerpc|ntlm|rdp|llmnr|nbns|socks|vnc|doh|wsdiscovery|irc|iec104|mms|synchrophasor|hartip|fins|melsec|someip|doip|c1222|gesrtp|rocplus|bsap|knxnetip|rocev2|ipmi|twamp|netconf|gtpc|pfcp|diameter|ngap|s1ap|mssql|kafka|mongodb|tns|iscsi|nvmetcp|rtcp|turn|h323|sccp|mgcp)\b'
       - language: Assembly
         pattern:
           - '(?i)^\s*format\s+(?:PE|PE64|ELF|ELF64|MZ|COFF|binary)\b'
@@ -128,7 +128,7 @@ https://frameassembly-lang.dev/docs
 https://github.com/search?q=path%3A*.frasm+NOT+fork%3Atrue&type=code
 
 ### Description
-FrameAssembly is a declarative domain-specific language and compiler for specifying deterministic network packet captures ("Packets as Code") across 81 native Layer 2 through Layer 7 protocols. Files use the `.frasm` extension and the registered IANA vendor candidate media type `text/vnd.frameassembly`.
+FrameAssembly is a declarative domain-specific language and compiler for specifying deterministic network packet captures ("Packets as Code") across 146 native Layer 2 through Layer 7 protocols. Files use the `.frasm` extension and the registered IANA vendor candidate media type `text/vnd.frameassembly`.
 
 This pull request:
 1. Adds `FrameAssembly` to `lib/linguist/languages.yml` with color `#2b6cb0` and tm_scope `source.frameassembly`.

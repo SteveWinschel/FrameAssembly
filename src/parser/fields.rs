@@ -365,8 +365,34 @@ pub(crate) enum ParsedField<'a> {
     L7MacField(&'static str, [u8; 6], (usize, usize)),
     /// Generic L7 standalone flag attribute.
     L7Flag(&'static str, (usize, usize)),
+    /// Generic L7 signed 32-bit integer attribute.
+    L7I32Field(&'static str, i32, (usize, usize)),
+    /// Generic L7 raw byte-slice attribute.
+    L7BytesField(&'static str, Vec<u8>, (usize, usize)),
+    /// STUN XOR-MAPPED-ADDRESS IP and optional port attribute.
+    StunXorMapped(IpAddr, Option<u32>, (usize, usize)),
     /// L7 HTTP header pair attribute.
     L7Header(&'a str, &'a str, (usize, usize)),
+    /// PCAPNG per-frame comment (`comment <str>`).
+    Comment(String, (usize, usize)),
+    /// Append valid IEEE 802.3 FCS trailer (`fcs`).
+    Fcs((usize, usize)),
+    /// Append invalid IEEE 802.3 FCS trailer (`badfcs`).
+    BadFcs((usize, usize)),
+    /// Emit IPv4/IPv6 Router Alert option/extension header (`routeralert`).
+    RouterAlert((usize, usize)),
+    /// Intentionally corrupt IPv4 header checksum (`badipchecksum`).
+    BadIpChecksum((usize, usize)),
+    /// Intentionally corrupt Layer 4 checksum (`badchecksum`).
+    BadChecksum((usize, usize)),
+    /// Zero IPv4 UDP checksum (`nochecksum`).
+    NoChecksum((usize, usize)),
+    /// TCP SACK block range (`sackblock <left> <right>`).
+    SackBlock(u32, u32, (usize, usize)),
+    /// TCP MD5 signature digest (`tcpmd5 <hex>`).
+    TcpMd5(Vec<u8>, (usize, usize)),
+    /// TCP Fast Open cookie (`tfo <hex>`).
+    Tfo(Vec<u8>, (usize, usize)),
 }
 
 /// Parses a `wait <u32><unit>` modifier with checked nanosecond scaling.
@@ -463,6 +489,15 @@ pub(crate) fn parse_hex_payload_field<'i, 'a>(input: &mut Stream<'i, 'a>) -> PRe
     Ok(ParsedField::HexPayload(v, (s.start, s.end - s.start)))
 }
 
+/// Parses a `comment <string>` modifier into an unescaped UTF-8 string.
+pub(crate) fn parse_comment_field<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<ParsedField<'a>> {
+    let (_, s) = tag(Token::Comment).parse_next(input)?;
+    let raw = cut_err(super::parse_raw_string_lit).parse_next(input)?;
+    let unescaped = super::unescape_string(raw)
+        .map_err(|_| winnow::error::ErrMode::Cut(winnow::error::ContextError::new()))?;
+    Ok(ParsedField::Comment(unescaped, (s.start, s.end - s.start)))
+}
+
 /// Parses universal frame modifiers (timing, payload, L2/L3/L4 header fields).
 pub(crate) fn parse_universal_field<'i, 'a>(
     input: &mut Stream<'i, 'a>,
@@ -498,95 +533,119 @@ pub(crate) fn parse_universal_field<'i, 'a>(
 
     alt((
         alt((
-            parse_wait,
-            parse_payload,
-            parse_hex_payload_field,
-            (tag(Token::SrcMac), cut_err(parse_mac))
-                .map(|((_, s), v)| ParsedField::SrcMac(v, (s.start, s.end - s.start))),
-            (tag(Token::DstMac), cut_err(parse_mac))
-                .map(|((_, s), v)| ParsedField::DstMac(v, (s.start, s.end - s.start))),
-            (tag(Token::EtherType), cut_err(parse_u16))
-                .map(|((_, s), v)| ParsedField::EtherType(v, (s.start, s.end - s.start))),
-            parse_vlan_tag_field,
-            (tag(Token::Pcp), cut_err(parse_u8))
-                .map(|((_, s), v)| ParsedField::Pcp(v, (s.start, s.end - s.start))),
-            (tag(Token::Dei), cut_err(parse_u8))
-                .map(|((_, s), v)| ParsedField::Dei(v, (s.start, s.end - s.start))),
+            alt((
+                parse_wait,
+                parse_payload,
+                parse_hex_payload_field,
+                parse_comment_field,
+                tag(Token::Fcs).map(|(_, s)| ParsedField::Fcs((s.start, s.len()))),
+                tag(Token::BadFcs).map(|(_, s)| ParsedField::BadFcs((s.start, s.len()))),
+            )),
+            alt((
+                (tag(Token::SrcMac), cut_err(parse_mac))
+                    .map(|((_, s), v)| ParsedField::SrcMac(v, (s.start, s.end - s.start))),
+                (tag(Token::DstMac), cut_err(parse_mac))
+                    .map(|((_, s), v)| ParsedField::DstMac(v, (s.start, s.end - s.start))),
+                (tag(Token::EtherType), cut_err(parse_u16))
+                    .map(|((_, s), v)| ParsedField::EtherType(v, (s.start, s.end - s.start))),
+                parse_vlan_tag_field,
+                (tag(Token::Pcp), cut_err(parse_u8))
+                    .map(|((_, s), v)| ParsedField::Pcp(v, (s.start, s.end - s.start))),
+                (tag(Token::Dei), cut_err(parse_u8))
+                    .map(|((_, s), v)| ParsedField::Dei(v, (s.start, s.end - s.start))),
+            )),
+            alt((
+                parse_qinq_field,
+                (tag(Token::InnerVlan), cut_err(parse_u16))
+                    .map(|((_, s), v)| ParsedField::InnerVlan(v, (s.start, s.end - s.start))),
+                parse_mpls_tag_field,
+                (tag(Token::Exp), cut_err(parse_u8))
+                    .map(|((_, s), v)| ParsedField::Exp(v, (s.start, s.end - s.start))),
+                (tag(Token::Bos), cut_err(parse_u8))
+                    .map(|((_, s), v)| ParsedField::Bos(v, (s.start, s.end - s.start))),
+                (tag(Token::MplsTtl), cut_err(parse_u8))
+                    .map(|((_, s), v)| ParsedField::MplsTtl(v, (s.start, s.end - s.start))),
+            )),
+            alt((
+                (tag(Token::Dscp), cut_err(parse_u32))
+                    .map(|((_, s), v)| ParsedField::Dscp(v, (s.start, s.end - s.start))),
+                (tag(Token::Ecn), cut_err(parse_u32))
+                    .map(|((_, s), v)| ParsedField::Ecn(v, (s.start, s.end - s.start))),
+                (tag(Token::Ttl), cut_err(parse_u32))
+                    .map(|((_, s), v)| ParsedField::Ttl(v, (s.start, s.end - s.start))),
+                (tag(Token::FlowLabel), cut_err(parse_u32))
+                    .map(|((_, s), v)| ParsedField::FlowLabel(v, (s.start, s.end - s.start))),
+                (tag(Token::IpId), cut_err(parse_u16))
+                    .map(|((_, s), v)| ParsedField::IpId(v, (s.start, s.end - s.start))),
+                tag(Token::Df).map(|(_, s)| ParsedField::Df((s.start, s.len()))),
+            )),
+            alt((
+                tag(Token::Mf).map(|(_, s)| ParsedField::Mf((s.start, s.len()))),
+                (tag(Token::FragOffset), cut_err(parse_u16))
+                    .map(|((_, s), v)| ParsedField::FragOffset(v, (s.start, s.end - s.start))),
+                tag(Token::RouterAlert).map(|(_, s)| ParsedField::RouterAlert((s.start, s.len()))),
+                tag(Token::BadIpChecksum).map(|(_, s)| ParsedField::BadIpChecksum((s.start, s.len()))),
+                (tag(Token::NextHeader), cut_err(parse_u8))
+                    .map(|((_, s), v)| ParsedField::NextHeader(v, (s.start, s.end - s.start))),
+            )),
         )),
         alt((
-            parse_qinq_field,
-            (tag(Token::InnerVlan), cut_err(parse_u16))
-                .map(|((_, s), v)| ParsedField::InnerVlan(v, (s.start, s.end - s.start))),
-            parse_mpls_tag_field,
-            (tag(Token::Exp), cut_err(parse_u8))
-                .map(|((_, s), v)| ParsedField::Exp(v, (s.start, s.end - s.start))),
-            (tag(Token::Bos), cut_err(parse_u8))
-                .map(|((_, s), v)| ParsedField::Bos(v, (s.start, s.end - s.start))),
-            (tag(Token::MplsTtl), cut_err(parse_u8))
-                .map(|((_, s), v)| ParsedField::MplsTtl(v, (s.start, s.end - s.start))),
-        )),
-        alt((
-            (tag(Token::Dscp), cut_err(parse_u32))
-                .map(|((_, s), v)| ParsedField::Dscp(v, (s.start, s.end - s.start))),
-            (tag(Token::Ecn), cut_err(parse_u32))
-                .map(|((_, s), v)| ParsedField::Ecn(v, (s.start, s.end - s.start))),
-            (tag(Token::Ttl), cut_err(parse_u32))
-                .map(|((_, s), v)| ParsedField::Ttl(v, (s.start, s.end - s.start))),
-            (tag(Token::FlowLabel), cut_err(parse_u32))
-                .map(|((_, s), v)| ParsedField::FlowLabel(v, (s.start, s.end - s.start))),
-            (tag(Token::IpId), cut_err(parse_u16))
-                .map(|((_, s), v)| ParsedField::IpId(v, (s.start, s.end - s.start))),
-            tag(Token::Df).map(|(_, s)| ParsedField::Df((s.start, s.len()))),
-            tag(Token::Mf).map(|(_, s)| ParsedField::Mf((s.start, s.len()))),
-            (tag(Token::FragOffset), cut_err(parse_u16))
-                .map(|((_, s), v)| ParsedField::FragOffset(v, (s.start, s.end - s.start))),
-            (tag(Token::NextHeader), cut_err(parse_u8))
-                .map(|((_, s), v)| ParsedField::NextHeader(v, (s.start, s.end - s.start))),
-        )),
-        alt((
-            (tag(Token::SrcPort), cut_err(parse_u16))
-                .map(|((_, s), v)| ParsedField::SrcPort(v, (s.start, s.end - s.start))),
-            (tag(Token::DstPort), cut_err(parse_u16))
-                .map(|((_, s), v)| ParsedField::DstPort(v, (s.start, s.end - s.start))),
-            (
-                tag(Token::Transport),
-                cut_err(alt((
-                    tag(Token::Tcp).value(TransportProto::Tcp),
-                    tag(Token::Udp).value(TransportProto::Udp),
-                ))),
-            )
-                .map(|((_, s), v)| ParsedField::Transport(v, (s.start, s.end - s.start))),
-            (tag(Token::Seq), cut_err(parse_u32))
-                .map(|((_, s), v)| ParsedField::Seq(v, (s.start, s.end - s.start))),
-            (tag(Token::AckNum), cut_err(parse_u32))
-                .map(|((_, s), v)| ParsedField::AckNum(v, (s.start, s.end - s.start))),
-            (tag(Token::Win), cut_err(parse_u16))
-                .map(|((_, s), v)| ParsedField::Win(v, (s.start, s.end - s.start))),
-            (tag(Token::Window), cut_err(parse_u16))
-                .map(|((_, s), v)| ParsedField::Win(v, (s.start, s.end - s.start))),
-            (tag(Token::Urgent), cut_err(parse_u16))
-                .map(|((_, s), v)| ParsedField::Urgent(v, (s.start, s.end - s.start))),
-        )),
-        alt((
-            (tag(Token::Mss), cut_err(parse_u16))
-                .map(|((_, s), v)| ParsedField::Mss(v, (s.start, s.end - s.start))),
-            (tag(Token::Wscale), cut_err(parse_u8))
-                .map(|((_, s), v)| ParsedField::Wscale(v, (s.start, s.end - s.start))),
-            tag(Token::SackPerm).map(|(_, s)| ParsedField::SackPerm((s.start, s.len()))),
-            (tag(Token::Tsval), cut_err(parse_u32))
-                .map(|((_, s), v)| ParsedField::Tsval(v, (s.start, s.end - s.start))),
-            (tag(Token::Tsecr), cut_err(parse_u32))
-                .map(|((_, s), v)| ParsedField::Tsecr(v, (s.start, s.end - s.start))),
-        )),
-        alt((
-            tag(Token::Syn).map(|(_, s)| ParsedField::Flag(TcpFlag::Syn, (s.start, s.len()))),
-            tag(Token::Ack).map(|(_, s)| ParsedField::Flag(TcpFlag::Ack, (s.start, s.len()))),
-            tag(Token::Fin).map(|(_, s)| ParsedField::Flag(TcpFlag::Fin, (s.start, s.len()))),
-            tag(Token::Rst).map(|(_, s)| ParsedField::Flag(TcpFlag::Rst, (s.start, s.len()))),
-            tag(Token::Psh).map(|(_, s)| ParsedField::Flag(TcpFlag::Psh, (s.start, s.len()))),
-            tag(Token::Urg).map(|(_, s)| ParsedField::Flag(TcpFlag::Urg, (s.start, s.len()))),
-            tag(Token::Ece).map(|(_, s)| ParsedField::Flag(TcpFlag::Ece, (s.start, s.len()))),
-            tag(Token::Cwr).map(|(_, s)| ParsedField::Flag(TcpFlag::Cwr, (s.start, s.len()))),
+            alt((
+                (tag(Token::SrcPort), cut_err(parse_u16))
+                    .map(|((_, s), v)| ParsedField::SrcPort(v, (s.start, s.end - s.start))),
+                (tag(Token::DstPort), cut_err(parse_u16))
+                    .map(|((_, s), v)| ParsedField::DstPort(v, (s.start, s.end - s.start))),
+                (
+                    tag(Token::Transport),
+                    cut_err(alt((
+                        tag(Token::Tcp).value(TransportProto::Tcp),
+                        tag(Token::Udp).value(TransportProto::Udp),
+                        tag(Token::Sctp).value(TransportProto::Sctp),
+                    ))),
+                )
+                    .map(|((_, s), v)| ParsedField::Transport(v, (s.start, s.end - s.start))),
+                tag(Token::BadChecksum).map(|(_, s)| ParsedField::BadChecksum((s.start, s.len()))),
+                tag(Token::NoChecksum).map(|(_, s)| ParsedField::NoChecksum((s.start, s.len()))),
+            )),
+            alt((
+                (tag(Token::Seq), cut_err(parse_u32))
+                    .map(|((_, s), v)| ParsedField::Seq(v, (s.start, s.end - s.start))),
+                (tag(Token::AckNum), cut_err(parse_u32))
+                    .map(|((_, s), v)| ParsedField::AckNum(v, (s.start, s.end - s.start))),
+                (tag(Token::Win), cut_err(parse_u16))
+                    .map(|((_, s), v)| ParsedField::Win(v, (s.start, s.end - s.start))),
+                (tag(Token::Window), cut_err(parse_u16))
+                    .map(|((_, s), v)| ParsedField::Win(v, (s.start, s.end - s.start))),
+                (tag(Token::Urgent), cut_err(parse_u16))
+                    .map(|((_, s), v)| ParsedField::Urgent(v, (s.start, s.end - s.start))),
+            )),
+            alt((
+                (tag(Token::Mss), cut_err(parse_u16))
+                    .map(|((_, s), v)| ParsedField::Mss(v, (s.start, s.end - s.start))),
+                (tag(Token::Wscale), cut_err(parse_u8))
+                    .map(|((_, s), v)| ParsedField::Wscale(v, (s.start, s.end - s.start))),
+                tag(Token::SackPerm).map(|(_, s)| ParsedField::SackPerm((s.start, s.len()))),
+                (tag(Token::SackBlock), cut_err(parse_u32), cut_err(parse_u32))
+                    .map(|((_, s), l, r)| ParsedField::SackBlock(l, r, (s.start, s.len()))),
+                (tag(Token::Tsval), cut_err(parse_u32))
+                    .map(|((_, s), v)| ParsedField::Tsval(v, (s.start, s.end - s.start))),
+                (tag(Token::Tsecr), cut_err(parse_u32))
+                    .map(|((_, s), v)| ParsedField::Tsecr(v, (s.start, s.end - s.start))),
+                (tag(Token::TcpMd5), cut_err(parse_hex_payload))
+                    .map(|((_, s), v)| ParsedField::TcpMd5(v, (s.start, s.len()))),
+                (tag(Token::Tfo), cut_err(parse_hex_payload))
+                    .map(|((_, s), v)| ParsedField::Tfo(v, (s.start, s.len()))),
+            )),
+            alt((
+                tag(Token::Syn).map(|(_, s)| ParsedField::Flag(TcpFlag::Syn, (s.start, s.len()))),
+                tag(Token::Ack).map(|(_, s)| ParsedField::Flag(TcpFlag::Ack, (s.start, s.len()))),
+                tag(Token::Fin).map(|(_, s)| ParsedField::Flag(TcpFlag::Fin, (s.start, s.len()))),
+                tag(Token::Rst).map(|(_, s)| ParsedField::Flag(TcpFlag::Rst, (s.start, s.len()))),
+                tag(Token::Psh).map(|(_, s)| ParsedField::Flag(TcpFlag::Psh, (s.start, s.len()))),
+                tag(Token::Urg).map(|(_, s)| ParsedField::Flag(TcpFlag::Urg, (s.start, s.len()))),
+                tag(Token::Ece).map(|(_, s)| ParsedField::Flag(TcpFlag::Ece, (s.start, s.len()))),
+                tag(Token::Cwr).map(|(_, s)| ParsedField::Flag(TcpFlag::Cwr, (s.start, s.len()))),
+            )),
         )),
     ))
     .parse_next(input)
@@ -603,6 +662,16 @@ pub(crate) fn parse_protocol_keyword<'i, 'a>(input: &mut Stream<'i, 'a>) -> PRes
             Token::Stp => Protocol::Stp,
             Token::Lacp => Protocol::Lacp,
             Token::Eapol => Protocol::Eapol,
+            Token::Cdp => Protocol::Cdp,
+            Token::Isis => Protocol::Isis,
+            Token::Macsec => Protocol::Macsec,
+            Token::Pfc => Protocol::Pfc,
+            Token::Pppoe => Protocol::Pppoe,
+            Token::Nsh => Protocol::Nsh,
+            Token::Profinet => Protocol::Profinet,
+            Token::Goose => Protocol::Goose,
+            Token::Sv => Protocol::Sv,
+            Token::Ethercat => Protocol::Ethercat,
             Token::Icmp => Protocol::Icmp,
             Token::Ndp => Protocol::Ndp,
             Token::Igmp => Protocol::Igmp,
@@ -623,6 +692,17 @@ pub(crate) fn parse_protocol_keyword<'i, 'a>(input: &mut Stream<'i, 'a>) -> PRes
             Token::Pim => Protocol::Pim,
             Token::Bfd => Protocol::Bfd,
             Token::Openflow => Protocol::Openflow,
+            Token::Ipip => Protocol::Ipip,
+            Token::Srv6 => Protocol::Srv6,
+            Token::Erspan => Protocol::Erspan,
+            Token::Rsvp => Protocol::Rsvp,
+            Token::Ldp => Protocol::Ldp,
+            Token::Bmp => Protocol::Bmp,
+            Token::Rpkirtr => Protocol::Rpkirtr,
+            Token::L2tp => Protocol::L2tp,
+            Token::Lisp => Protocol::Lisp,
+            Token::Glbp => Protocol::Glbp,
+            Token::Gtpu => Protocol::Gtpu,
             Token::Tcp => Protocol::Tcp,
             Token::Udp => Protocol::Udp,
             Token::Sctp => Protocol::Sctp,
@@ -676,6 +756,50 @@ pub(crate) fn parse_protocol_keyword<'i, 'a>(input: &mut Stream<'i, 'a>) -> PRes
             Token::S7comm => Protocol::S7comm,
             Token::Ethernetip => Protocol::Ethernetip,
             Token::Opcua => Protocol::Opcua,
+            Token::Dcerpc => Protocol::Dcerpc,
+            Token::Ntlm => Protocol::Ntlm,
+            Token::Rdp => Protocol::Rdp,
+            Token::Llmnr => Protocol::Llmnr,
+            Token::Nbns => Protocol::Nbns,
+            Token::Socks => Protocol::Socks,
+            Token::Vnc => Protocol::Vnc,
+            Token::Doh => Protocol::Doh,
+            Token::Wsdiscovery => Protocol::Wsdiscovery,
+            Token::Irc => Protocol::Irc,
+            Token::Iec104 => Protocol::Iec104,
+            Token::Mms => Protocol::Mms,
+            Token::S7commplus => Protocol::S7commplus,
+            Token::Synchrophasor => Protocol::Synchrophasor,
+            Token::Hartip => Protocol::Hartip,
+            Token::Fins => Protocol::Fins,
+            Token::Melsec => Protocol::Melsec,
+            Token::Someip => Protocol::Someip,
+            Token::Doip => Protocol::Doip,
+            Token::C1222 => Protocol::C1222,
+            Token::Gesrtp => Protocol::Gesrtp,
+            Token::Rocplus => Protocol::Rocplus,
+            Token::Bsap => Protocol::Bsap,
+            Token::Knxnetip => Protocol::Knxnetip,
+            Token::Rocev2 => Protocol::Rocev2,
+            Token::Ipmi => Protocol::Ipmi,
+            Token::Twamp => Protocol::Twamp,
+            Token::Netconf => Protocol::Netconf,
+            Token::Gtpc => Protocol::Gtpc,
+            Token::Pfcp => Protocol::Pfcp,
+            Token::Diameter => Protocol::Diameter,
+            Token::Ngap => Protocol::Ngap,
+            Token::S1ap => Protocol::S1ap,
+            Token::Mssql => Protocol::Mssql,
+            Token::Kafka => Protocol::Kafka,
+            Token::Mongodb => Protocol::Mongodb,
+            Token::Tns => Protocol::Tns,
+            Token::Iscsi => Protocol::Iscsi,
+            Token::Nvmetcp => Protocol::Nvmetcp,
+            Token::Rtcp => Protocol::Rtcp,
+            Token::Turn => Protocol::Turn,
+            Token::H323 => Protocol::H323,
+            Token::Sccp => Protocol::Sccp,
+            Token::Mgcp => Protocol::Mgcp,
             _ => return None,
         };
         Some(ParsedField::Protocol(proto, (s.start, s.len())))
@@ -697,6 +821,16 @@ pub(crate) fn dispatch_protocol_field<'i, 'a>(
         Protocol::Stp => l2::parse_stp_field(input),
         Protocol::Lacp => l2::parse_lacp_field(input),
         Protocol::Eapol => l2::parse_eapol_field(input),
+        Protocol::Cdp => l2::parse_cdp_field(input),
+        Protocol::Isis => l2::parse_isis_field(input),
+        Protocol::Macsec => l2::parse_macsec_field(input),
+        Protocol::Pfc => l2::parse_pfc_field(input),
+        Protocol::Pppoe => l2::parse_pppoe_field(input),
+        Protocol::Nsh => l2::parse_nsh_field(input),
+        Protocol::Profinet => l2::parse_profinet_field(input),
+        Protocol::Goose => l2::parse_goose_field(input),
+        Protocol::Sv => l2::parse_sv_field(input),
+        Protocol::Ethercat => l2::parse_ethercat_field(input),
 
         Protocol::Icmp => l3::parse_icmp_field(input),
         Protocol::Ndp => l3::parse_ndp_field(input),
@@ -718,6 +852,17 @@ pub(crate) fn dispatch_protocol_field<'i, 'a>(
         Protocol::Pim => l3::parse_pim_field(input),
         Protocol::Bfd => l3::parse_bfd_field(input),
         Protocol::Openflow => l3::parse_openflow_field(input),
+        Protocol::Ipip => l3::parse_ipip_field(input),
+        Protocol::Srv6 => l3::parse_srv6_field(input),
+        Protocol::Erspan => l3::parse_erspan_field(input),
+        Protocol::Rsvp => l3::parse_rsvp_field(input),
+        Protocol::Ldp => l3::parse_ldp_field(input),
+        Protocol::Bmp => l3::parse_bmp_field(input),
+        Protocol::Rpkirtr => l3::parse_rpkirtr_field(input),
+        Protocol::L2tp => l3::parse_l2tp_field(input),
+        Protocol::Lisp => l3::parse_lisp_field(input),
+        Protocol::Glbp => l3::parse_glbp_field(input),
+        Protocol::Gtpu => l3::parse_gtpu_field(input),
 
         Protocol::Tcp => l4::parse_tcp_field(input),
         Protocol::Udp => l4::parse_udp_field(input),
@@ -772,17 +917,67 @@ pub(crate) fn dispatch_protocol_field<'i, 'a>(
         Protocol::Tls => l7::parse_tls_field(input),
         Protocol::Websocket => l7::parse_websocket_field(input),
         Protocol::Whois => l7::parse_whois_field(input),
+        Protocol::Dcerpc => l7::parse_dcerpc_field(input),
+        Protocol::Ntlm => l7::parse_ntlm_field(input),
+        Protocol::Rdp => l7::parse_rdp_field(input),
+        Protocol::Llmnr => l7::parse_llmnr_field(input),
+        Protocol::Nbns => l7::parse_nbns_field(input),
+        Protocol::Socks => l7::parse_socks_field(input),
+        Protocol::Vnc => l7::parse_vnc_field(input),
+        Protocol::Doh => l7::parse_doh_field(input),
+        Protocol::Wsdiscovery => l7::parse_wsdiscovery_field(input),
+        Protocol::Irc => l7::parse_irc_field(input),
+        Protocol::Iec104 => l7::parse_iec104_field(input),
+        Protocol::Mms => l7::parse_mms_field(input),
+        Protocol::S7commplus => l7::parse_s7commplus_field(input),
+        Protocol::Synchrophasor => l7::parse_synchrophasor_field(input),
+        Protocol::Hartip => l7::parse_hartip_field(input),
+        Protocol::Fins => l7::parse_fins_field(input),
+        Protocol::Melsec => l7::parse_melsec_field(input),
+        Protocol::Someip => l7::parse_someip_field(input),
+        Protocol::Doip => l7::parse_doip_field(input),
+        Protocol::C1222 => l7::parse_c1222_field(input),
+        Protocol::Gesrtp => l7::parse_gesrtp_field(input),
+        Protocol::Rocplus => l7::parse_rocplus_field(input),
+        Protocol::Bsap => l7::parse_bsap_field(input),
+        Protocol::Knxnetip => l7::parse_knxnetip_field(input),
+        Protocol::Rocev2 => l7::parse_rocev2_field(input),
+        Protocol::Ipmi => l7::parse_ipmi_field(input),
+        Protocol::Twamp => l7::parse_twamp_field(input),
+        Protocol::Netconf => l7::parse_netconf_field(input),
+        Protocol::Gtpc => l7::parse_gtpc_field(input),
+        Protocol::Pfcp => l7::parse_pfcp_field(input),
+        Protocol::Diameter => l7::parse_diameter_field(input),
+        Protocol::Ngap => l7::parse_ngap_field(input),
+        Protocol::S1ap => l7::parse_s1ap_field(input),
+        Protocol::Mssql => l7::parse_mssql_field(input),
+        Protocol::Kafka => l7::parse_kafka_field(input),
+        Protocol::Mongodb => l7::parse_mongodb_field(input),
+        Protocol::Tns => l7::parse_tns_field(input),
+        Protocol::Iscsi => l7::parse_iscsi_field(input),
+        Protocol::Nvmetcp => l7::parse_nvmetcp_field(input),
+        Protocol::Rtcp => l7::parse_rtcp_field(input),
+        Protocol::Turn => l7::parse_turn_field(input),
+        Protocol::H323 => l7::parse_h323_field(input),
+        Protocol::Sccp => l7::parse_sccp_field(input),
+        Protocol::Mgcp => l7::parse_mgcp_field(input),
     }
 }
 
 /// Fallback parser across all L2, L3, L4, SNMP, and L7 protocol and field parsers.
+///
+/// Legacy parsers run before extended protocol combinators so protocol-scoped `cut_err` modifiers
+/// inside extended leaf modules cannot shadow pre-protocol fields on legacy statements.
 pub(crate) fn parse_fallback_field<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<ParsedField<'a>> {
     alt((
-        l2::parse_l2_field,
-        l3::parse_l3_field,
+        l2::parse_legacy_l2_field,
+        l3::parse_legacy_l3_field,
         l4::parse_l4_field,
         snmp::parse_snmp_field,
-        l7::parse_l7_field,
+        l7::parse_legacy_l7_field,
+        l2::parse_ext_l2_field,
+        l3::parse_ext_l3_field,
+        l7::parse_ext_l7_field,
     ))
     .parse_next(input)
 }

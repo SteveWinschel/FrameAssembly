@@ -6,7 +6,7 @@
 //! (`unitid`), explicit `func` names, shorthand function keywords (`readcoils`,
 //! `readdiscreteinputs`, `readholdingregisters`, `readinputregisters`, `writesinglecoil`,
 //! `writesingleregister`, `writemultipleregisters`), starting addresses (`addr`), register
-//! counts (`count`), register values (`value`), and `isresponse` flags.
+//! counts (`count`), register values (`value`), exception codes (`errcode`), and `isresponse` flags.
 
 use winnow::ModalResult as PResult;
 use winnow::combinator::{alt, cut_err};
@@ -36,14 +36,14 @@ pub(crate) fn parse_modbus_field<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<
             tag(Token::WriteSingleCoil).map(|(_, s)| {
                 ParsedField::L7StringField("FUNC", "WRITE_SINGLE_COIL", (s.start, s.len()))
             }),
+        )),
+        alt((
             tag(Token::WriteSingleRegister).map(|(_, s)| {
                 ParsedField::L7StringField("FUNC", "WRITE_SINGLE_REGISTER", (s.start, s.len()))
             }),
             tag(Token::WriteMultipleRegisters).map(|(_, s)| {
                 ParsedField::L7StringField("FUNC", "WRITE_MULTIPLE_REGISTERS", (s.start, s.len()))
             }),
-        )),
-        alt((
             (tag(Token::Txid), cut_err(parse_u32))
                 .map(|((_, s), v)| ParsedField::L7U32Field("TXID", v, (s.start, s.end - s.start))),
             (tag(Token::ProtoId), cut_err(parse_u32)).map(|((_, s), v)| {
@@ -54,12 +54,17 @@ pub(crate) fn parse_modbus_field<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<
             }),
             (tag(Token::Func), parse_any_str)
                 .map(|((_, s), v)| ParsedField::L7StringField("FUNC", v, (s.start, s.end - s.start))),
+        )),
+        alt((
             (tag(Token::Addr), cut_err(parse_u32))
                 .map(|((_, s), v)| ParsedField::L7U32Field("ADDR", v, (s.start, s.end - s.start))),
             (tag(Token::Count), cut_err(parse_u32))
                 .map(|((_, s), v)| ParsedField::L7U32Field("COUNT", v, (s.start, s.end - s.start))),
             (tag(Token::Value), parse_u32)
                 .map(|((_, s), v)| ParsedField::L7U32Field("VALUE", v, (s.start, s.end - s.start))),
+            (tag(Token::ErrCode), cut_err(parse_u32)).map(|((_, s), v)| {
+                ParsedField::L7U32Field("MODBUS_EXC", v, (s.start, s.end - s.start))
+            }),
             tag(Token::IsResponse)
                 .map(|(_, s)| ParsedField::L7Flag("IS_RESPONSE", (s.start, s.len()))),
         )),

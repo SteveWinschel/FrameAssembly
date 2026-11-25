@@ -11,6 +11,13 @@ use crate::ast::*;
 use crate::builders::WireContext;
 use alloc::vec::Vec;
 
+/// Returns `true` when the WebSocket frame originates from the server side of the connection.
+fn is_websocket_server_src(ctx: &WireContext) -> bool {
+    let ws_port = |p: u16| matches!(p, 80 | 443 | 8080 | 8443);
+    (ws_port(ctx.src_port) && !ws_port(ctx.dst_port))
+        || (ctx.src_port < 1024 && ctx.dst_port >= 1024)
+}
+
 /// Builds an RFC 6455 WebSocket frame payload.
 /// Syntax mapping: `websocket [opcode <str>] [finbit <u8>] [maskkey <u32>] [payload <str>]`
 #[doc(alias = "WEBSOCKET")]
@@ -53,8 +60,7 @@ pub fn build_websocket_payload(
         default_payload
     };
 
-    let is_unmasked_server_reply =
-        spec.mask_key.is_none() && ctx.src_port == 80 && ctx.dst_port != 80;
+    let is_unmasked_server_reply = spec.mask_key.is_none() && is_websocket_server_src(ctx);
     let mask_bit = if is_unmasked_server_reply { 0x00u8 } else { 0x80u8 };
     let mask_key = spec.mask_key.unwrap_or(0x12345678);
     let mask_bytes = mask_key.to_be_bytes();

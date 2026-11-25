@@ -38,6 +38,7 @@ pub(crate) fn parse_l4_field<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<Pars
                 cut_err(alt((
                     tag(Token::Tcp).value(TransportProto::Tcp),
                     tag(Token::Udp).value(TransportProto::Udp),
+                    tag(Token::Sctp).value(TransportProto::Sctp),
                 ))),
             )
                 .map(|((_, s), v)| ParsedField::Transport(v, (s.start, s.end - s.start))),

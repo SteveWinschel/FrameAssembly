@@ -5,8 +5,8 @@
 //! ports 161 (queries) and 162 (traps/informs). It translates FrameAssembly
 //! [`Snmp1Spec`], [`Snmp2Spec`],
 //! and [`Snmp3Spec`] AST specifications into deterministic wire
-//! bytes, supporting all 7 SNMP PDU types (`Trap`, `GetRequest`, `GetNextRequest`, `Response`,
-//! `SetRequest`, `InformRequest`, `GetBulkRequest`) and all 9 SMIv1/SMIv2 VarBind value types
+//! bytes, supporting all 8 SNMP PDU types (`Trap`, `GetRequest`, `GetNextRequest`, `Response`,
+//! `SetRequest`, `InformRequest`, `GetBulkRequest`, `Report`) and all 9 SMIv1/SMIv2 VarBind value types
 //! (`nullval`, `string`, `int`, `timeticks`, `ipval`, `oidval`, `counter32`, `gauge32`, `counter64`).
 
 use super::crypto::*;
@@ -637,6 +637,16 @@ fn build_v2_pdus(stmt: &FrameStatement) -> Result<PdusV2, String> {
         vbs
     } else if !vbs_slice.is_empty() {
         convert_varbinds(vbs_slice)?
+    } else if matches!(pdu_type, SnmpPduType::Report) {
+        // RFC 3414 §2.2 / §3.2: Report PDUs convey an authoritative USM counter VarBind
+        // (`usmStatsUnknownEngineIDs.0` = `1.3.6.1.6.3.15.1.1.4.0` when no OID is specified).
+        let report_oid = parse_oid(stmt.oid.unwrap_or("1.3.6.1.6.3.15.1.1.4.0"))?;
+        vec![VarBind {
+            name: report_oid,
+            value: VarBindValue::Value(ObjectSyntax::ApplicationWide(
+                ApplicationSyntax::Counter(rasn_smi::v1::Counter(1)),
+            )),
+        }]
     } else if let Some(oid_str) = stmt.oid {
         let oid = parse_oid(oid_str)?;
         vec![VarBind {

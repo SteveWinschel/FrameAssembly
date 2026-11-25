@@ -37,22 +37,17 @@ pub fn build_geneve_payload(spec: &GeneveSpec, payload: &[u8]) -> (Vec<u8>, u16)
     }
 
     if payload.is_empty() {
-        if proto == 0x6558 {
-            // Synthesize a valid 14B Ethernet II + 20B IPv4 + 8B UDP inner passenger frame (42 bytes)
-            let mut inner_ip = [
-                0x45, 0x00, 0x00, 28, 0x00, 0x01, 0x00, 0x00, 64, 17, 0x00, 0x00, 10, 0, 0, 1,
-                10, 0, 0, 2,
-            ];
-            let ip_cksum = crate::packet::internet_checksum(&[&inner_ip]);
-            inner_ip[10..12].copy_from_slice(&ip_cksum.to_be_bytes());
-
-            geneve.extend_from_slice(&[0x00, 0x00, 0x5e, 0x00, 0x53, 0x02]); // Inner Dst MAC
-            geneve.extend_from_slice(&[0x00, 0x00, 0x5e, 0x00, 0x53, 0x01]); // Inner Src MAC
-            geneve.extend_from_slice(&0x0800_u16.to_be_bytes()); // Inner EtherType: IPv4
-            geneve.extend_from_slice(&inner_ip);
-            geneve.extend_from_slice(&[0x30, 0x39, 0x00, 0x50, 0x00, 0x08, 0x00, 0x00]); // Inner UDP
-        } else {
-            geneve.extend_from_slice(b"FrameAssembly GENEVE Inner Data");
+        match proto {
+            0x6558 => {
+                // Synthesize a valid 14B Ethernet II + 20B IPv4 + 8B ICMPv4 Echo inner frame (42 bytes)
+                geneve.extend_from_slice(&super::gre::default_overlay_inner_ethernet());
+            }
+            0x0800 | 0x86DD => {
+                geneve.extend_from_slice(&super::gre::default_gre_inner_packet(proto));
+            }
+            _ => {
+                geneve.extend_from_slice(b"FrameAssembly GENEVE Inner Data");
+            }
         }
     } else {
         geneve.extend_from_slice(payload);

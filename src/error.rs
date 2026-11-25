@@ -27,10 +27,37 @@ fn lex_error_summary(src: &str, span: (usize, usize)) -> String {
     } else if rest.starts_with("/*") || rest.starts_with("*/") {
         "Failed to parse token '/*': block comments are not supported in .frasm (use '//' instead)"
             .to_string()
+    } else if rest.starts_with('"') {
+        "Failed to parse unclosed string literal: missing closing '\"' before end of line"
+            .to_string()
     } else if rest.starts_with('\'') {
         alloc::format!(
             "Failed to parse token '{}': single quotes are not used for text strings in .frasm (use double quotes \"...\" instead)",
             snippet
+        )
+    } else if rest.starts_with('\u{00a0}') {
+        "Failed to parse non-breaking space (\\u{00a0}): invisible non-ASCII whitespace is not valid in .frasm"
+            .to_string()
+    } else if rest.starts_with('\u{200b}') {
+        "Failed to parse zero-width space (\\u{200b}): invisible Unicode character is not valid in .frasm"
+            .to_string()
+    } else if rest.starts_with("-->")
+        || rest.starts_with("<--")
+        || rest.starts_with("=>")
+        || rest.starts_with(['\u{2192}', '\u{2190}'])
+    {
+        let sym = if rest.starts_with("-->") {
+            "-->"
+        } else if rest.starts_with("<--") {
+            "<--"
+        } else if rest.starts_with("=>") {
+            "=>"
+        } else {
+            snippet
+        };
+        alloc::format!(
+            "Failed to parse arrow '{}': use ASCII '->' or '<-' for packet direction arrows",
+            sym
         )
     } else if rest.starts_with('/')
         && rest.as_bytes().get(1).is_some_and(|b| b.is_ascii_digit())
@@ -183,8 +210,24 @@ fn lex_error_help(src: &str, span: (usize, usize)) -> String {
             .to_string()
     } else if rest.starts_with("/*") || rest.starts_with("*/") {
         "Start each comment line with '//' instead of wrapping comments in '/* ... */'.".to_string()
+    } else if rest.starts_with('"') {
+        "Add a closing double quote '\"' on the same line (multi-line text uses '\\n' escapes inside \"...\").".to_string()
     } else if rest.starts_with('\'') {
         "Wrap text strings in double quotes instead of single quotes (for example: uri \"/index.html\" or user \"admin\").".to_string()
+    } else if rest.starts_with('\u{00a0}') {
+        "Replace the non-breaking space (\\u{00a0}) with a normal ASCII space ' '.".to_string()
+    } else if rest.starts_with('\u{200b}') {
+        "Remove the invisible zero-width space (U+200B / \\u{200b}) character copied from rich text.".to_string()
+    } else if rest.starts_with("-->") {
+        "Use a two-character ASCII arrow: replace '-->' with '->'.".to_string()
+    } else if rest.starts_with("<--") {
+        "Use a two-character ASCII arrow: replace '<--' with '<-'.".to_string()
+    } else if rest.starts_with("=>") {
+        "Use an ASCII packet arrow: replace '=>' with '->'.".to_string()
+    } else if rest.starts_with('\u{2192}') {
+        "Use an ASCII packet arrow: replace '\u{2192}' with '->'.".to_string()
+    } else if rest.starts_with('\u{2190}') {
+        "Use an ASCII packet arrow: replace '\u{2190}' with '<-'.".to_string()
     } else if rest.starts_with('/')
         && rest.as_bytes().get(1).is_some_and(|b| b.is_ascii_digit())
     {
@@ -232,7 +275,7 @@ fn parse_error_help(message: &str, src: &str, span: (usize, usize)) -> String {
 
     let raw = slice_at_span(src, span);
     if raw.eq_ignore_ascii_case("loop") {
-        return "The 'loop' block was removed in FrameAssembly 2.0; invoke flows or frame statements directly inside 'compile { ... }'.".to_string();
+        return "The 'loop' block was removed in FrameAssembly 2.0: replace 'loop' with 'repeat' (or invoke flows/frames directly inside 'compile { ... }').".to_string();
     }
     if let Some(kw) = crate::lexer::suggest_v2_lowercase_keyword(raw) {
         return alloc::format!(
@@ -245,6 +288,26 @@ fn parse_error_help(message: &str, src: &str, span: (usize, usize)) -> String {
     let snippet = raw.to_ascii_lowercase();
     if matches!(snippet.as_str(), "port" | "ports") {
         "Specify 'dstport <port>' for destination port or 'srcport <port>' for source port (for example: tcp syn dstport 443).".to_string()
+    } else if matches!(snippet.as_str(), "tds") {
+        alloc::format!(
+            "FrameAssembly uses 'mssql' for Microsoft SQL Server TDS: replace '{}' with 'mssql'.",
+            raw
+        )
+    } else if matches!(snippet.as_str(), "rfb") {
+        alloc::format!(
+            "FrameAssembly uses 'vnc' for Remote Framebuffer (VNC): replace '{}' with 'vnc'.",
+            raw
+        )
+    } else if matches!(snippet.as_str(), "skinny") {
+        alloc::format!(
+            "FrameAssembly uses 'sccp' for Cisco Skinny (SCCP): replace '{}' with 'sccp'.",
+            raw
+        )
+    } else if matches!(snippet.as_str(), "knx") {
+        alloc::format!(
+            "FrameAssembly uses 'knxnetip' for KNXnet/IP: replace '{}' with 'knxnetip'.",
+            raw
+        )
     } else if matches!(snippet.as_str(), "sport" | "source_port" | "sourceport") {
         alloc::format!(
             "Use 'srcport <port>' for the source port: replace '{}' with 'srcport'.",
@@ -261,19 +324,27 @@ fn parse_error_help(message: &str, src: &str, span: (usize, usize)) -> String {
     } else if matches!(
         snippet.as_str(),
         "ackno" | "ack_number" | "acknumber" | "acknowledgment"
-    ) || message.contains("did you mean 'acknum")
+    ) {
+        alloc::format!(
+            "Use 'acknum <number>' for the TCP acknowledgment number: replace '{}' with 'acknum'.",
+            raw
+        )
+    } else if message.contains("did you mean 'acknum")
         || message.contains("Did you mean 'acknum")
     {
         "Use 'ack' alone as a TCP flag, and use 'acknum <number>' to set the TCP acknowledgment number (for example: tcp ack acknum 100).".to_string()
     } else if message.contains("missing a protocol keyword") {
-        "Add one of FrameAssembly's 81 protocol keywords after the endpoints — for example: 'c -> s tcp syn', 'c -> s udp payload \"hello\"', or 'c -> s http get uri \"/\"'.".to_string()
+        "Add one of FrameAssembly's 146 protocol keywords after the endpoints — for example: 'c -> s tcp syn', 'c -> s udp payload \"hello\"', or 'c -> s http get uri \"/\"'.".to_string()
     } else if message.contains("time unit") || message.contains("wait duration") {
         "Attach a lowercase time unit directly to the integer: 'ns', 'us', 'ms', 's', or 'm' (for example: wait 5ms).".to_string()
     } else if message.contains("Declare a host block first") {
         "Declare endpoints at the top of the file (e.g. 'host client { ip 10.0.0.1 }') and reference the host or parameter name in flows and compile.".to_string()
-    } else if matches!(snippet.as_str(), "hoplimit" | "hop_limit" | "hlim")
-        || message.contains("Hop Limit")
-    {
+    } else if matches!(snippet.as_str(), "hoplimit" | "hop_limit" | "hlim") {
+        alloc::format!(
+            "Use 'ttl <value>' for both IPv4 Time-to-Live and IPv6 Hop Limit: replace '{}' with 'ttl'.",
+            raw
+        )
+    } else if message.contains("Hop Limit") {
         "Use 'ttl <value>' for both IPv4 Time-to-Live and IPv6 Hop Limit (for example: ttl 64 or ttl 255).".to_string()
     } else if matches!(
         snippet.as_str(),
@@ -310,7 +381,7 @@ fn semantic_error_help(message: &str) -> String {
     if message.contains("Mixed IPv4 and IPv6") {
         "Use either two IPv4 hosts or two IPv6 hosts in the same flow call — a single packet cannot have an IPv4 source and an IPv6 destination.".to_string()
     } else if message.contains("requires an 'ip <address>'") {
-        "Add 'ip <address>' to the host declaration (for example: host r1 { ip 10.0.0.1 mac 00:11:22:33:44:55 }), or use a pure Layer 2 protocol (arp, vlan, qinq, mpls, lldp, stp, lacp, eapol).".to_string()
+        "Add 'ip <address>' to the host declaration (for example: host r1 { ip 10.0.0.1 mac 00:11:22:33:44:55 }), or use a Layer 2 protocol (such as arp, vlan, qinq, mpls, lldp, stp, lacp, eapol, cdp, isis, macsec, pfc, pppoe, nsh, goose, or sv).".to_string()
     } else if message.contains("Multiple protocols") {
         "Write only the highest-layer protocol on each packet line (for example: 'c -> s http get' automatically encapsulates HTTP over TCP port 80; use 'transport tcp' or 'transport udp' on dual-transport protocols like dns or modbus).".to_string()
     } else if message.contains("requires IPv4 endpoints") || message.contains("requires IPv6 endpoints") {
@@ -370,12 +441,7 @@ pub enum CompilerError {
 
 impl Diagnostic for CompilerError {
     fn code<'a>(&'a self) -> Option<Box<dyn core::fmt::Display + 'a>> {
-        let code_str = match self {
-            Self::LexError { .. } | Self::ParseError { .. } => "syntax error",
-            Self::SemanticError { .. } => "validation error",
-            Self::BackendError(_) => "compile error",
-        };
-        Some(Box::new(code_str))
+        None
     }
 
     fn help<'a>(&'a self) -> Option<Box<dyn core::fmt::Display + 'a>> {
@@ -411,29 +477,38 @@ impl Diagnostic for CompilerError {
     }
 }
 
+/// Strips any repeated leading category prefixes so rendered errors never double-print.
+fn strip_error_prefixes<'a>(mut msg: &'a str, prefixes: &[&str]) -> &'a str {
+    loop {
+        let mut stripped = false;
+        for prefix in prefixes {
+            if let Some(rest) = msg.strip_prefix(prefix) {
+                msg = rest;
+                stripped = true;
+                break;
+            }
+        }
+        if !stripped {
+            return msg;
+        }
+    }
+}
+
 impl core::fmt::Display for CompilerError {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
             Self::LexError { src, span } => write!(f, "syntax error: {}", lex_error_summary(src, *span)),
             Self::ParseError { message, .. } => {
-                let clean = message
-                    .strip_prefix("Syntax error: ")
-                    .or_else(|| message.strip_prefix("syntax error: "))
-                    .unwrap_or(message);
+                let clean = strip_error_prefixes(message, &["Syntax error: ", "syntax error: "]);
                 write!(f, "syntax error: {clean}")
             }
             Self::SemanticError { message, .. } => {
-                let clean = message
-                    .strip_prefix("Semantic error: ")
-                    .or_else(|| message.strip_prefix("validation error: "))
-                    .unwrap_or(message);
+                let clean =
+                    strip_error_prefixes(message, &["Semantic error: ", "validation error: "]);
                 write!(f, "validation error: {clean}")
             }
             Self::BackendError(msg) => {
-                let clean = msg
-                    .strip_prefix("Backend error: ")
-                    .or_else(|| msg.strip_prefix("compile error: "))
-                    .unwrap_or(msg);
+                let clean = strip_error_prefixes(msg, &["Backend error: ", "compile error: "]);
                 write!(f, "compile error: {clean}")
             }
         }
@@ -497,9 +572,9 @@ mod tests {
     fn test_v2_self_healing_parse_error_help() {
         let loop_src = "host a { ip 10.0.0.1 }\ncompile { loop 2 {} }\n";
         let loop_help = parse_error_help("unexpected 'loop'", loop_src, (33, 4));
-        assert_eq!(
-            loop_help,
-            "The 'loop' block was removed in FrameAssembly 2.0; invoke flows or frame statements directly inside 'compile { ... }'."
+        assert!(
+            loop_help.contains("replace 'loop' with 'repeat'"),
+            "got: {loop_help}"
         );
 
         let upper_src = "HOST a { ip 10.0.0.1 }\ncompile {}\n";
@@ -515,6 +590,43 @@ mod tests {
             snake_help,
             "Keywords in FrameAssembly 3.0 are strictly lowercase without '_' or '-': replace 'echo_request' with 'echorequest'."
         );
+    }
+
+    #[test]
+    fn test_double_prefix_dedup_and_paste_recovery_lex_errors() {
+        let err = CompilerError::ParseError {
+            message: "syntax error: Syntax error: unexpected token 'foo'".to_string(),
+            src: "foo".to_string(),
+            span: (0, 3),
+        };
+        assert_eq!(err.to_string(), "syntax error: unexpected token 'foo'");
+        assert!(err.code().is_none());
+
+        let report = alloc::format!("{:?}", miette::Report::new(err));
+        assert!(
+            !report.contains("syntax error: Syntax error:"),
+            "unexpected double prefix in report: {report}"
+        );
+
+        let nbsp = "host\u{00a0}a";
+        assert!(lex_error_summary(nbsp, (4, 2)).contains("non-breaking space"));
+        assert!(lex_error_help(nbsp, (4, 2)).contains("ASCII space"));
+
+        let zwsp = "host\u{200b}a";
+        assert!(lex_error_summary(zwsp, (4, 3)).contains("zero-width space"));
+        assert!(lex_error_help(zwsp, (4, 3)).contains("U+200B"));
+
+        let arrows = [
+            ("a --> b", (2, 3), "replace '-->' with '->'"),
+            ("a <-- b", (2, 3), "replace '<--' with '<-'"),
+            ("a => b", (2, 2), "replace '=>' with '->'"),
+            ("a \u{2192} b", (2, 3), "replace '\u{2192}' with '->'"),
+            ("a \u{2190} b", (2, 3), "replace '\u{2190}' with '<-'"),
+        ];
+        for (src, sp, needle) in arrows {
+            assert!(lex_error_help(src, sp).contains(needle));
+            assert!(lex_error_summary(src, sp).contains("arrow"));
+        }
     }
 }
 

@@ -11,23 +11,31 @@ use crate::ast::*;
 use crate::builders::WireContext;
 use alloc::vec::Vec;
 
+/// Returns `true` when the WHOIS packet originates from the registry server port `43`.
+fn is_whois_server_src(ctx: &WireContext) -> bool {
+    ctx.src_port == 43 && ctx.dst_port != 43
+}
+
 /// Builds an RFC 3912 WHOIS query or response string.
 /// Syntax mapping: `whois [query | response] [domain <str>] [registrar <str>]`
 #[doc(alias = "WHOIS")]
 #[doc(alias = "RFC3912")]
 #[doc(alias = "REGISTRAR")]
 pub fn build_whois_payload(
-    _ctx: &WireContext,
+    ctx: &WireContext,
     spec: &WhoisSpec,
     payload_bytes: &[u8],
 ) -> Vec<u8> {
     let domain = spec.domain.unwrap_or("example.com");
-    let formatted = if (spec.is_response || spec.registrar.is_some()) && !spec.is_query {
-        let registrar = spec.registrar.unwrap_or("IANA");
-        format!("Domain Name: {}\r\nRegistrar: {}\r\n", domain, registrar)
-    } else {
-        format!("{}\r\n", domain)
-    };
+    let formatted =
+        if (spec.is_response || spec.registrar.is_some() || is_whois_server_src(ctx))
+            && !spec.is_query
+        {
+            let registrar = spec.registrar.unwrap_or("IANA");
+            format!("Domain Name: {}\r\nRegistrar: {}\r\n", domain, registrar)
+        } else {
+            format!("{}\r\n", domain)
+        };
     let mut bytes = formatted.into_bytes();
     if !payload_bytes.is_empty() {
         bytes.extend_from_slice(payload_bytes);

@@ -54,7 +54,7 @@ fn build_memcached_inner(spec: &MemcachedSpec, payload_bytes: &[u8]) -> Vec<u8> 
             _ => 0x00,
         });
 
-        let key_bytes = spec
+        let raw_key = spec
             .key
             .unwrap_or(if matches!(opcode, 0x07 | 0x08 | 0x0A | 0x0B | 0x10) {
                 ""
@@ -62,6 +62,7 @@ fn build_memcached_inner(spec: &MemcachedSpec, payload_bytes: &[u8]) -> Vec<u8> 
                 "key"
             })
             .as_bytes();
+        let key_bytes = &raw_key[..raw_key.len().min(u16::MAX as usize)];
 
         let val_bytes: &[u8] = if let Some(v) = spec.value {
             v.as_bytes()
@@ -75,12 +76,15 @@ fn build_memcached_inner(spec: &MemcachedSpec, payload_bytes: &[u8]) -> Vec<u8> 
             extras.extend_from_slice(&spec.exptime.unwrap_or(0).to_be_bytes());
         }
 
-        let total_body_len = (extras.len() + key_bytes.len() + val_bytes.len()) as u32;
+        let key_len = u16::try_from(key_bytes.len()).unwrap_or(u16::MAX);
+        let extras_len = u8::try_from(extras.len()).unwrap_or(u8::MAX);
+        let total_body_len =
+            u32::try_from(extras.len() + key_bytes.len() + val_bytes.len()).unwrap_or(u32::MAX);
         let mut pkt = Vec::with_capacity(24 + total_body_len as usize);
         pkt.push(0x80); // Request magic
         pkt.push(opcode);
-        pkt.extend_from_slice(&(key_bytes.len() as u16).to_be_bytes());
-        pkt.push(extras.len() as u8);
+        pkt.extend_from_slice(&key_len.to_be_bytes());
+        pkt.push(extras_len);
         pkt.push(0x00); // Data type: raw bytes
         pkt.extend_from_slice(&0u16.to_be_bytes()); // vbucket id
         pkt.extend_from_slice(&total_body_len.to_be_bytes());

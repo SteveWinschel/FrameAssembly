@@ -1,12 +1,12 @@
 //! Hypertext Transfer Protocol (`http`, RFC 9110 / RFC 9112) Layer 7 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements the fuzz-safe reverse dissector for RFC 9110 and RFC 9112 HTTP/1.x
-//! request and response frames carried over TCP ports `80`, `8080`, `8000`, `443`, `8443`, and
-//! `6443`, or identified dynamically via CRLF request/response line signatures. It decodes HTTP
+//! request and response frames carried over TCP or SCTP ports `80`, `8080`, `8000`, `443`, `8443`,
+//! and `6443`, or identified dynamically via CRLF request/response line signatures. It decodes HTTP
 //! request methods (`get`, `post`, `put`, `delete`, `head`, `options`, `patch`, or arbitrary
 //! `method`), target `uri`, protocol `version`, numeric `status`, `reason` phrase, `hosthdr`,
 //! `useragent`, `contenttype`, custom `header` pairs, and UTF-8 `body` or binary residual
-//! payloads while omitting redundant `Content-Length` headers that match the body byte length.
+//! payloads while eliding default `User-Agent: FrameAssembly/<version>` and matching `Content-Length`.
 
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -16,6 +16,9 @@ use crate::ast::Protocol;
 use crate::reverse::{ProtocolDissection, sd};
 
 use super::{attach_text_body, first_crlf_line, push_str_mod, quote_web_str, split_crlf_headers};
+
+/// Default HTTP request `User-Agent` value synthesized when `useragent` is omitted.
+const DEFAULT_HTTP_USER_AGENT: &str = concat!("FrameAssembly/", env!("CARGO_PKG_VERSION"));
 
 /// Checks whether `payload` begins with an HTTP/1.x or HTTP/2.x request or response line.
 pub(crate) fn is_http_signature(payload: &[u8]) -> bool {
@@ -54,10 +57,12 @@ pub(crate) fn dissect_http(payload: &[u8]) -> Option<ProtocolDissection> {
             push_str_mod(&mut tokens, "reason", reason);
         }
 
+        let forbid_cl = (100..=199).contains(&status) || status == 204 || status == 304;
         let (mut custom_started, mut content_type_used) = (false, false);
         for (idx, &hline) in header_lines.iter().enumerate() {
             let (k, v) = hline.split_once(": ")?;
-            if idx + 1 == header_lines.len()
+            if !forbid_cl
+                && idx + 1 == header_lines.len()
                 && k == "Content-Length"
                 && v.parse::<usize>().ok() == Some(body_bytes.len())
             {
@@ -91,13 +96,17 @@ pub(crate) fn dissect_http(payload: &[u8]) -> Option<ProtocolDissection> {
             push_str_mod(&mut tokens, "version", version);
         }
 
+        let omit_zero_cl = matches!(
+            method.to_ascii_uppercase().as_str(),
+            "GET" | "HEAD" | "DELETE"
+        );
         let (mut host_seen, mut ua_seen, mut ct_seen, mut custom_started) =
             (false, false, false, false);
         for (idx, &hline) in header_lines.iter().enumerate() {
             let (k, v) = hline.split_once(": ")?;
             if idx + 1 == header_lines.len()
                 && k == "Content-Length"
-                && !body_bytes.is_empty()
+                && (!body_bytes.is_empty() || !omit_zero_cl)
                 && v.parse::<usize>().ok() == Some(body_bytes.len())
             {
                 continue;
@@ -106,7 +115,9 @@ pub(crate) fn dissect_http(payload: &[u8]) -> Option<ProtocolDissection> {
                 push_str_mod(&mut tokens, "hosthdr", v);
                 host_seen = true;
             } else if !custom_started && !ct_seen && !ua_seen && k == "User-Agent" {
-                push_str_mod(&mut tokens, "useragent", v);
+                if v != DEFAULT_HTTP_USER_AGENT {
+                    push_str_mod(&mut tokens, "useragent", v);
+                }
                 ua_seen = true;
             } else if !custom_started && !ct_seen && k == "Content-Type" {
                 push_str_mod(&mut tokens, "contenttype", v);

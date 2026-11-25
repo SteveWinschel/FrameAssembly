@@ -44,7 +44,7 @@ pub(crate) fn parse_opcua_field<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<P
             (tag(Token::EndpointUrl), cut_err(parse_str_val)).map(|((_, s), v)| {
                 ParsedField::L7StringField("ENDPOINT_URL", v, (s.start, s.end - s.start))
             }),
-            (tag(Token::NodeId), cut_err(parse_str_val)).map(|((_, s), v)| {
+            (tag(Token::NodeId), cut_err(parse_any_str)).map(|((_, s), v)| {
                 ParsedField::L7StringField("NODE_ID", v, (s.start, s.end - s.start))
             }),
         )),

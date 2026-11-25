@@ -58,15 +58,17 @@ pub fn build_hsrp_payload(ctx: &WireContext, spec: &HsrpSpec, payload: &[u8]) ->
     hsrp.extend_from_slice(payload);
 
     let (dst_ip, dport) = if is_v6 {
-        (
-            IpAddr::V6(core::net::Ipv6Addr::new(0xff02, 0, 0, 0, 0, 0, 0, 0x66)),
-            2029,
-        )
+        let target = match ctx.dst_ip {
+            IpAddr::V6(d) if !d.is_unspecified() => IpAddr::V6(d),
+            _ => IpAddr::V6(core::net::Ipv6Addr::new(0xff02, 0, 0, 0, 0, 0, 0, 0x66)),
+        };
+        (target, 2029)
     } else {
-        (
-            IpAddr::V4(core::net::Ipv4Addr::new(224, 0, 0, 2)),
-            1985,
-        )
+        let target = match ctx.dst_ip {
+            IpAddr::V4(d) if !d.is_unspecified() => IpAddr::V4(d),
+            _ => IpAddr::V4(core::net::Ipv4Addr::new(224, 0, 0, 2)),
+        };
+        (target, 1985)
     };
     (hsrp, dst_ip, dport)
 }

@@ -1,493 +1,245 @@
 # ============================================================================
 # FrameAssembly GBNF Constrained Decoding Grammar (llama.cpp / XGrammar)
-# Version: 3.2.2 — Strict-lowercase [a-z0-9]+ built-in keywords, optional
-# flow blocks (2-block host + compile or reusable flow templates), and all
-# 81 native Layer 2 through Layer 7 protocols, modifiers, and literals.
+# Version: 3.3.0 — Strict-lowercase [a-z0-9]+ built-in keywords, optional
+# flow blocks (2-block host + compile or reusable flow templates), repeat
+# blocks, and all 146 native Layer 2 through Layer 7 protocols & modifiers.
 # Usage: llama-server -m model.gguf --grammar-file frameassembly.gbnf
 # ============================================================================
 
 root ::= ws (host-decl | flow-decl)* compile-block (host-decl | flow-decl)* ws
 
-# Whitespace and single-line comments
-ws ::= ([ \t\n\r] | "//" [^\n]* "\n")*
-ws1 ::= ([ \t\n\r] | "//" [^\n]* "\n")+
+# Whitespace (including \f and UTF-8 BOM \uFEFF) and single-line comments (EOF-safe)
+ws ::= ([ \t\n\r\x0c\ufeff] | "//" [^\r\n]*)*
+ws1 ::= ([ \t\n\r\x0c\ufeff] | "//" [^\r\n]*)+
 
-# 1. Host Declarations (at least one IP or MAC property in any order)
+# Top-level structure (2-block host+compile or optional flow templates, repeat blocks)
 host-decl ::= "host" ws1 ident ws "{" ws host-prop+ "}" ws
 host-prop ::= ("ip" ws1 ip-addr | "mac" ws1 mac-addr) ws
 
-# 2. Optional Flow Declarations & Frame Statements
-#    Minimal 2-block programs use only host + compile; flow blocks are optional.
-flow-decl ::= "flow" ws1 ident ws "(" ws param-list? ")" ws "{" ws frame-stmt* "}" ws
+flow-decl ::= "flow" ws1 ident ws "(" ws param-list? ")" ws "{" ws flow-stmt* "}" ws
 param-list ::= ident ws ("," ws ident ws)*
+flow-stmt ::= flow-repeat | flow-call | frame-stmt
+flow-repeat ::= "repeat" ws1 uint-lit ws "{" ws flow-stmt* "}" ws
 
 frame-stmt ::= ident ws direction ws ident (ws1 frame-field)* ws
 direction ::= "->" | "<-"
 
-# 3. Compile Block & Inline Frame Statements
 compile-block ::= "compile" ws "{" ws run-stmt* "}" ws
-run-stmt ::= flow-call | frame-stmt
+run-stmt ::= run-repeat | flow-call | frame-stmt
+run-repeat ::= "repeat" ws1 uint-lit ws "{" ws run-stmt* "}" ws
 flow-call ::= ident ws "(" ws param-list? ")" ws
 
-# 4. Frame Fields (Protocols, Modifiers & Protocol Attributes)
-frame-field ::= protocol-kw
-              | universal-mod
-              | l2-mod
-              | l3-mod
-              | l4-mod
-              | l2-proto-field
-              | l3-proto-field
-              | l4-proto-field
-              | snmp-proto-field
-              | l7-proto-field
-
-# 5. All 81 Native Protocol Keywords
-protocol-kw ::= l2-proto | l3-proto | l4-proto | snmp-proto | l7-infra-proto | l7-app-proto | l7-ot-proto
-
-l2-proto ::= "arp" | "vlan" | "qinq" | "lldp" | "stp" | "lacp" | "eapol" | "mpls"
-
-l3-proto ::= "icmp" | "ndp" | "igmp" | "mld" | "gre" | "vxlan" | "geneve"
-           | "ipsec" | "esp" | "ah" | "ikev2" | "wireguard"
-           | "ospf" | "bgp" | "rip" | "vrrp" | "hsrp" | "pim" | "bfd" | "openflow"
-
+# Frame fields & 146 protocol keywords
+frame-field ::= protocol-kw | universal-mod | l2-mod | l3-mod | l4-mod | l2-proto-field | l3-proto-field | l4-proto-field | snmp-proto-field | l7-proto-field
+protocol-kw ::= l2-proto | l3-proto | l4-proto | snmp-proto | l7-infra-proto | l7-app-proto | l7-data-proto | l7-telco-proto | l7-ot-proto
+l2-proto ::= "arp" | "vlan" | "qinq" | "lldp" | "stp" | "lacp" | "eapol" | "mpls" | "cdp" | "isis" | "macsec" | "pfc" | "pppoe" | "nsh" | "profinet" | "goose" | "sv" | "ethercat"
+l3-proto ::= "icmp" | "ndp" | "igmp" | "mld" | "gre" | "vxlan" | "geneve" | "ipsec" | "esp" | "ah" | "ikev2" | "wireguard" | "ospf" | "bgp" | "rip" | "vrrp" | "hsrp" | "pim" | "bfd" | "openflow" | "ipip" | "srv6" | "erspan" | "rsvp" | "ldp" | "bmp" | "rpkirtr" | "l2tp" | "lisp" | "glbp" | "gtpu"
 l4-proto ::= "tcp" | "udp" | "sctp"
-
 snmp-proto ::= "snmp1" | "snmp2" | "snmp3"
+l7-infra-proto ::= "dns" | "mdns" | "dhcp" | "ntp" | "ptp" | "radius" | "tacacs" | "syslog" | "netflow" | "ipfix" | "sflow" | "llmnr" | "nbns" | "doh" | "wsdiscovery" | "twamp" | "netconf" | "ipmi"
+l7-app-proto ::= "tftp" | "ftp" | "ssh" | "telnet" | "http" | "http2" | "grpc" | "websocket" | "tls" | "quic" | "stun" | "turn" | "sip" | "rtp" | "rtcp" | "rtsp" | "h323" | "sccp" | "mgcp" | "smtp" | "imap" | "pop3" | "irc" | "kerberos" | "ldap" | "ntlm" | "smb" | "nfs" | "dcerpc" | "rdp" | "socks" | "vnc" | "ssdp" | "whois"
+l7-data-proto ::= "redis" | "memcached" | "mysql" | "postgres" | "mssql" | "mongodb" | "tns" | "kafka" | "mqtt" | "coap" | "amqp" | "iscsi" | "nvmetcp" | "rocev2"
+l7-telco-proto ::= "gtpc" | "pfcp" | "diameter" | "ngap" | "s1ap"
+l7-ot-proto ::= "modbus" | "bacnet" | "dnp3" | "s7comm" | "ethernetip" | "opcua" | "iec104" | "mms" | "s7commplus" | "synchrophasor" | "hartip" | "fins" | "melsec" | "someip" | "doip" | "c1222" | "gesrtp" | "rocplus" | "bsap" | "knxnetip"
 
-l7-infra-proto ::= "dns" | "mdns" | "dhcp" | "ntp" | "ptp" | "radius"
-                 | "tacacs" | "syslog" | "netflow" | "ipfix" | "sflow"
-
-l7-app-proto ::= "tftp" | "ftp" | "ssh" | "telnet" | "http" | "http2" | "grpc"
-               | "websocket" | "tls" | "quic" | "stun" | "sip" | "rtp" | "rtsp"
-               | "smtp" | "imap" | "pop3" | "kerberos" | "ldap" | "smb" | "nfs"
-               | "redis" | "memcached" | "mysql" | "postgres" | "mqtt" | "coap"
-               | "amqp" | "ssdp" | "whois"
-
-l7-ot-proto ::= "modbus" | "bacnet" | "dnp3" | "s7comm" | "ethernetip" | "opcua"
-
-# 6. Universal & Layer 2-4 Modifiers
-universal-mod ::= "wait" ws1 duration-lit
-                | "payload" ws1 string-lit
-                | "hexpayload" ws1 hex-string-lit
-
-l2-mod ::= "srcmac" ws1 mac-addr
-         | "dstmac" ws1 mac-addr
-         | "ethertype" ws1 uint-lit
-         | "vlan" (ws1 uint-lit)?
-         | "pcp" ws1 uint-lit
-         | "dei" ws1 uint-lit
-         | "qinq" (ws1 uint-lit)?
-         | "innervlan" ws1 uint-lit
-         | "mpls" (ws1 uint-lit)?
-         | "label" ws1 uint-lit
-         | ("exp" | "tc") ws1 uint-lit
-         | "bos" ws1 uint-lit
-         | "mplsttl" ws1 uint-lit
-
-l3-mod ::= "ttl" ws1 uint-lit
-         | "dscp" ws1 uint-lit
-         | "ecn" ws1 uint-lit
-         | "flowlabel" ws1 uint-lit
-         | "ipid" ws1 uint-lit
-         | "df"
-         | "mf"
-         | "fragoffset" ws1 uint-lit
-         | "nextheader" ws1 uint-lit
-
-l4-mod ::= "srcport" ws1 uint-lit
-         | "dstport" ws1 uint-lit
-         | "transport" ws1 ("tcp" | "udp")
-         | tcp-flag
-         | "seq" ws1 uint-lit
-         | "acknum" ws1 uint-lit
-         | ("win" | "window") ws1 uint-lit
-         | "urgent" ws1 uint-lit
-         | "mss" ws1 uint-lit
-         | "wscale" ws1 uint-lit
-         | "sackperm"
-         | "tsval" ws1 uint-lit
-         | "tsecr" ws1 uint-lit
-
+# Universal & L2/L3/L4 frame modifiers
+universal-mod ::= "wait" ws1 duration-lit | "payload" ws1 string-lit | "hexpayload" ws1 hex-string-lit | "comment" ws1 string-lit
+l2-mod ::= "srcmac" ws1 mac-addr | "dstmac" ws1 mac-addr | "ethertype" ws1 uint-lit | "vlan" (ws1 uint-lit)? | "pcp" ws1 uint-lit | "dei" ws1 uint-lit | "qinq" (ws1 uint-lit)? | "innervlan" ws1 uint-lit | "mpls" (ws1 uint-lit)? | "label" ws1 uint-lit | ("exp" | "tc") ws1 uint-lit | "bos" ws1 uint-lit | "mplsttl" ws1 uint-lit | "fcs" | "badfcs"
+l3-mod ::= "ttl" ws1 uint-lit | "dscp" ws1 uint-lit | "ecn" ws1 uint-lit | "flowlabel" ws1 uint-lit | "ipid" ws1 uint-lit | "df" | "mf" | "fragoffset" ws1 uint-lit | "routeralert" | "badipchecksum" | "nextheader" ws1 uint-lit
+l4-mod ::= "srcport" ws1 uint-lit | "dstport" ws1 uint-lit | "transport" ws1 ("tcp" | "udp" | "sctp") | "badchecksum" | "nochecksum" | tcp-flag | "seq" ws1 uint-lit | "acknum" ws1 uint-lit | ("win" | "window") ws1 uint-lit | "urgent" ws1 uint-lit | "mss" ws1 uint-lit | "wscale" ws1 uint-lit | "sackperm" | "sackblock" ws1 uint-lit ws1 uint-lit | "tsval" ws1 uint-lit | "tsecr" ws1 uint-lit | "tcpmd5" ws1 hex-string-lit | "tfo" ws1 hex-string-lit
 tcp-flag ::= "syn" | "ack" | "fin" | "rst" | "psh" | "urg" | "ece" | "cwr"
 
-# 7. Layer 2 Protocol Sub-Keywords
-l2-proto-field ::= "request"
-                 | "reply" (ws1 string-lit)?
-                 | "gratuitous" | "garp"
-                 | ("sha" | "sendermac") ws1 mac-addr
-                 | ("spa" | "senderip") ws1 ip-addr
-                 | ("tha" | "targetmac") ws1 mac-addr
-                 | ("tpa" | "targetip") ws1 ip-addr
-                 | "chassisid" ws1 str-or-ident
-                 | "portid" ws1 (uint-lit | str-or-ident)
-                 | "sysname" ws1 str-or-ident
-                 | "sysdesc" ws1 str-or-ident
-                 | "rootid" ws1 any-str
-                 | "bridgeid" ws1 any-str
-                 | "cost" ws1 uint-lit
-                 | "maxage" ws1 uint-lit
-                 | "hellotime" ws1 uint-lit
-                 | "forwarddelay" ws1 uint-lit
-                 | "rstp"
-                 | "flags" ws1 uint-lit
-                 | "actorsys" ws1 (mac-addr | string-lit)
-                 | "actorkey" ws1 uint-lit
-                 | "actorport" ws1 uint-lit
-                 | "partnersys" ws1 (mac-addr | string-lit)
-                 | "partnerkey" ws1 uint-lit
-                 | "partnerport" ws1 uint-lit
-                 | "actorstate" ws1 uint-lit
-                 | "partnerstate" ws1 uint-lit
-                 | "version" ws1 any-str
-                 | "type" ws1 ("start" | "logoff" | "key" | "eappacket" | "initiation" | "response" | "cookie" | "data"
-                 | "hello" | "featuresreq" | "featuresreply" | "packetin" | "packetout" | "flowmod" | "echoreq" | "echorequest" | "echoreply"
-                 | "authen" | "author" | "acct" | any-str)
-                 | "start" | "logoff" | "key" | "eappacket"
-                 | "eapcode" ws1 uint-lit
-                 | "eapid" ws1 uint-lit
-                 | "eapmethod" ws1 uint-lit
-                 | "identity" ws1 str-or-ident
+# Layer 2 protocol-specific fields (18 protocols; vlan/qinq/mpls in l2-mod)
+l2-proto-field ::= arp-field | cdp-field | eapol-field | ethercat-field | goose-field | isis-field | lacp-field | lldp-field | macsec-field | nsh-field | pfc-field | pppoe-field | profinet-field | stp-field | sv-field
+eapol-pkt-type ::= "start" | "logoff" | "key" | "eappacket"
+isis-pdu-type ::= "l1iih" | "hello" | "l2iih" | "p2piih" | "l1lsp" | "l2lsp" | "l1csnp" | "l2csnp" | "l1psnp" | "l2psnp"
+pppoe-stage ::= "padi" | "pado" | "padr" | "pads" | "padt" | "session"
+arp-field ::= "request" | "reply" | "gratuitous" | "garp" | ("sha" | "sendermac") ws1 mac-addr | ("spa" | "senderip") ws1 ip-addr | ("tha" | "targetmac") ws1 mac-addr | ("tpa" | "targetip") ws1 ip-addr
+cdp-field ::= "version" ws1 uint-lit | "deviceid" ws1 any-str | "addr" ws1 ip-addr | "portid" ws1 any-str | "capabilities" ws1 uint-lit | "swversion" ws1 any-str | "platform" ws1 any-str | "nativevlan" ws1 uint-lit
+eapol-field ::= "version" ws1 uint-lit | "eapcode" ws1 uint-lit | "eapid" ws1 uint-lit | "eapmethod" ws1 uint-lit | "identity" ws1 str-or-ident | ("type" ws1)? eapol-pkt-type
+ethercat-field ::= "cmd" ws1 any-str | "nop" | "read" | "write" | "idx" ws1 uint-lit | "adp" ws1 uint-lit | ("ado" | "offset") ws1 uint-lit | "addr" ws1 uint-lit | "irq" ws1 uint-lit | "wkc" ws1 uint-lit
+goose-field ::= "appid" ws1 uint-lit | "gocbref" ws1 str-or-ident | "timetolive" ws1 uint-lit | "datset" ws1 str-or-ident | "goid" ws1 str-or-ident | "stnum" ws1 uint-lit | "sqnum" ws1 uint-lit | "simulation" | "confrev" ws1 uint-lit | "ndscom" | "numdatsetentries" ws1 uint-lit
+isis-field ::= ("type" ws1)? isis-pdu-type | "type" ws1 any-str | "sysid" ws1 any-str | "area" ws1 any-str | "holdtime" ws1 uint-lit | "priority" ws1 uint-lit | "lanid" ws1 any-str | "circuittype" ws1 uint-lit | "lifetime" ws1 uint-lit | "seqnum" ws1 uint-lit | "hostname" ws1 any-str
+lacp-field ::= "actorsys" ws1 mac-addr | "actorkey" ws1 uint-lit | "actorport" ws1 uint-lit | "partnersys" ws1 mac-addr | "partnerkey" ws1 uint-lit | "partnerport" ws1 uint-lit | "actorstate" ws1 uint-lit | "partnerstate" ws1 uint-lit
+lldp-field ::= "chassisid" ws1 str-or-ident | "sysname" ws1 str-or-ident | "sysdesc" ws1 str-or-ident | "portid" ws1 (uint-lit | str-or-ident)
+macsec-field ::= "tci" ws1 uint-lit | "an" ws1 uint-lit | "sl" ws1 uint-lit | "pn" ws1 uint-lit | "sci" ws1 uint-lit | "icv" ws1 hex-bytes
+nsh-field ::= "version" ws1 uint-lit | "oam" | "mdtype" ws1 uint-lit | "nextproto" ws1 any-str | "spi" ws1 uint-lit | "si" ws1 uint-lit | "context" ws1 hex-bytes
+pfc-field ::= "enable" ws1 uint-lit | "quanta" ws1 uint-lit | "q0" ws1 uint-lit | "q1" ws1 uint-lit | "q2" ws1 uint-lit | "q3" ws1 uint-lit | "q4" ws1 uint-lit | "q5" ws1 uint-lit | "q6" ws1 uint-lit | "q7" ws1 uint-lit
+pppoe-field ::= ("type" ws1)? pppoe-stage | "sessionid" ws1 uint-lit | "servicename" ws1 any-str | "acname" ws1 any-str | "hostuniq" ws1 hex-bytes | "accookie" ws1 hex-bytes | "pppproto" ws1 (uint-lit | str-or-ident)
+profinet-field ::= "frameid" ws1 uint-lit | "cycle" ws1 uint-lit | "datastatus" ws1 uint-lit | "transferstatus" ws1 uint-lit | "xid" ws1 uint-lit | "service" ws1 any-str | "request" | "response" | "read" | "write" | "get" | "set" | "release" | "connect"
+stp-field ::= "rootid" ws1 any-str | "bridgeid" ws1 any-str | "portid" ws1 (uint-lit | str-or-ident) | "cost" ws1 uint-lit | "maxage" ws1 uint-lit | "hellotime" ws1 uint-lit | "forwarddelay" ws1 uint-lit | "rstp" | "flags" ws1 uint-lit
+sv-field ::= "appid" ws1 uint-lit | "svid" ws1 str-or-ident | "datset" ws1 str-or-ident | "smpcnt" ws1 uint-lit | "confrev" ws1 uint-lit | "smpsynch" ws1 uint-lit | "smprate" ws1 uint-lit | "simulation"
 
-# 8. Layer 3 Protocol Sub-Keywords
-l3-proto-field ::= "echorequest" | "echoreply" | "destunreach" | "timeexceeded" | "redirect"
-                 | "code" ws1 any-str
-                 | "id" ws1 uint-lit
-                 | "gateway" ws1 ip-addr
-                 | "routersolicit" | "routeradvert" | "neighborsolicit" | "neighboradvert"
-                 | "target" ws1 (ip-addr | mac-addr)
-                 | "slla" ws1 mac-addr
-                 | "tlla" ws1 mac-addr
-                 | "routerlifetime" ws1 uint-lit
-                 | "query" | "report" | "leave" | "done" | "v1" | "v2" | "v3"
-                 | "group" ws1 (ip-addr | uint-lit)
-                 | "maxresp" ws1 uint-lit
-                 | "multicastaddr" ws1 ip-addr
-                 | "maxrespdelay" ws1 uint-lit
-                 | "checksum"
-                 | "grekey" ws1 uint-lit
-                 | "greseq" ws1 uint-lit
-                 | "greproto" ws1 uint-lit
-                 | ("vni" | "vnid") ws1 uint-lit
-                 | "optclass" ws1 uint-lit
-                 | "opttype" ws1 uint-lit
-                 | "protocoltype" ws1 uint-lit
-                 | "spi" ws1 uint-lit
-                 | "iv" ws1 (hex-string-lit | uint-lit)
-                 | "icv" ws1 (hex-string-lit | uint-lit)
-                 | "initiatorspi" ws1 (uint-lit | hex-string-lit)
-                 | "responderspi" ws1 (uint-lit | hex-string-lit)
-                 | "exchange" ws1 (uint-lit | "sainit" | "auth" | "createchildsa" | "informational" | str-or-ident)
-                 | "sainit" | "auth" | "createchildsa" | "informational"
-                 | "msgid" ws1 (uint-lit | str-or-ident)
-                 | ("nextpayload" | "nextheader") ws1 uint-lit
-                 | "initiation" | "cookie" (ws1 str-or-ident)? | "data" (ws1 str-or-ident)?
-                 | "sender" ws1 uint-lit
-                 | "receiver" ws1 uint-lit
-                 | "counter" ws1 uint-lit
-                 | "hello" | "dbd" | "lsr" | "lsu" | "lsack"
-                 | "routerid" ws1 ip-addr
-                 | "areaid" ws1 (uint-lit | ip-addr)
-                 | "hellointerval" ws1 uint-lit
-                 | "deadinterval" ws1 uint-lit
-                 | "priority" ws1 uint-lit
-                 | "open" | "update" | "notification" | "keepalive" (ws1 uint-lit)?
-                 | "asn" ws1 uint-lit
-                 | "holdtime" ws1 uint-lit
-                 | "bgpid" ws1 ip-addr
-                 | ("prefix" | "nlri") ws1 any-str
-                 | "nexthop" ws1 ip-addr
-                 | "command" ws1 any-str
-                 | "metric" ws1 uint-lit
-                 | "tag" ws1 (uint-lit | str-or-ident)
-                 | "vrid" ws1 uint-lit
-                 | "advint" ws1 uint-lit
-                 | "vip" ws1 ip-addr
-                 | "hellotime" ws1 uint-lit
-                 | "state" ws1 uint-lit
-                 | "joinprune" | "register"
-                 | "source" ws1 ip-addr
-                 | "rp" ws1 ip-addr
-                 | "drpriority" ws1 uint-lit
-                 | "diag" ws1 uint-lit
-                 | "mydisc" ws1 uint-lit
-                 | "yourdisc" ws1 uint-lit
-                 | "mintx" ws1 uint-lit
-                 | "minrx" ws1 uint-lit
-                 | "mult" ws1 uint-lit
-                 | "featuresreq" | "featuresreply" | "packetin" | "packetout" | "flowmod" | "echoreq"
-                 | "xid" ws1 uint-lit
-                 | "dpid" ws1 uint-lit
-                 | "tableid" ws1 uint-lit
+# Layer 3 protocol-specific fields (31 protocols; ah/esp have no extra fields)
+l3-proto-field ::= bfd-field | bgp-field | bmp-field | erspan-field | geneve-field | glbp-field | gre-field | gtpu-field | hsrp-field | icmp-field | igmp-field | ikev2-field | ipip-field | ipsec-field | l2tp-field | ldp-field | lisp-field | mld-field | ndp-field | openflow-field | ospf-field | pim-field | rip-field | rpkirtr-field | rsvp-field | srv6-field | vrrp-field | vxlan-field | wireguard-field
+ikev2-exchange-mode ::= "sainit" | "auth" | "createchildsa" | "informational"
+wireguard-pkt-type ::= "initiation" | "response" | "cookie" | "data"
+openflow-pkt-type ::= "hello" | "featuresreq" | "featuresreply" | "packetin" | "packetout" | "flowmod" | "echoreq" | "echorequest" | "echoreply"
+bfd-field ::= "state" ws1 uint-lit | "diag" ws1 uint-lit | "mydisc" ws1 uint-lit | "yourdisc" ws1 uint-lit | "mintx" ws1 uint-lit | "minrx" ws1 uint-lit | "mult" ws1 uint-lit
+bgp-field ::= "open" | "update" | "notification" | "keepalive" | "asn" ws1 uint-lit | "holdtime" ws1 uint-lit | "bgpid" ws1 ip-addr | ("prefix" | "nlri") ws1 any-str | "nexthop" ws1 ip-addr
+bmp-field ::= "routemon" | "statsreport" | "peerdown" | "peerup" | "initiation" | "termination" | "version" ws1 uint-lit | "peertype" ws1 uint-lit | "flags" ws1 uint-lit | "peerip" ws1 ip-addr | "asn" ws1 uint-lit | "bgpid" ws1 ip-addr | "sysname" ws1 str-or-ident | "sysdesc" ws1 str-or-ident | "reason" ws1 uint-lit
+erspan-field ::= "v2" | "v3" | "version" ws1 uint-lit | "sessionid" ws1 uint-lit | "vid" ws1 uint-lit | "cos" ws1 uint-lit | "greseq" ws1 uint-lit | "index" ws1 uint-lit | "timestamp" ws1 uint-lit | "direction" ws1 uint-lit
+geneve-field ::= ("vni" | "vnid") ws1 uint-lit | "optclass" ws1 uint-lit | "opttype" ws1 uint-lit | "protocoltype" ws1 uint-lit
+glbp-field ::= "hello" | "request" | "response" | "version" ws1 uint-lit | "group" ws1 uint-lit | "ownerid" ws1 mac-addr | "state" ws1 uint-lit | "priority" ws1 uint-lit | "weight" ws1 uint-lit | "forwarder" ws1 uint-lit | "hellotime" ws1 uint-lit | "holdtime" ws1 uint-lit | "redirect" ws1 uint-lit | "timeout" ws1 uint-lit | "vip" ws1 ip-addr | "vmac" ws1 mac-addr | "auth" ws1 str-or-ident
+gre-field ::= ("grekey" | "key") ws1 uint-lit | "greseq" ws1 uint-lit | "greproto" ws1 uint-lit | "checksum"
+gtpu-field ::= "gpdu" | "echorequest" | "echoreply" | "errorindication" | "endmarker" | "teid" ws1 uint-lit | "flags" ws1 uint-lit | "seqnum" ws1 uint-lit | "npdu" ws1 uint-lit | "qfi" ws1 uint-lit
+hsrp-field ::= "group" ws1 uint-lit | "priority" ws1 uint-lit | "state" ws1 uint-lit | "auth" ws1 str-or-ident | "vip" ws1 ip-addr | "hellotime" ws1 uint-lit | "holdtime" ws1 uint-lit
+icmp-field ::= "echorequest" | "echoreply" | "destunreach" | "timeexceeded" | "redirect" | "gateway" ws1 ip-addr | "type" ws1 uint-lit | "code" ws1 uint-lit | "id" ws1 uint-lit | "seq" ws1 uint-lit
+igmp-field ::= "query" | "report" | "leave" | "v1" | "v2" | "v3" | "version" ws1 uint-lit | "group" ws1 (ip-addr | uint-lit) | "maxresp" ws1 uint-lit
+ikev2-field ::= "initiatorspi" ws1 uint-lit | "responderspi" ws1 uint-lit | "exchange" ws1 ikev2-exchange-mode | "sainit" | "auth" | "createchildsa" | "informational" | "msgid" ws1 uint-lit | "flags" ws1 uint-lit | ("nextpayload" | "nextheader") ws1 uint-lit
+ipip-field ::= "v4" | "v6" | "version" ws1 uint-lit | "srcip" ws1 ip-addr | "dstip" ws1 ip-addr | "innerttl" ws1 uint-lit | "innerdscp" ws1 uint-lit | "proto" ws1 uint-lit
+ipsec-field ::= "spi" ws1 uint-lit | "seq" ws1 uint-lit | "iv" ws1 hex-bytes | "icv" ws1 hex-bytes | "nextheader" ws1 uint-lit
+l2tp-field ::= "v2" | "v3" | "version" ws1 uint-lit | "data" | "hello" | "sccrq" | "sccrp" | "scccn" | "stopccn" | "msgtype" ws1 any-str | "tunnelid" ws1 uint-lit | "sessionid" ws1 uint-lit | "ns" ws1 uint-lit | "nr" ws1 uint-lit | "flags" ws1 uint-lit
+ldp-field ::= "hello" | "init" | "keepalive" | "notification" | "labelmapping" | "labelrequest" | "labelwithdraw" | "labelrelease" | "lsrid" ws1 ip-addr | "labelspace" ws1 uint-lit | "msgid" ws1 uint-lit | "holdtime" ws1 uint-lit | "label" ws1 uint-lit | "prefix" ws1 any-str | "status" ws1 uint-lit
+lisp-field ::= "data" | "maprequest" | "mapreply" | "mapregister" | "mapnotify" | "ecm" | "flags" ws1 uint-lit | "iid" ws1 uint-lit | "nonce" ws1 uint-lit | "eid" ws1 any-str | "rloc" ws1 ip-addr | "priority" ws1 uint-lit | "weight" ws1 uint-lit
+mld-field ::= "query" | "report" | "done" | "multicastaddr" ws1 ip-addr | "maxrespdelay" ws1 uint-lit
+ndp-field ::= "routersolicit" | "routeradvert" | "neighborsolicit" | "neighboradvert" | "redirect" | "target" ws1 ip-addr | "slla" ws1 mac-addr | "tlla" ws1 mac-addr | "routerlifetime" ws1 uint-lit
+openflow-field ::= "version" ws1 uint-lit | "xid" ws1 uint-lit | "dpid" ws1 uint-lit | "tableid" ws1 uint-lit | "priority" ws1 uint-lit | ("type" ws1)? openflow-pkt-type
+ospf-field ::= "hello" | "dbd" | "lsr" | "lsu" | "lsack" | "routerid" ws1 ip-addr | "areaid" ws1 (uint-lit | ip-addr) | "hellointerval" ws1 uint-lit | "deadinterval" ws1 uint-lit | "priority" ws1 uint-lit
+pim-field ::= "hello" | "joinprune" | "register" | "group" ws1 ip-addr | "source" ws1 ip-addr | "rp" ws1 ip-addr | "holdtime" ws1 uint-lit | "drpriority" ws1 uint-lit
+rip-field ::= "request" | "reply" | "response" | "command" ws1 any-str | "metric" ws1 uint-lit | "prefix" ws1 ip-addr | "nexthop" ws1 ip-addr | "tag" ws1 uint-lit
+rpkirtr-field ::= "serialnotify" | "serialquery" | "resetquery" | "cacheresponse" | "ipv4prefix" | "ipv6prefix" | "endofdata" | "cachereset" | "errorreport" | "version" ws1 uint-lit | "sessionid" ws1 uint-lit | "serial" ws1 uint-lit | "announce" | "withdraw" | "flags" ws1 uint-lit | "prefix" ws1 any-str | "maxlen" ws1 uint-lit | "asn" ws1 uint-lit | "refresh" ws1 uint-lit | "retry" ws1 uint-lit | "expire" ws1 uint-lit | "errcode" ws1 uint-lit | "errmsg" ws1 str-or-ident
+rsvp-field ::= "path" | "resv" | "patherr" | "resverr" | "pathtear" | "resvtear" | "resvconf" | "hello" | "tunnelid" ws1 uint-lit | "lspid" ws1 uint-lit | "label" ws1 uint-lit | "refresh" ws1 uint-lit | "srcip" ws1 ip-addr | "dstip" ws1 ip-addr | "errcode" ws1 uint-lit
+srv6-field ::= "nextheader" ws1 uint-lit | "segleft" ws1 uint-lit | "flags" ws1 uint-lit | "tag" ws1 uint-lit | "sid" ws1 ip-addr
+vrrp-field ::= "vrid" ws1 uint-lit | "priority" ws1 uint-lit | "advint" ws1 uint-lit | "vip" ws1 ip-addr | "version" ws1 uint-lit
+vxlan-field ::= ("vni" | "vnid") ws1 uint-lit
+wireguard-field ::= ("type" ws1)? wireguard-pkt-type | "sender" ws1 uint-lit | "receiver" ws1 uint-lit | "counter" ws1 uint-lit
 
-# 9. Layer 4 SCTP Sub-Keywords
-l4-proto-field ::= "vtag" ws1 uint-lit
-                 | "stream" ws1 uint-lit
-                 | "ssn" ws1 uint-lit
-                 | "ppid" ws1 uint-lit
-                 | "tsn" ws1 uint-lit
-                 | "chunk" ws1 ("data" | "init" | "initack" | "sack" | "heartbeat" | "heartbeatack"
-                 | "abort" | "shutdown" | "shutdownack" | "cookieecho" | "cookieack" | any-str)
-                 | "init" | "initack" | "sack" | "heartbeat" | "heartbeatack"
-                 | "abort" | "shutdown" | "shutdownack" | "cookieecho" | "cookieack"
+# Layer 4 protocol-specific fields (tcp/udp in l4-mod; sctp below)
+l4-proto-field ::= sctp-field
+sctp-field ::= "vtag" ws1 uint-lit | "stream" ws1 uint-lit | "ssn" ws1 uint-lit | "ppid" ws1 uint-lit | "tsn" ws1 uint-lit | "chunk" ws1 any-str | "data" | "init" | "initack" | "sack" | "heartbeat" | "heartbeatack" | "abort" | "shutdown" | "shutdownack" | "shutdowncomplete" | "cookieecho" | "cookieack"
 
-# 10. SNMPv1 / SNMPv2c / SNMPv3 Sub-Keywords
-snmp-proto-field ::= "trap" | "inform" | "get" | "getnext" | "getbulk" | "set"
-                   | "response" (ws1 str-or-ident)? | "report"
-                   | "community" ws1 string-lit
-                   | "oid" ws1 oid-lit
-                   | "sysuptime" ws1 uint-lit
-                   | "reqid" ws1 uint-lit
-                   | "nonrepeaters" ws1 uint-lit
-                   | "maxrepetitions" ws1 uint-lit
-                   | "enterprise" ws1 oid-lit
-                   | "agentip" ws1 ip-addr
-                   | "gentrap" ws1 uint-lit
-                   | "spectrap" ws1 uint-lit
-                   | "user" ws1 str-or-ident
-                   | "engineid" ws1 string-lit
-                   | "engineboots" ws1 uint-lit
-                   | "enginetime" ws1 uint-lit
-                   | "contextname" ws1 string-lit
-                   | "auth" ws1 ("md5" | "sha" | "sha256" | "sha384" | "sha512") ws1 string-lit
-                   | "priv" ws1 ("des" | "aes") ws1 string-lit
-                   | "varbind" ws1 oid-lit ws1 varbind-val
+# SNMP v1/v2c/v3 USM & VarBind fields
+snmp-proto-field ::= "community" ws1 string-lit | "user" ws1 str-or-ident | "sysuptime" ws1 uint-lit | "agentip" ws1 ip-addr | "gentrap" ws1 uint-lit | "spectrap" ws1 uint-lit | "engineid" ws1 string-lit | "engineboots" ws1 uint-lit | "enginetime" ws1 uint-lit | "contextname" ws1 string-lit | "nonrepeaters" ws1 uint-lit | "maxrepetitions" ws1 uint-lit | "reqid" ws1 uint-lit | "oid" ws1 oid-val | "enterprise" ws1 oid-val | snmp-varbind | "auth" ws1 snmp-auth-algo ws1 string-lit | "priv" ws1 snmp-priv-algo ws1 string-lit | "trap" | "get" | "set" | "response" | "inform" | "getnext" | "getbulk" | "report"
+snmp-varbind ::= "varbind" ws1 oid-val ws1 varbind-val
+varbind-val ::= "nullval" | "null" | "string" ws1 string-lit | "int" ws1 int-lit | "timeticks" ws1 uint-lit | "ipval" ws1 ip-addr | "oidval" ws1 oid-val | "counter32" ws1 uint-lit | "gauge32" ws1 uint-lit | "counter64" ws1 uint-lit
+snmp-auth-algo ::= "md5" | "sha" | "sha256" | "sha384" | "sha512"
+snmp-priv-algo ::= "des" | "aes"
 
-varbind-val ::= "nullval" | "null"
-              | "string" ws1 string-lit
-              | "int" ws1 int-lit
-              | "timeticks" ws1 uint-lit
-              | "ipval" ws1 ip-addr
-              | "oidval" ws1 oid-lit
-              | "counter32" ws1 uint-lit
-              | "gauge32" ws1 uint-lit
-              | "counter64" ws1 uint-lit
+# Layer 7 protocol-specific fields (91 non-SNMP L7 protocols)
+l7-proto-field ::= l7-infra-field | l7-app-field | l7-data-field | l7-telco-field | l7-ot-field
+l7-infra-field ::= dns-field | mdns-field | dhcp-field | ntp-field | ptp-field | radius-field | tacacs-field | syslog-field | netflow-field | ipfix-field | sflow-field | llmnr-field | nbns-field | doh-field | wsdiscovery-field | twamp-field | netconf-field | ipmi-field
+l7-app-field ::= tftp-field | ftp-field | ssh-field | telnet-field | http-field | http2-field | grpc-field | websocket-field | tls-field | quic-field | stun-field | turn-field | sip-field | rtp-field | rtcp-field | rtsp-field | h323-field | sccp-field | mgcp-field | smtp-field | imap-field | pop3-field | irc-field | kerberos-field | ldap-field | ntlm-field | smb-field | nfs-field | dcerpc-field | rdp-field | socks-field | vnc-field | ssdp-field | whois-field
+l7-data-field ::= redis-field | memcached-field | mysql-field | postgres-field | mssql-field | mongodb-field | tns-field | kafka-field | mqtt-field | coap-field | amqp-field | iscsi-field | nvmetcp-field | rocev2-field
+l7-telco-field ::= gtpc-field | pfcp-field | diameter-field | ngap-field | s1ap-field
+l7-ot-field ::= modbus-field | bacnet-field | dnp3-field | s7comm-field | ethernetip-field | opcua-field | iec104-field | mms-field | s7commplus-field | synchrophasor-field | hartip-field | fins-field | melsec-field | someip-field | doip-field | c1222-field | gesrtp-field | rocplus-field | bsap-field | knxnetip-field
+tacacs-pkt-type ::= "authen" | "author" | "acct"
 
-# 11. Layer 7 Sub-Keywords
-l7-proto-field ::= "txid" ws1 (uint-lit | str-or-ident)
-                 | "qname" ws1 any-str
-                 | "qtype" ws1 any-str
-                 | "rdata" ws1 any-str
-                 | "rcode" ws1 uint-lit
-                 | "ansttl" ws1 uint-lit
-                 | "discover" | "solicit" | "offer" | "advertise" | "release"
-                 | "ciaddr" ws1 ip-addr
-                 | "yiaddr" ws1 ip-addr
-                 | "siaddr" ws1 ip-addr
-                 | "chaddr" ws1 mac-addr
-                 | "hostname" ws1 str-or-ident
-                 | "dnsserver" ws1 ip-addr
-                 | "router" ws1 ip-addr
-                 | "subnetmask" ws1 ip-addr
-                 | "leasetime" ws1 uint-lit
-                 | "li" ws1 uint-lit
-                 | "vn" ws1 uint-lit
-                 | "mode" ws1 any-str
-                 | "stratum" ws1 uint-lit
-                 | "poll" ws1 uint-lit
-                 | "precision" ws1 int-lit
-                 | "refid" ws1 str-or-ident
-                 | "txtimestamp" ws1 uint-lit
-                 | "msgtype" ws1 any-str
-                 | "sync" | "delayreq" | "followup" | "delayresp" | "announce"
-                 | "domain" ws1 any-str
-                 | "seqid" ws1 uint-lit
-                 | "clockid" ws1 any-str
-                 | "accessrequest" | "accessaccept" | "accessreject"
-                 | "accesschallenge" | "accountingrequest" | "accountingresponse"
-                 | "nasip" ws1 ip-addr
-                 | "servicetype" ws1 uint-lit
-                 | "framedip" ws1 ip-addr
-                 | "authen" | "author" | "acct"
-                 | "sessionid" ws1 uint-lit
-                 | "facility" ws1 uint-lit
-                 | "severity" ws1 uint-lit
-                 | "pri" ws1 uint-lit
-                 | "app" ws1 str-or-ident
-                 | "procid" ws1 str-or-ident
-                 | "msg" ws1 str-or-ident
-                 | "srcip" ws1 ip-addr
-                 | "dstip" ws1 ip-addr
-                 | "proto" ws1 uint-lit
-                 | "packets" ws1 uint-lit
-                 | "octets" ws1 uint-lit
-                 | "domainid" ws1 uint-lit
-                 | "agentip" ws1 ip-addr
-                 | "subagentid" ws1 uint-lit
-                 | "uptime" ws1 uint-lit
-                 | "samples" ws1 uint-lit
-                 | "rrq" | "wrq" | "error"
-                 | "filename" ws1 str-or-ident
-                 | "block" ws1 uint-lit
-                 | "errcode" ws1 uint-lit
-                 | "errmsg" ws1 str-or-ident
-                 | "cmd" ws1 any-str
-                 | "arg" ws1 str-or-ident
-                 | "banner" ws1 str-or-ident
-                 | "kexinit" | "newkeys"
-                 | "msgcode" ws1 uint-lit
-                 | "will" ws1 uint-lit
-                 | "wont" ws1 uint-lit
-                 | "do" ws1 uint-lit
-                 | "dont" ws1 uint-lit
-                 | "option" ws1 uint-lit
-                 | "post" | "put" | "delete" | "head" | "options" | "patch"
-                 | "uri" ws1 str-or-ident
-                 | "hosthdr" ws1 str-or-ident
-                 | "useragent" ws1 str-or-ident
-                 | "contenttype" ws1 str-or-ident
-                 | "status" ws1 any-str
-                 | "reason" ws1 str-or-ident
-                 | "header" ws1 str-or-ident ws1 str-or-ident
-                 | "body" ws1 str-or-ident
-                 | "preface" | "settings" | "headers" | "windowupdate" | "ping" | "goaway"
-                 | "streamid" ws1 uint-lit
-                 | "service" ws1 str-or-ident
-                 | "method" ws1 any-str
-                 | "grpcstatus" ws1 uint-lit
-                 | "opcode" ws1 any-str
-                 | "text" | "binary" | "pong" | "close"
-                 | "finbit" ws1 uint-lit
-                 | "maskkey" ws1 uint-lit
-                 | "clienthello" | "serverhello" | "certificate" | "finished" | "appdata" | "alert"
-                 | "recordversion" ws1 uint-lit
-                 | "handshakeversion" ws1 uint-lit
-                 | "sni" ws1 str-or-ident
-                 | "ciphersuite" ws1 uint-lit
-                 | "alpn" ws1 str-or-ident
-                 | "initial" | "zerortt" | "handshake" | "retry" | "short"
-                 | "dcid" ws1 (uint-lit | str-or-ident)
-                 | "scid" ws1 (uint-lit | str-or-ident)
-                 | "token" ws1 (uint-lit | str-or-ident)
-                 | "pktnum" ws1 uint-lit
-                 | "bindingrequest" | "bindingresponse" | "bindingerror"
-                 | "xormappedaddr" ws1 ip-addr (ws1 uint-lit)?
-                 | "software" ws1 str-or-ident
-                 | "invite" | "bye" | "cancel"
-                 | "from" ws1 str-or-ident
-                 | "to" ws1 str-or-ident
-                 | "callid" ws1 str-or-ident
-                 | "cseq" ws1 uint-lit
-                 | "via" ws1 str-or-ident
-                 | "contact" ws1 str-or-ident
-                 | "pt" ws1 uint-lit
-                 | "timestamp" ws1 uint-lit
-                 | "ssrc" ws1 uint-lit
-                 | "marker" ws1 uint-lit
-                 | "describe" | "setup" | "play" | "teardown"
-                 | "transporthdr" ws1 str-or-ident
-                 | "session" ws1 str-or-ident
-                 | "ehlo" (ws1 str-or-ident)?
-                 | "helo" (ws1 str-or-ident)?
-                 | "mailfrom" (ws1 str-or-ident)?
-                 | "rcptto" (ws1 str-or-ident)?
-                 | "quit"
-                 | "param" ws1 str-or-ident
-                 | "ok" | "err"
-                 | "asreq" | "asrep" | "tgsreq" | "tgsrep" | "krberror"
-                 | "realm" ws1 str-or-ident
-                 | "cname" ws1 str-or-ident
-                 | "sname" ws1 str-or-ident
-                 | "etype" ws1 uint-lit
-                 | "bindreq" | "bindres" | "searchreq" | "searchentry" | "searchdone" | "unbindreq"
-                 | "basedn" ws1 str-or-ident
-                 | "filter" ws1 str-or-ident
-                 | "resultcode" ws1 uint-lit
-                 | "negotiate" | "sessionsetup" | "treeconnect" | "create" | "treedisconnect"
-                 | "treeid" ws1 uint-lit
-                 | "share" ws1 str-or-ident
-                 | "vers" ws1 uint-lit
-                 | "proc" ws1 any-str
-                 | "path" ws1 str-or-ident
-                 | "compound"
-                 | "args" ws1 str-or-ident
-                 | "replytype" ws1 any-str
-                 | "key" ws1 (uint-lit | str-or-ident)
-                 | "value" ws1 (uint-lit | str-or-ident)
-                 | "exptime" ws1 uint-lit
-                 | "opaque" ws1 uint-lit
-                 | "cas" ws1 uint-lit
-                 | "greeting" | "login" | "eof"
-                 | "sql" ws1 str-or-ident
-                 | "serverversion" ws1 str-or-ident
-                 | "db" ws1 str-or-ident
-                 | "startup" | "readyforquery" | "commandcomplete" | "errorresponse" | "authok"
-                 | "connect" | "connack" | "publish" | "puback" | "subscribe" | "suback"
-                 | "pingreq" | "pingresp" | "disconnect"
-                 | "clientid" ws1 str-or-ident
-                 | "topic" ws1 str-or-ident
-                 | "qos" ws1 uint-lit
-                 | "retain" (ws1 uint-lit)?
-                 | "pkttype" ws1 any-str
-                 | "pktid" ws1 uint-lit
-                 | "returncode" ws1 uint-lit
-                 | "con" | "non" | "changed" | "created" | "notfound"
-                 | "uripath" ws1 str-or-ident
-                 | "contentformat" ws1 uint-lit
-                 | "protocolheader" | "connectionstart" | "channelopen" | "basicpublish" | "basicdeliver"
-                 | "channel" ws1 uint-lit
-                 | "routingkey" ws1 str-or-ident
-                 | "msearch" | "notify"
-                 | "man" ws1 str-or-ident
-                 | "mx" ws1 uint-lit
-                 | "st" ws1 str-or-ident
-                 | "nt" ws1 str-or-ident
-                 | "nts" ws1 str-or-ident
-                 | "usn" ws1 str-or-ident
-                 | "location" ws1 str-or-ident
-                 | "registrar" ws1 str-or-ident
-                 | "protoid" ws1 uint-lit
-                 | "unitid" ws1 uint-lit
-                 | "func" ws1 any-str
-                 | "readcoils" | "readdiscreteinputs" | "readholdingregisters" | "readinputregisters"
-                 | "writesinglecoil" | "writesingleregister" | "writemultipleregisters"
-                 | "addr" ws1 uint-lit
-                 | "count" ws1 uint-lit
-                 | "isresponse"
-                 | "whois" | "iam" | "readproperty" | "writeproperty"
-                 | "invokeid" ws1 uint-lit
-                 | "objecttype" ws1 uint-lit
-                 | "objectinstance" ws1 uint-lit
-                 | "propertyid" ws1 uint-lit
-                 | "confirm" | "read" | "write" | "select" | "operate" | "directoperate" | "unsolicitedresponse"
-                 | "variation" ws1 uint-lit
-                 | "crc" ws1 uint-lit
-                 | "src" ws1 uint-lit
-                 | "dst" ws1 uint-lit
-                 | "rosctr" ws1 any-str
-                 | "pduref" ws1 uint-lit
-                 | "setupcomm" | "readvar" | "writevar" | "plccontrol"
-                 | "area" ws1 any-str
-                 | "dbnum" ws1 uint-lit
-                 | "offset" ws1 uint-lit
-                 | "nop" | "listservices" | "listidentity" | "listinterfaces"
-                 | "registersession" | "unregistersession" | "sendrrdata" | "sendunitdata"
-                 | "sessionhandle" ws1 uint-lit
-                 | "context" ws1 (uint-lit | str-or-ident)
-                 | "cipservice" ws1 uint-lit
-                 | "cipclass" ws1 uint-lit
-                 | "cipinstance" ws1 uint-lit
-                 | "cipattr" ws1 uint-lit
-                 | "chunktype" ws1 any-str
-                 | "securechannelid" ws1 uint-lit
-                 | "tokenid" ws1 uint-lit
-                 | "seqnum" ws1 uint-lit
-                 | "endpointurl" ws1 str-or-ident
-                 | "nodeid" ws1 str-or-ident
+# L7 infrastructure & management
+dns-field ::= "txid" ws1 uint-lit | "qname" ws1 any-str | "qtype" ws1 any-str | "rdata" ws1 any-str | "rcode" ws1 uint-lit | "ansttl" ws1 uint-lit | "query" | "response" | "edns0" | "udpsize" ws1 uint-lit | "dobit"
+mdns-field ::= "txid" ws1 uint-lit | "qname" ws1 any-str | "qtype" ws1 any-str | "rdata" ws1 any-str | "rcode" ws1 uint-lit | "ansttl" ws1 uint-lit | "query" | "response" | "edns0" | "udpsize" ws1 uint-lit | "dobit"
+dhcp-field ::= "discover" | "solicit" | "offer" | "advertise" | "request" | "ack" | "reply" | "release" | "xid" ws1 uint-lit | "ciaddr" ws1 ip-addr | "yiaddr" ws1 ip-addr | "siaddr" ws1 ip-addr | "chaddr" ws1 mac-addr | "hostname" ws1 str-or-ident | "dnsserver" ws1 ip-addr | "router" ws1 ip-addr | "subnetmask" ws1 ip-addr | "leasetime" ws1 uint-lit
+ntp-field ::= "li" ws1 uint-lit | "vn" ws1 uint-lit | "mode" ws1 uint-lit | "stratum" ws1 uint-lit | "poll" ws1 uint-lit | "precision" ws1 int-lit | "refid" ws1 str-or-ident | "txtimestamp" ws1 uint-lit
+ptp-field ::= "msgtype" ws1 str-or-ident | "sync" | "delayreq" | "followup" | "delayresp" | "announce" | "domain" ws1 uint-lit | "seqid" ws1 uint-lit | "clockid" ws1 any-str
+radius-field ::= "accessrequest" | "accessaccept" | "accessreject" | "accesschallenge" | "accountingrequest" | "accountingresponse" | "code" ws1 str-or-ident | "id" ws1 uint-lit | "user" ws1 str-or-ident | "nasip" ws1 ip-addr | "servicetype" ws1 uint-lit | "framedip" ws1 ip-addr
+tacacs-field ::= ("type" ws1)? tacacs-pkt-type | "seq" ws1 uint-lit | "flags" ws1 uint-lit | "sessionid" ws1 uint-lit | "data" ws1 str-or-ident | "user" ws1 str-or-ident
+syslog-field ::= "facility" ws1 uint-lit | "severity" ws1 uint-lit | "pri" ws1 uint-lit | "hostname" ws1 str-or-ident | "app" ws1 str-or-ident | "procid" ws1 str-or-ident | "msgid" ws1 str-or-ident | "msg" ws1 str-or-ident
+netflow-field ::= "srcip" ws1 ip-addr | "dstip" ws1 ip-addr | "proto" ws1 uint-lit | "packets" ws1 uint-lit | "octets" ws1 uint-lit
+ipfix-field ::= "srcip" ws1 ip-addr | "dstip" ws1 ip-addr | "proto" ws1 uint-lit | "packets" ws1 uint-lit | "octets" ws1 uint-lit | "domainid" ws1 uint-lit
+sflow-field ::= "agentip" ws1 ip-addr | "subagentid" ws1 uint-lit | "uptime" ws1 uint-lit | "samples" ws1 uint-lit
+llmnr-field ::= "query" | "response" | "txid" ws1 uint-lit | "qname" ws1 any-str | "qtype" ws1 any-str | "rdata" ws1 any-str | "rcode" ws1 uint-lit | "ansttl" ws1 uint-lit | "flags" ws1 uint-lit
+nbns-field ::= "query" | "register" | "release" | "refresh" | "response" | "group" | "opcode" ws1 any-str | "txid" ws1 uint-lit | "qname" ws1 any-str | "nbtype" ws1 uint-lit | "qtype" ws1 any-str | "scope" ws1 str-or-ident | "rdata" ws1 any-str | "rcode" ws1 uint-lit | "ansttl" ws1 uint-lit | "flags" ws1 uint-lit
+doh-field ::= "get" | "post" | "method" ws1 any-str | "uri" ws1 str-or-ident | "hosthdr" ws1 str-or-ident | "useragent" ws1 str-or-ident | "status" ws1 uint-lit | "reason" ws1 str-or-ident | "query" | "response" | "txid" ws1 uint-lit | "qname" ws1 any-str | "qtype" ws1 any-str | "rdata" ws1 any-str | "rcode" ws1 uint-lit | "ansttl" ws1 uint-lit | "edns0" | "udpsize" ws1 uint-lit | "dobit"
+wsdiscovery-field ::= "probe" | "hello" | "msgtype" ws1 any-str | "msgid" ws1 str-or-ident | "types" ws1 str-or-ident | "scopes" ws1 str-or-ident | "xaddrs" ws1 str-or-ident | "addr" ws1 any-str
+twamp-field ::= "sender" | "reflector" | "greeting" | "setupresponse" | "serverstart" | "requestsession" | "acceptsession" | "startsessions" | "startack" | "stopsessions" | "msgtype" ws1 any-str | "seqnum" ws1 uint-lit | "timestamp" ws1 uint-lit | "errorestimate" ws1 uint-lit | "senderttl" ws1 uint-lit | "mode" ws1 uint-lit | "count" ws1 uint-lit | "status" ws1 uint-lit | "port" ws1 uint-lit | "padding" ws1 uint-lit
+netconf-field ::= "hello" | "rpc" | "rpcreply" | "reply" | "notification" | "msgtype" ws1 any-str | "msgid" ws1 any-str | "sessionid" ws1 uint-lit | "operation" ws1 str-or-ident | "capability" ws1 str-or-ident | "chunked" | "body" ws1 str-or-ident
+ipmi-field ::= "ping" | "pong" | "msgtype" ws1 any-str | "version" ws1 uint-lit | "request" | "response" | "netfn" ws1 uint-lit | "cmd" ws1 uint-lit | "lun" ws1 uint-lit | "rqseq" ws1 uint-lit | "sessionid" ws1 uint-lit | "seqnum" ws1 uint-lit | "status" ws1 uint-lit
 
-# 12. Lexical Terminals
+# L7 web, transfer, auth & media
+tftp-field ::= "rrq" | "wrq" | "data" | "ack" | "err" | "error" | "filename" ws1 str-or-ident | "mode" ws1 str-or-ident | "block" ws1 uint-lit | "errcode" ws1 uint-lit | "errmsg" ws1 str-or-ident
+ftp-field ::= "cmd" ws1 any-str | "arg" ws1 str-or-ident | "code" ws1 uint-lit | "reply" ws1 str-or-ident
+ssh-field ::= "banner" ws1 str-or-ident | "kexinit" | "newkeys" | "msgcode" ws1 uint-lit | "cookie" ws1 str-or-ident
+telnet-field ::= ("will" | "wont" | "do" | "dont") (ws1 "option")? ws1 uint-lit | "option" ws1 uint-lit | "data" ws1 str-or-ident
+http-field ::= "get" | "post" | "put" | "delete" | "head" | "options" | "patch" | "method" ws1 any-str | "uri" ws1 str-or-ident | "version" ws1 str-or-ident | "hosthdr" ws1 str-or-ident | "useragent" ws1 str-or-ident | "contenttype" ws1 str-or-ident | "status" ws1 uint-lit | "reason" ws1 str-or-ident | "body" ws1 str-or-ident | "header" ws1 str-or-ident ws1 str-or-ident
+http2-field ::= "preface" | "settings" | "headers" | "data" | "windowupdate" | "ping" | "goaway" | "streamid" ws1 uint-lit
+grpc-field ::= "service" ws1 str-or-ident | "method" ws1 any-str | "grpcstatus" ws1 uint-lit
+websocket-field ::= "text" | "binary" | "ping" | "pong" | "close" | "opcode" ws1 any-str | "finbit" ws1 uint-lit | "maskkey" ws1 uint-lit
+tls-field ::= "clienthello" | "serverhello" | "certificate" | "finished" | "appdata" | "alert" | "recordversion" ws1 uint-lit | "handshakeversion" ws1 uint-lit | "sni" ws1 str-or-ident | "ciphersuite" ws1 uint-lit | "alpn" ws1 str-or-ident
+quic-field ::= "initial" | "zerortt" | "handshake" | "retry" | "short" | "version" ws1 uint-lit | "dcid" ws1 (uint-lit | str-or-ident) | "scid" ws1 (uint-lit | str-or-ident) | "token" ws1 str-or-ident | "pktnum" ws1 uint-lit
+stun-field ::= "bindingrequest" | "bindingresponse" | "bindingerror" | "txid" ws1 uint-lit | "xormappedaddr" ws1 ip-addr (ws1 uint-lit)? | "software" ws1 str-or-ident
+turn-field ::= "allocate" | "refresh" | "createpermission" | "channelbind" | "channeldata" | "sendindication" | "dataindication" | "msgtype" ws1 any-str | "request" | "response" | "error" | "txid" ws1 uint-lit | "channel" ws1 uint-lit | "lifetime" ws1 uint-lit | "requestedtransport" ws1 ("udp" | "tcp" | uint-lit) | "xormappedaddr" ws1 ip-addr (ws1 uint-lit)? | "xorrelayedaddr" ws1 ip-addr (ws1 uint-lit)? | "xorpeeraddr" ws1 ip-addr (ws1 uint-lit)? | "errcode" ws1 uint-lit | "software" ws1 str-or-ident
+sip-field ::= "invite" | "ack" | "bye" | "cancel" | "register" | "options" | "method" ws1 any-str | "uri" ws1 str-or-ident | "from" ws1 str-or-ident | "to" ws1 str-or-ident | "callid" ws1 str-or-ident | "cseq" ws1 uint-lit | "via" ws1 str-or-ident | "contact" ws1 str-or-ident | "contenttype" ws1 str-or-ident | "status" ws1 uint-lit | "reason" ws1 str-or-ident | "body" ws1 str-or-ident
+rtp-field ::= "pt" ws1 uint-lit | "timestamp" ws1 uint-lit | "ssrc" ws1 uint-lit | "marker" ws1 uint-lit
+rtcp-field ::= "sr" | "rr" | "sdes" | "bye" | "app" | "pt" ws1 uint-lit | "ssrc" ws1 uint-lit | "timestamp" ws1 uint-lit | "packets" ws1 uint-lit | "octets" ws1 uint-lit | "fraction" ws1 uint-lit | "lost" ws1 uint-lit | "jitter" ws1 uint-lit | "seqnum" ws1 uint-lit | "cname" ws1 str-or-ident | "reason" ws1 str-or-ident
+rtsp-field ::= "options" | "describe" | "setup" | "play" | "teardown" | "method" ws1 any-str | "uri" ws1 str-or-ident | "cseq" ws1 uint-lit | "transporthdr" ws1 str-or-ident | "session" ws1 str-or-ident | "status" ws1 uint-lit
+h323-field ::= "setup" | "callproceeding" | "alerting" | "connect" | "releasecomplete" | "grq" | "gcf" | "rrq" | "rcf" | "drq" | "dcf" | "msgtype" ws1 any-str | "callref" ws1 uint-lit | "callingparty" ws1 any-str | "calledparty" ws1 any-str | "cause" ws1 uint-lit | "seqnum" ws1 uint-lit | "rasaddr" ws1 ip-addr (ws1 uint-lit)?
+sccp-field ::= "register" | "registerack" | "keepalive" | "keepaliveack" | "offhook" | "onhook" | "keypadbutton" | "callstate" | "starttone" | "stoptone" | "openreceivechannel" | "openreceivechannelack" | "msgtype" ws1 any-str | "version" ws1 uint-lit | "devicename" ws1 any-str | "line" ws1 uint-lit | "callid" ws1 uint-lit | "state" ws1 uint-lit | "button" ws1 uint-lit | "tone" ws1 uint-lit | "addr" ws1 ip-addr | "mediaport" ws1 uint-lit
+mgcp-field ::= "crcx" | "mdcx" | "dlcx" | "rqnt" | "ntfy" | "auep" | "aucx" | "rsip" | "method" ws1 any-str | "txid" ws1 uint-lit | "endpoint" ws1 str-or-ident | "status" ws1 uint-lit | "reason" ws1 str-or-ident | "callid" ws1 any-str | "connid" ws1 any-str | "localopts" ws1 str-or-ident | "mode" ws1 any-str | "body" ws1 str-or-ident
+smtp-field ::= "ehlo" (ws1 string-lit)? | "helo" (ws1 string-lit)? | "mailfrom" (ws1 string-lit)? | "rcptto" (ws1 string-lit)? | "data" | "quit" | "cmd" ws1 any-str | "param" ws1 str-or-ident | "code" ws1 uint-lit | "reply" ws1 str-or-ident | "body" ws1 str-or-ident
+imap-field ::= "tag" ws1 str-or-ident | "cmd" ws1 any-str | "arg" ws1 str-or-ident | "status" ws1 any-str | "response" ws1 str-or-ident
+pop3-field ::= "cmd" ws1 any-str | "arg" ws1 str-or-ident | "ok" | "err" | "response" ws1 str-or-ident
+irc-field ::= "nick" (ws1 string-lit)? | "join" (ws1 string-lit)? | "privmsg" (ws1 string-lit)? | "ping" | "pong" | "quit" | "cmd" ws1 any-str | "prefix" ws1 str-or-ident | "channel" ws1 str-or-ident | "target" ws1 str-or-ident | "param" ws1 str-or-ident | "msg" ws1 str-or-ident
+kerberos-field ::= "asreq" | "asrep" | "tgsreq" | "tgsrep" | "krberror" | "realm" ws1 str-or-ident | "cname" ws1 str-or-ident | "sname" ws1 str-or-ident | "etype" ws1 int-lit
+ldap-field ::= "msgid" ws1 int-lit | "bindreq" | "bindres" | "searchreq" | "searchentry" | "searchdone" | "unbindreq" | "basedn" ws1 str-or-ident | "filter" ws1 str-or-ident | "resultcode" ws1 uint-lit
+ntlm-field ::= "negotiate" | "challenge" | "authenticate" | "msgtype" ws1 any-str | "domain" ws1 str-or-ident | "user" ws1 str-or-ident | "workstation" ws1 str-or-ident | "nonce" ws1 any-str | "flags" ws1 uint-lit | "method" ws1 any-str | "uri" ws1 str-or-ident | "hosthdr" ws1 any-str | "status" ws1 uint-lit
+smb-field ::= "negotiate" | "sessionsetup" | "treeconnect" | "create" | "treedisconnect" | "command" ws1 any-str | "status" ws1 uint-lit | "treeid" ws1 uint-lit | "sessionid" ws1 uint-lit | "msgid" ws1 uint-lit | "share" ws1 str-or-ident | "filename" ws1 str-or-ident
+nfs-field ::= "compound" | "xid" ws1 uint-lit | "vers" ws1 uint-lit | "proc" ws1 any-str | "tag" ws1 str-or-ident | "path" ws1 str-or-ident
+dcerpc-field ::= "bind" | "bindack" | "bindnak" | "request" | "response" | "fault" | "altercontext" | "msgtype" ws1 any-str | "uuid" ws1 any-str | "vers" ws1 any-str | "opnum" ws1 uint-lit | "callid" ws1 uint-lit | "ctxid" ws1 uint-lit | "flags" ws1 uint-lit | "status" ws1 uint-lit
+rdp-field ::= "x224cr" | "x224cc" | "mcs" | "msgtype" ws1 any-str | "cookie" ws1 str-or-ident | "proto" ws1 uint-lit | "flags" ws1 uint-lit | "sessionid" ws1 uint-lit | "width" ws1 uint-lit | "height" ws1 uint-lit
+socks-field ::= "greeting" | "reply" | "connect" | "bind" | "udpassociate" | "cmd" ws1 any-str | "version" ws1 uint-lit | "method" ws1 any-str | "status" ws1 uint-lit | "addr" ws1 any-str | "targetport" ws1 uint-lit | "user" ws1 str-or-ident | "password" ws1 str-or-ident
+vnc-field ::= "msgtype" ws1 any-str | "version" ws1 str-or-ident | "securitytype" ws1 uint-lit | "width" ws1 uint-lit | "height" ws1 uint-lit | "desktop" ws1 str-or-ident | "key" ws1 uint-lit | "flags" ws1 uint-lit | "xpos" ws1 uint-lit | "ypos" ws1 uint-lit
+ssdp-field ::= "msearch" | "notify" | "hosthdr" ws1 str-or-ident | "man" ws1 str-or-ident | "mx" ws1 uint-lit | "st" ws1 str-or-ident | "nt" ws1 str-or-ident | "nts" ws1 str-or-ident | "usn" ws1 str-or-ident | "location" ws1 str-or-ident
+whois-field ::= "domain" ws1 any-str | "registrar" ws1 str-or-ident | "query" | "response"
+
+# L7 databases, messaging & storage
+redis-field ::= "get" | "set" | "cmd" ws1 any-str | "key" ws1 str-or-ident | "args" ws1 str-or-ident | "replytype" ws1 any-str | "value" ws1 str-or-ident
+memcached-field ::= "get" | "set" | "cmd" ws1 any-str | "key" ws1 str-or-ident | "value" ws1 str-or-ident | "flags" ws1 uint-lit | "exptime" ws1 uint-lit | "opcode" ws1 uint-lit | "opaque" ws1 uint-lit | "cas" ws1 uint-lit
+mysql-field ::= "greeting" | "login" | "query" | "sql" ws1 str-or-ident | "ok" | "err" | "eof" | "user" ws1 str-or-ident | "serverversion" ws1 str-or-ident | "db" ws1 str-or-ident | "errcode" ws1 uint-lit
+postgres-field ::= "startup" | "query" | "sql" ws1 str-or-ident | "readyforquery" | "commandcomplete" | "errorresponse" | "authok" | "user" ws1 str-or-ident | "db" ws1 str-or-ident
+mssql-field ::= "prelogin" | "login" | "query" | "ok" | "err" | "attention" | "response" | "pkttype" ws1 any-str | "user" ws1 str-or-ident | "db" ws1 str-or-ident | "sql" ws1 str-or-ident | "errcode" ws1 uint-lit | "spid" ws1 uint-lit | "pktid" ws1 uint-lit
+mongodb-field ::= "ping" | "query" | "response" | "ok" | "err" | "cmd" ws1 any-str | "collection" ws1 str-or-ident | "db" ws1 str-or-ident | "filter" ws1 str-or-ident | "reqid" ws1 uint-lit | "responseto" ws1 uint-lit | "flags" ws1 uint-lit | "errcode" ws1 uint-lit | "errmsg" ws1 str-or-ident
+tns-field ::= "connect" | "accept" | "refuse" | "redirect" | "data" | "marker" | "msgtype" ws1 any-str | "version" ws1 uint-lit | "service" ws1 str-or-ident | "sid" ws1 str-or-ident | "sql" ws1 str-or-ident | "flags" ws1 uint-lit | "errcode" ws1 uint-lit
+kafka-field ::= "apiversions" | "metadata" | "produce" | "fetch" | "heartbeat" | "response" | "apikey" ws1 any-str | "version" ws1 uint-lit | "correlationid" ws1 int-lit | "clientid" ws1 any-str | "group" ws1 any-str | "acks" ws1 int-lit | "topic" ws1 any-str | "partition" ws1 int-lit | "offset" ws1 uint-lit | "key" ws1 any-str | "value" ws1 any-str | "errcode" ws1 int-lit
+mqtt-field ::= "connect" | "connack" | "publish" | "puback" | "subscribe" | "suback" | "pingreq" | "pingresp" | "disconnect" | "pkttype" ws1 any-str | "clientid" ws1 str-or-ident | "topic" ws1 str-or-ident | "qos" ws1 uint-lit | "retain" (ws1 uint-lit)? | "pktid" ws1 uint-lit | "keepalive" ws1 uint-lit | "returncode" ws1 uint-lit
+coap-field ::= "con" | "non" | "ack" | "rst" | "msgtype" ws1 any-str | "get" | "post" | "put" | "delete" | "created" | "changed" | "notfound" | "code" ws1 any-str | "msgid" ws1 uint-lit | "token" ws1 (uint-lit | str-or-ident) | "uripath" ws1 str-or-ident | "contentformat" ws1 uint-lit
+amqp-field ::= "protocolheader" | "connectionstart" | "channelopen" | "basicpublish" | "basicdeliver" | "heartbeat" | "channel" ws1 uint-lit | "exchange" ws1 str-or-ident | "routingkey" ws1 str-or-ident
+iscsi-field ::= "login" | "logout" | "read" | "write" | "nop" | "response" | "data" | "text" | "cmd" ws1 any-str | "opcode" ws1 uint-lit | "initiator" ws1 str-or-ident | "target" ws1 str-or-ident | "lun" ws1 uint-lit | "itt" ws1 uint-lit | "cmdsn" ws1 uint-lit | "statsn" ws1 uint-lit | "status" ws1 uint-lit | "flags" ws1 uint-lit | "offset" ws1 uint-lit
+nvmetcp-field ::= "icreq" | "icresp" | "read" | "write" | "response" | "h2cdata" | "c2hdata" | "r2t" | "msgtype" ws1 any-str | "cmd" ws1 any-str | "opcode" ws1 uint-lit | "nsid" ws1 uint-lit | "qid" ws1 uint-lit | "reqid" ws1 uint-lit | "flags" ws1 uint-lit | "status" ws1 uint-lit | "offset" ws1 uint-lit | "count" ws1 uint-lit
+rocev2-field ::= "read" | "write" | "opcode" ws1 any-str | "pkey" ws1 uint-lit | "destqp" ws1 uint-lit | "ackreq" | "seqnum" ws1 uint-lit | "addr" ws1 uint-lit | "key" ws1 uint-lit | "count" ws1 uint-lit | "status" ws1 uint-lit | "msgid" ws1 uint-lit | "crc" ws1 uint-lit
+
+# L7 telco control plane
+gtpc-field ::= "echorequest" | "echoreply" | "echoresponse" | "createsessionrequest" | "createsessionresponse" | "modifybearerrequest" | "modifybearerresponse" | "deletesessionrequest" | "deletesessionresponse" | "msgtype" ws1 any-str | "teid" ws1 uint-lit | "seqnum" ws1 uint-lit | "cause" ws1 uint-lit | "imsi" ws1 any-str | "apn" ws1 any-str | "rat" ws1 uint-lit | "recovery" ws1 uint-lit | "addr" ws1 ip-addr
+pfcp-field ::= "heartbeatrequest" | "heartbeatresponse" | "associationsetuprequest" | "associationsetupresponse" | "sessionestablishmentrequest" | "sessionestablishmentresponse" | "sessionmodificationrequest" | "sessionmodificationresponse" | "sessiondeletionrequest" | "sessiondeletionresponse" | "msgtype" ws1 any-str | "seid" ws1 uint-lit | "seqnum" ws1 uint-lit | "cause" ws1 uint-lit | "nodeid" ws1 any-str | "recovery" ws1 uint-lit
+diameter-field ::= "cer" | "cea" | "dwr" | "dwa" | "ccr" | "cca" | "request" | "response" | ("cmd" | "command") ws1 any-str | "flags" ws1 uint-lit | "appid" ws1 uint-lit | "hopid" ws1 uint-lit | "endid" ws1 uint-lit | "originhost" ws1 any-str | "realm" ws1 any-str | "dsthost" ws1 any-str | "dstrealm" ws1 any-str | "sessionid" ws1 any-str | "resultcode" ws1 uint-lit | "user" ws1 any-str
+ngap-field ::= "ngsetuprequest" | "ngsetupresponse" | "ngsetupfailure" | "initialuemessage" | "downlinknastransport" | "uplinknastransport" | "uecontextreleasecommand" | "uecontextreleasecomplete" | "errorindication" | "msgtype" ws1 any-str | "proccode" ws1 uint-lit | "criticality" ws1 any-str | "amfueid" ws1 uint-lit | "ranueid" ws1 uint-lit | "plmn" ws1 any-str | "gnbid" ws1 uint-lit | "tac" ws1 uint-lit | "ranname" ws1 any-str | "naspdu" ws1 hex-bytes
+s1ap-field ::= "s1setuprequest" | "s1setupresponse" | "s1setupfailure" | "initialuemessage" | "downlinknastransport" | "uplinknastransport" | "uecontextreleasecommand" | "uecontextreleasecomplete" | "errorindication" | "msgtype" ws1 any-str | "proccode" ws1 uint-lit | "criticality" ws1 any-str | "mmeueid" ws1 uint-lit | "enbueid" ws1 uint-lit | "plmn" ws1 any-str | "enbid" ws1 uint-lit | "tac" ws1 uint-lit | "enbname" ws1 any-str | "naspdu" ws1 hex-bytes
+
+# L7 OT / ICS / automation
+modbus-field ::= "readcoils" | "readdiscreteinputs" | "readholdingregisters" | "readinputregisters" | "writesinglecoil" | "writesingleregister" | "writemultipleregisters" | "txid" ws1 uint-lit | "protoid" ws1 uint-lit | "unitid" ws1 uint-lit | "func" ws1 any-str | "addr" ws1 uint-lit | "count" ws1 uint-lit | "value" ws1 uint-lit | "errcode" ws1 uint-lit | "isresponse"
+bacnet-field ::= "whois" | "iam" | "readproperty" | "writeproperty" | "complexack" | "invokeid" ws1 uint-lit | "objecttype" ws1 uint-lit | "objectinstance" ws1 uint-lit | "propertyid" ws1 uint-lit | "value" ws1 uint-lit | "real" ws1 real-lit
+dnp3-field ::= "confirm" | "read" | "write" | "select" | "operate" | "directoperate" | "unsolicitedresponse" | "response" | "func" ws1 any-str | "src" ws1 uint-lit | "dst" ws1 uint-lit | "group" ws1 uint-lit | "variation" ws1 uint-lit | "crc" ws1 uint-lit
+s7comm-field ::= "setupcomm" | "readvar" | "writevar" | "plccontrol" | "szl" | "rosctr" ws1 any-str | "pduref" ws1 uint-lit | "func" ws1 any-str | "area" ws1 any-str | "dbnum" ws1 uint-lit | "offset" ws1 uint-lit | "count" ws1 uint-lit
+ethernetip-field ::= "nop" | "listidentity" | "listinterfaces" | "listservices" | "registersession" | "unregistersession" | "sendrrdata" | "sendunitdata" | "cmd" ws1 any-str | "status" ws1 uint-lit | "sessionhandle" ws1 uint-lit | "context" ws1 uint-lit | "cipservice" ws1 uint-lit | "cipclass" ws1 uint-lit | "cipinstance" ws1 uint-lit | "cipattr" ws1 uint-lit
+opcua-field ::= "msgtype" ws1 any-str | "chunktype" ws1 any-str | "securechannelid" ws1 uint-lit | "tokenid" ws1 uint-lit | "seqnum" ws1 uint-lit | "reqid" ws1 uint-lit | "endpointurl" ws1 str-or-ident | "nodeid" ws1 any-str
+iec104-field ::= "startdt" | "stopdt" | "testfr" | "sframe" | "confirm" | "msgtype" ws1 any-str | "txseq" ws1 uint-lit | "rxseq" ws1 uint-lit | "typeid" ws1 uint-lit | "cot" ws1 any-str | "ca" ws1 uint-lit | "ioa" ws1 uint-lit | "value" ws1 uint-lit | "real" ws1 real-lit
+mms-field ::= "init" | "initack" | "getnamelist" | "read" | "write" | "report" | "conclude" | "isresponse" | "response" | "service" ws1 any-str | "invokeid" ws1 uint-lit | "domain" ws1 str-or-ident | "item" ws1 str-or-ident | "value" ws1 uint-lit
+s7commplus-field ::= "isresponse" | "response" | "version" ws1 uint-lit | "opcode" ws1 any-str | "func" ws1 any-str | "seqnum" ws1 uint-lit | "sessionid" ws1 uint-lit | "id" ws1 uint-lit | "flags" ws1 uint-lit
+synchrophasor-field ::= "msgtype" ws1 any-str | "version" ws1 uint-lit | "id" ws1 uint-lit | "timestamp" ws1 uint-lit | "fracsec" ws1 uint-lit | "cmd" ws1 any-str | "status" ws1 uint-lit | "station" ws1 str-or-ident | "crc" ws1 uint-lit
+hartip-field ::= "init" | "close" | "keepalive" | "isresponse" | "response" | "version" ws1 uint-lit | "msgtype" ws1 any-str | "msgid" ws1 any-str | "status" ws1 uint-lit | "txid" ws1 uint-lit | "mode" ws1 uint-lit | "holdtime" ws1 uint-lit | "addr" ws1 uint-lit | "cmd" ws1 uint-lit
+fins-field ::= "read" | "write" | "response" | "isresponse" | "cmd" ws1 any-str | "icf" ws1 uint-lit | "dna" ws1 uint-lit | "da1" ws1 uint-lit | "da2" ws1 uint-lit | "sna" ws1 uint-lit | "sa1" ws1 uint-lit | "sa2" ws1 uint-lit | "sid" ws1 uint-lit | "area" ws1 any-str | "addr" ws1 uint-lit | "count" ws1 uint-lit | "value" ws1 uint-lit | "errcode" ws1 uint-lit
+melsec-field ::= "read" | "write" | "response" | "isresponse" | "cmd" ws1 any-str | "subcmd" ws1 uint-lit | "network" ws1 uint-lit | "pc" ws1 uint-lit | "io" ws1 uint-lit | "station" ws1 uint-lit | "timer" ws1 uint-lit | "device" ws1 any-str | "addr" ws1 uint-lit | "count" ws1 uint-lit | "value" ws1 uint-lit | "endcode" ws1 uint-lit | "errcode" ws1 uint-lit
+someip-field ::= "findservice" | "offerservice" | "subscribe" | "subscribeack" | "request" | "requestnoreply" | "notification" | "response" | "error" | "msgtype" ws1 any-str | "serviceid" ws1 uint-lit | "methodid" ws1 uint-lit | "clientid" ws1 uint-lit | "sessionid" ws1 uint-lit | "protover" ws1 uint-lit | "ifacever" ws1 uint-lit | "returncode" ws1 uint-lit | "flags" ws1 uint-lit | "sdservice" ws1 uint-lit | "instanceid" ws1 uint-lit | "majorver" ws1 uint-lit | "sdttl" ws1 uint-lit | "minorver" ws1 uint-lit | "endpointip" ws1 ip-addr | "endpointport" ws1 uint-lit
+doip-field ::= "routingreq" | "routingresp" | "diagnostic" | "diagack" | "diagnack" | "vehicleid" | "vehicleeid" | "vehiclevin" | "announcement" | "alivecheckreq" | "alivecheckresp" | "nack" | "msgtype" ws1 any-str | "version" ws1 uint-lit | "invversion" ws1 uint-lit | "src" ws1 uint-lit | "dst" ws1 uint-lit | "code" ws1 uint-lit | "vin" ws1 str-or-ident | "eid" ws1 (mac-addr | hex-string-lit | uint-lit) | "gid" ws1 (mac-addr | hex-string-lit | uint-lit)
+c1222-field ::= "read" | "write" | "identify" | "logon" | "logoff" | "terminate" | "response" | "ok" | "service" ws1 any-str | "callingap" ws1 oid-val | "calledap" ws1 oid-val | "callingid" ws1 uint-lit | "calledid" ws1 uint-lit | "epsemctrl" ws1 uint-lit | "edclass" ws1 uint-lit | "tableid" ws1 uint-lit | "value" ws1 uint-lit | "errcode" ws1 uint-lit
+gesrtp-field ::= "init" | "initack" | "request" | "response" | "type" ws1 any-str | "read" | "write" | "func" ws1 any-str | "seqnum" ws1 uint-lit | "area" ws1 any-str | "addr" ws1 uint-lit | "count" ws1 uint-lit | "value" ws1 uint-lit | "status" ws1 uint-lit
+rocplus-field ::= "read" | "write" | "error" | "opcode" ws1 any-str | "func" ws1 any-str | "dst" ws1 uint-lit | "group" ws1 uint-lit | "src" ws1 uint-lit | "type" ws1 uint-lit | "addr" ws1 uint-lit | "param" ws1 uint-lit | "value" ws1 uint-lit | "isresponse" | "crc" ws1 uint-lit
+bsap-field ::= "read" | "write" | "poll" | "func" ws1 any-str | "dst" ws1 uint-lit | "src" ws1 uint-lit | "seqnum" ws1 uint-lit | "addr" ws1 uint-lit | "count" ws1 uint-lit | "value" ws1 uint-lit | "isresponse"
+knxnetip-field ::= "connect" | "connack" | "disconnect" | "service" ws1 any-str | "channel" ws1 uint-lit | "seqnum" ws1 uint-lit | "status" ws1 uint-lit | "src" ws1 uint-lit | "dst" ws1 uint-lit | "read" | "write" | "value" ws1 uint-lit
+
+# Lexical terminals (exact match to src/lexer/mod.rs and src/parser/ident.rs)
 str-or-ident ::= string-lit | ident
 any-str ::= str-or-ident | int-lit | ip-addr | mac-addr | oid-lit
-# Matches /[a-zA-Z_][a-zA-Z0-9_]*(-[a-zA-Z0-9_]+)*/
 ident ::= [a-zA-Z_] [a-zA-Z0-9_]* ("-" [a-zA-Z0-9_]+)*
 uint-lit ::= [0-9]+ | "0" [xX] [0-9a-fA-F]+
 int-lit ::= "-"? [0-9]+ | "0" [xX] [0-9a-fA-F]+
-duration-lit ::= uint-lit ("ns" | "us" | "ms" | "s" | "m")
-string-lit ::= "\"" ([^"\\] | "\\" (["\\/bfnrt'] | "x" [0-9a-fA-F]{2} | "u" [0-9a-fA-F]{4}))* "\""
-hex-string-lit ::= "\"" [0-9a-fA-F: ]* "\""
-mac-addr ::= ([0-9a-fA-F]{2} ":" [0-9a-fA-F]{2} ":" [0-9a-fA-F]{2} ":" [0-9a-fA-F]{2} ":" [0-9a-fA-F]{2} ":" [0-9a-fA-F]{2})
-           | ([0-9a-fA-F]{2} "-" [0-9a-fA-F]{2} "-" [0-9a-fA-F]{2} "-" [0-9a-fA-F]{2} "-" [0-9a-fA-F]{2} "-" [0-9a-fA-F]{2})
-           | ([0-9a-fA-F]{4} "." [0-9a-fA-F]{4} "." [0-9a-fA-F]{4})
+real-lit ::= int-lit | "-"? [0-9]+ "." [0-9]+ | "." [0-9]+ | string-lit
+hex-bytes ::= hex-string-lit | uint-lit
+duration-lit ::= uint-lit ws ("ns" | "us" | "ms" | "s" | "m")
+string-lit ::= "\"" ([^"\\\r\n] | "\\" (["\\0nrt'] | "x" [0-9a-fA-F]{2} | "u" [0-9a-fA-F]{4} | "u{" [0-9a-fA-F]{1,6} "}"))* "\""
+hex-string-lit ::= "\"" [0-9a-fA-F: \t]* "\""
+mac-addr ::= ([0-9a-fA-F]{2} ":" [0-9a-fA-F]{2} ":" [0-9a-fA-F]{2} ":" [0-9a-fA-F]{2} ":" [0-9a-fA-F]{2} ":" [0-9a-fA-F]{2}) | ([0-9a-fA-F]{2} "-" [0-9a-fA-F]{2} "-" [0-9a-fA-F]{2} "-" [0-9a-fA-F]{2} "-" [0-9a-fA-F]{2} "-" [0-9a-fA-F]{2}) | ([0-9a-fA-F]{4} "." [0-9a-fA-F]{4} "." [0-9a-fA-F]{4})
 ip-addr ::= ipv4-addr | ipv6-addr
 ipv4-addr ::= [0-9]+ "." [0-9]+ "." [0-9]+ "." [0-9]+
 ipv6-addr ::= "::" [0-9a-fA-F:.]* | [0-9a-fA-F]{1,4} (":" [0-9a-fA-F:.]*)+
 oid-lit ::= "."? [0-9]+ ("." [0-9]+)+ | string-lit
+oid-val ::= oid-lit | ip-addr

@@ -1,24 +1,35 @@
 //! Layer 3 Network, Routing, Tunneling, Redundancy, and Security protocol wire builders.
 //!
-//! This module contains the deterministic wire-format packet encoders for all twenty Layer 3
+//! This module contains the deterministic wire-format packet encoders for all 31 Layer 3
 //! network, overlay tunneling, first-hop redundancy, dynamic routing, and cryptographic VPN
 //! protocols supported by the FrameAssembly compiler backend:
 //! - **AH** (`build_ipsec_ah_payload`, RFC 4302 over IP protocol `51`)
 //! - **BFD** (`build_bfd_payload`, RFC 5880 over UDP port `3784`)
 //! - **BGP** (`build_bgp_payload`, RFC 4271 over TCP port `179`)
-//! - **ESP / IPsec** (`build_ipsec_esp_payload`, RFC 4303 over IP protocol `50`)
+//! - **BMP** (`build_bmp_payload`, RFC 7854 over TCP port `1790`)
+//! - **ERSPAN** (`build_erspan_payload`, GRE protocol `0x88BE` / `0x22EB` over IP protocol `47`)
+//! - **ESP / IPsec** (`build_ipsec_esp_payload` in [`ipsec`], RFC 4303 over IP protocol `50`)
 //! - **GENEVE** (`build_geneve_payload`, RFC 8926 over UDP port `6081`)
+//! - **GLBP** (`build_glbp_payload`, Cisco GLBP over UDP port `3222`)
 //! - **GRE** (`build_gre_payload`, RFC 2784 / RFC 2890 over IP protocol `47`)
+//! - **GTP-U** (`build_gtpu_payload`, 3GPP TS 29.281 over UDP port `2152`)
 //! - **HSRP** (`build_hsrp_payload`, RFC 2281 over UDP port `1985` / `2029`)
 //! - **ICMP / ICMPv6** (`build_icmp_payload`, RFC 792 / RFC 4443 over IP protocol `1` / `58`)
 //! - **IGMP** (`build_igmp_payload`, RFC 2236 / RFC 3376 over IP protocol `2`)
 //! - **IKEv2** (`build_ikev2_payload`, RFC 7296 over UDP port `500`)
+//! - **IP-in-IP** (`build_ipip_payload`, RFC 2003 / RFC 2473 over IP protocol `4` / `41`)
+//! - **L2TP** (`build_l2tp_payload`, RFC 2661 / RFC 3931 over UDP `1701` or IP protocol `115`)
+//! - **LDP** (`build_ldp_payload`, RFC 5036 over TCP/UDP port `646`)
+//! - **LISP** (`build_lisp_payload`, RFC 9300 / RFC 9301 over UDP port `4341` / `4342`)
 //! - **MLD** (`build_mld_payload`, RFC 2710 / RFC 3810 over ICMPv6 `58`)
 //! - **NDP** (`build_ndp_payload`, RFC 4861 over ICMPv6 `58`)
 //! - **OpenFlow** (`build_openflow_payload`, ONF OpenFlow v1.3+ over TCP port `6653`)
 //! - **OSPF** (`build_ospf_payload`, RFC 2328 / RFC 5340 over IP protocol `89`)
 //! - **PIM** (`build_pim_payload`, RFC 7761 over IP protocol `103`)
 //! - **RIP** (`build_rip_payload`, RFC 2453 / RFC 2080 over UDP port `520` / `521`)
+//! - **RPKI-RTR** (`build_rpkirtr_payload`, RFC 6810 / RFC 8210 over TCP port `323`)
+//! - **RSVP** (`build_rsvp_payload`, RFC 2205 / RFC 3209 over IP protocol `46`)
+//! - **SRv6** (`build_srv6_payload`, RFC 8754 IPv6 Segment Routing Header over IP protocol `43`)
 //! - **VRRP** (`build_vrrp_payload`, RFC 5798 over IP protocol `112`)
 //! - **VXLAN** (`build_vxlan_payload`, RFC 7348 over UDP port `4789`)
 //! - **WireGuard** (`build_wireguard_payload`, Noise_IK VPN over UDP port `51820`)
@@ -26,20 +37,30 @@
 pub mod ah;
 pub mod bfd;
 pub mod bgp;
-pub mod esp;
+pub mod bmp;
+pub mod erspan;
 pub mod geneve;
+pub mod glbp;
 pub mod gre;
+pub mod gtpu;
 pub mod hsrp;
 pub mod icmp;
 pub mod igmp;
 pub mod ikev2;
+pub mod ipip;
 pub mod ipsec;
+pub mod l2tp;
+pub mod ldp;
+pub mod lisp;
 pub mod mld;
 pub mod ndp;
 pub mod openflow;
 pub mod ospf;
 pub mod pim;
 pub mod rip;
+pub mod rpkirtr;
+pub mod rsvp;
+pub mod srv6;
 pub mod vrrp;
 pub mod vxlan;
 pub mod wireguard;
@@ -49,9 +70,17 @@ pub use bfd::*;
 #[doc(inline)]
 pub use bgp::*;
 #[doc(inline)]
+pub use bmp::*;
+#[doc(inline)]
+pub use erspan::*;
+#[doc(inline)]
 pub use geneve::*;
 #[doc(inline)]
+pub use glbp::*;
+#[doc(inline)]
 pub use gre::*;
+#[doc(inline)]
+pub use gtpu::*;
 #[doc(inline)]
 pub use hsrp::*;
 #[doc(inline)]
@@ -61,7 +90,15 @@ pub use igmp::*;
 #[doc(inline)]
 pub use ikev2::*;
 #[doc(inline)]
+pub use ipip::*;
+#[doc(inline)]
 pub use ipsec::*;
+#[doc(inline)]
+pub use l2tp::*;
+#[doc(inline)]
+pub use ldp::*;
+#[doc(inline)]
+pub use lisp::*;
 #[doc(inline)]
 pub use mld::*;
 #[doc(inline)]
@@ -74,6 +111,12 @@ pub use ospf::*;
 pub use pim::*;
 #[doc(inline)]
 pub use rip::*;
+#[doc(inline)]
+pub use rpkirtr::*;
+#[doc(inline)]
+pub use rsvp::*;
+#[doc(inline)]
+pub use srv6::*;
 #[doc(inline)]
 pub use vrrp::*;
 #[doc(inline)]

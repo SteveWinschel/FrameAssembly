@@ -1,11 +1,13 @@
 //! Multi-Layer Wire Packet Builders for the FrameAssembly Compiler.
 //!
-//! This module hierarchy implements deterministic wire-format packet synthesis across all 81 native
-//! protocols spanning OSI Layer 2 ([`l2`]: `arp`, `vlan`, `qinq`, `lldp`, `stp`, `lacp`, `eapol`,
-//! and `mpls`), Layer 3 ([`l3`]: `icmp`, `ndp`, `igmp`, `mld`, `gre`, `vxlan`, `geneve`, `ipsec`,
-//! `esp`, `ah`, `ikev2`, `wireguard`, `ospf`, `bgp`, `rip`, `vrrp`, `hsrp`, `pim`, `bfd`, and
-//! `openflow`), Layer 4 ([`l4`]: `tcp`, `udp`, and `sctp`), and Layer 7 ([`l7`]: 50 infrastructure,
-//! web, cloud, mail, directory, storage, database, messaging, industrial OT/ICS, and
+//! This module hierarchy implements deterministic wire-format packet synthesis across all 146
+//! native protocols spanning OSI Layer 2 ([`l2`]: `arp`, `vlan`, `qinq`, `lldp`, `stp`, `lacp`,
+//! `eapol`, `mpls`, `cdp`, `isis`, `macsec`, `pfc`, `pppoe`, `nsh`, `profinet`, `goose`, `sv`, and
+//! `ethercat`), Layer 3 ([`l3`]: `icmp`, `ndp`, `igmp`, `mld`, `gre`, `vxlan`, `geneve`, `ipsec`,
+//! `esp`, `ah`, `ikev2`, `wireguard`, `ospf`, `bgp`, `rip`, `vrrp`, `hsrp`, `pim`, `bfd`,
+//! `openflow`, `ipip`, `srv6`, `erspan`, `rsvp`, `ldp`, `bmp`, `rpkirtr`, `l2tp`, `lisp`, `glbp`,
+//! and `gtpu`), Layer 4 ([`l4`]: `tcp`, `udp`, and `sctp`), and Layer 7 ([`l7`]: 94 infrastructure,
+//! web, cloud, mail, directory, storage, database, messaging, industrial OT/ICS, telecom, and
 //! `snmp1`/`snmp2`/`snmp3` protocols).
 
 use crate::ast::{L2Modifiers, L3Modifiers, L4Modifiers, TransportProto};

@@ -1,5 +1,5 @@
 //! WebAssembly bindings, PCAP/PCAPNG-to-`.frasm` decompiler, frame inspector, and UTF-16 IDE
-//! diagnostics for the FrameAssembly (`.frasm` v3.2.2) network packet synthesis compiler.
+//! diagnostics for the FrameAssembly (`.frasm` v3.3.0) network packet synthesis compiler.
 //!
 //! This crate exposes `validate_frasm` (`validateFrasm`), `inspect_frasm` (`inspectFrasm`),
 //! `compile_frasm_to_pcap` (`compileFrasmToPcap`), `compile_frasm_to_pcapng` (`compileFrasm`), and
@@ -7,22 +7,35 @@
 //! Node.js test harnesses, and web-based code editors (Monaco, CodeMirror, VS Code Web) via
 //! `wasm-bindgen`. The 2.x export names `validate_fasm` (`validateFasm`), `inspect_fasm`, and
 //! `compile_fasm_to_pcapng` (`compileFasm`) remain available as compatibility aliases. It compiles
-//! strict-lowercase `.frasm` specifications across all 81 native Layer 2 through Layer 7 protocols
-//! into deterministic classic `.pcap` and nanosecond-resolution `PCAPNG` byte arrays (`Uint8Array`),
-//! decompiles binary `.pcap` and `.pcapng` packet captures back into canonical lowercase `.frasm`
-//! code in memory via `frameassembly::reverse::reverse_pcap_bytes`, summarizes
-//! Ethernet/VLAN/QinQ/MPLS/ARP/IPv4/IPv6 and Layer 4/Layer 7 frames, and maps compiler diagnostic
-//! byte spans into zero-based UTF-16 line and column coordinates.
+//! strict-lowercase `.frasm` specifications across all 146 native Layer 2 through Layer 7 protocols
+//! (`18` L2, `31` L3, `3` L4, `94` L7) into deterministic classic `.pcap` and nanosecond-resolution
+//! `PCAPNG` byte arrays (`Uint8Array`), decompiles binary `.pcap` and `.pcapng` packet captures
+//! back into canonical lowercase `.frasm` code in memory via
+//! [`frameassembly::reverse::reverse_pcap_bytes`], delegates Ethernet/VLAN/QinQ/MPLS/LLC and
+//! Layer 3/4/7 frame dissection to [`frameassembly::inspect::summarize_frame`], serializes
+//! structured JS outputs as plain objects (`serialize_maps_as_objects(true)`), enforces bounded
+//! browser input sizes ([`MAX_WASM_SOURCE_BYTES`] and [`MAX_WASM_PCAP_BYTES`]), and maps compiler
+//! diagnostic byte spans (including LF, CRLF, and bare CR line breaks) into zero-based UTF-16
+//! line and column coordinates.
 
 use std::fmt::Write;
-use std::net::{Ipv4Addr, Ipv6Addr};
 
-use frameassembly::backend::compile_program;
+use frameassembly::backend::{compile_program, compile_program_with_metadata};
+use frameassembly::inspect::summarize_frame;
 use frameassembly::parser::parse_program;
-use frameassembly::reverse::reverse_pcap_bytes;
+use frameassembly::pcap::{
+    serialize_classic_pcap, serialize_pcapng, serialize_pcapng_with_metadata,
+};
+use frameassembly::reverse::{ReverseOutput, reverse_pcap_bytes};
 use miette::Diagnostic;
 use serde::Serialize;
 use wasm_bindgen::prelude::*;
+
+/// Maximum `.frasm` source length accepted by WebAssembly entry points (`4 MiB`).
+pub const MAX_WASM_SOURCE_BYTES: usize = 4 * 1024 * 1024;
+
+/// Maximum `.pcap` / `.pcapng` capture length accepted by WebAssembly reverse entry points (`64 MiB`).
+pub const MAX_WASM_PCAP_BYTES: usize = 64 * 1024 * 1024;
 
 /// Custom TypeScript interface definitions appended to the generated `.d.ts` bindings.
 #[wasm_bindgen(typescript_custom_section)]
@@ -76,7 +89,7 @@ pub struct IdeDiagnostic {
     pub end_col: u32,
     /// Primary diagnostic error message.
     pub message: String,
-    /// Optional plain-English remediation hint (including v3.0.0 lowercase keyword quick-fix hints).
+    /// Optional plain-English remediation hint (including strict-lowercase keyword quick-fix hints).
     pub help: Option<String>,
 }
 
@@ -93,9 +106,9 @@ pub struct PacketPreview {
     pub hex: String,
     /// Formatted `source -> destination` IPv4, IPv6, or MAC endpoint pair.
     pub source_dest: String,
-    /// Dissected highest-layer protocol label (e.g. `DNS`, `SNMP`, `MODBUS`, `TCP`, `ARP`, `LLDP`).
+    /// Dissected highest-layer protocol label (e.g. `DNS`, `SNMP`, `MODBUS`, `TCP`, `ARP`, `NGAP`).
     pub protocol: String,
-    /// Human-readable Ethernet/VLAN/QinQ/MPLS/L3/L4/L7 frame summary string.
+    /// Human-readable Ethernet/VLAN/QinQ/MPLS/LLC/L3/L4/L7 frame summary string.
     pub summary: String,
 }
 
@@ -115,6 +128,36 @@ pub struct ReversePcapResult {
     pub host_count: usize,
 }
 
+impl From<ReverseOutput> for ReversePcapResult {
+    /// Converts a core [`ReverseOutput`] into a [`ReversePcapResult`] preserving `frasm` and `fasm`.
+    fn from(out: ReverseOutput) -> Self {
+        Self {
+            success: true,
+            frasm: out.fasm.clone(),
+            fasm: out.fasm,
+            packet_count: out.packet_count,
+            host_count: out.host_count,
+        }
+    }
+}
+
+/// Borrowed wire-serialization view over [`ReverseOutput`] avoiding a duplicate `.frasm` heap clone
+/// when crossing the JavaScript boundary.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ReversePcapJsPayload<'a> {
+    /// Indicates that decompilation succeeded (`true`).
+    success: bool,
+    /// Generated canonical lowercase `.frasm` source code.
+    frasm: &'a str,
+    /// Backward-compatible 2.x alias of `frasm`.
+    fasm: &'a str,
+    /// Total number of packets reversed from the capture.
+    packet_count: usize,
+    /// Total number of `host1`, `host2`, ... definitions emitted in the `.frasm` program.
+    host_count: usize,
+}
+
 /// Type alias for [`ReversePcapResult`] returned to JavaScript callers by [`reverse_pcap`].
 pub type ReverseJsResult = ReversePcapResult;
 
@@ -129,27 +172,79 @@ pub struct ReversePcapError {
     pub message: String,
 }
 
-/// Converts a UTF-8 byte offset within `source` into a zero-based `(line, utf16_col)` pair
-/// suitable for Monaco Editor, CodeMirror 6, and VS Code diagnostics.
-pub fn byte_offset_to_utf16_line_col(source: &str, byte_offset: usize) -> (u32, u32) {
-    let clamped = byte_offset.min(source.len());
-    let safe_end = (0..=clamped)
-        .rev()
-        .find(|&i| source.is_char_boundary(i))
-        .unwrap_or(0);
-
-    let prefix = &source[..safe_end];
-    let line = prefix.bytes().filter(|&b| b == b'\n').count() as u32;
-    let col = match prefix.rfind('\n') {
-        Some(nl) => prefix[nl + 1..].encode_utf16().count() as u32,
-        None => prefix.encode_utf16().count() as u32,
-    };
-    (line, col)
+impl ReversePcapError {
+    /// Constructs a [`ReversePcapError`] with matching `error` and `message` strings.
+    fn new(message: impl Into<String>) -> Self {
+        let message = message.into();
+        Self {
+            success: false,
+            error: message.clone(),
+            message,
+        }
+    }
 }
 
-/// Converts a UTF-8 byte offset within `source` into a zero-based `(line, utf16_col)` pair.
-fn byte_to_utf16_pos(source: &str, byte_offset: usize) -> (u32, u32) {
-    byte_offset_to_utf16_line_col(source, byte_offset)
+/// Serializes `value` into a plain JavaScript object/array using `serialize_maps_as_objects(true)`
+/// so JS callers always receive plain objects rather than ES6 `Map` instances.
+fn serialize_to_js_object<T: Serialize>(value: &T) -> Result<JsValue, serde_wasm_bindgen::Error> {
+    let serializer = serde_wasm_bindgen::Serializer::new().serialize_maps_as_objects(true);
+    value.serialize(&serializer)
+}
+
+/// Enforces [`MAX_WASM_SOURCE_BYTES`] on incoming `.frasm` source strings.
+fn check_source_size(source: &str) -> Result<(), String> {
+    if source.len() > MAX_WASM_SOURCE_BYTES {
+        return Err(format!(
+            "Source input ({} bytes) exceeds maximum supported WebAssembly size ({MAX_WASM_SOURCE_BYTES} bytes)",
+            source.len()
+        ));
+    }
+    Ok(())
+}
+
+/// Enforces [`MAX_WASM_PCAP_BYTES`] on incoming `.pcap`/`.pcapng` capture buffers.
+fn check_pcap_size(pcap_bytes: &[u8]) -> Result<(), ReversePcapError> {
+    if pcap_bytes.len() > MAX_WASM_PCAP_BYTES {
+        return Err(ReversePcapError::new(format!(
+            "Capture input ({} bytes) exceeds maximum supported WebAssembly size ({MAX_WASM_PCAP_BYTES} bytes)",
+            pcap_bytes.len()
+        )));
+    }
+    Ok(())
+}
+
+/// Converts a UTF-8 byte offset within `source` into a zero-based `(line, utf16_col)` pair
+/// suitable for Monaco Editor, CodeMirror 6, and VS Code diagnostics.
+///
+/// Clamps out-of-bounds offsets to `source.len()`, backs up mid-character offsets to the
+/// preceding UTF-8 scalar boundary, treats `\r\n`, bare `\r`, and `\n` each as a single line
+/// break without off-by-one column drift, and counts UTF-16 code units along the active line.
+pub fn byte_offset_to_utf16_line_col(source: &str, byte_offset: usize) -> (u32, u32) {
+    let mut safe_end = byte_offset.min(source.len());
+    while safe_end > 0 && !source.is_char_boundary(safe_end) {
+        safe_end -= 1;
+    }
+
+    let mut line: u32 = 0;
+    let mut col_utf16: u32 = 0;
+    let mut chars = source[..safe_end].chars().peekable();
+    while let Some(ch) = chars.next() {
+        match ch {
+            '\r' => {
+                if chars.peek() == Some(&'\n') {
+                    chars.next();
+                }
+                line += 1;
+                col_utf16 = 0;
+            }
+            '\n' => {
+                line += 1;
+                col_utf16 = 0;
+            }
+            _ => col_utf16 += ch.len_utf16() as u32,
+        }
+    }
+    (line, col_utf16)
 }
 
 /// Scans `source` outside `//` line comments and `"..."` string literals, yielding
@@ -163,7 +258,7 @@ fn scan_code_words(source: &str) -> Vec<(&str, usize, usize)> {
         let b = bytes[i];
         if b == b'/' && i + 1 < bytes.len() && bytes[i + 1] == b'/' {
             i += 2;
-            while i < bytes.len() && bytes[i] != b'\n' {
+            while i < bytes.len() && !matches!(bytes[i], b'\n' | b'\r') {
                 i += 1;
             }
         } else if b == b'"' {
@@ -254,25 +349,90 @@ fn find_backend_error_span(source: &str, err_msg: &str) -> (usize, usize) {
     (0, source.len().min(1))
 }
 
+/// Builds an [`IdeDiagnostic`] from clamped UTF-8 byte offsets `[start_byte, end_byte)`.
+fn make_diagnostic(
+    source: &str,
+    start_byte: usize,
+    end_byte: usize,
+    message: String,
+    help: Option<String>,
+) -> IdeDiagnostic {
+    let safe_start = start_byte.min(source.len());
+    let safe_end = end_byte.max(safe_start).min(source.len());
+    let (start_line, start_col) = byte_offset_to_utf16_line_col(source, safe_start);
+    let (end_line, end_col) = byte_offset_to_utf16_line_col(source, safe_end);
+    IdeDiagnostic {
+        start_line,
+        start_col,
+        end_line,
+        end_col,
+        message,
+        help,
+    }
+}
+
+/// Extracts span coordinates and remediation hints from a `miette::Diagnostic` and appends an [`IdeDiagnostic`].
+fn push_diagnostic(source: &str, err: &dyn Diagnostic, out: &mut Vec<IdeDiagnostic>) {
+    let message = err.to_string();
+    let help = err.help().map(|h| h.to_string());
+
+    if let Some(mut labels) = err.labels()
+        && let Some(span) = labels.next()
+    {
+        let start_byte = span.offset().min(source.len());
+        let end_byte = start_byte
+            .saturating_add(span.len().max(1))
+            .min(source.len());
+        out.push(make_diagnostic(source, start_byte, end_byte, message, help));
+    } else {
+        let (start_byte, end_byte) = find_backend_error_span(source, &message);
+        out.push(make_diagnostic(
+            source,
+            start_byte,
+            end_byte.max(start_byte.saturating_add(1)),
+            message,
+            help,
+        ));
+    }
+}
+
 /// Validates `.frasm` source and returns typed [`IdeDiagnostic`] entries without invoking JS bindings.
-pub fn validate_fasm_to_diagnostics(source: &str) -> Vec<IdeDiagnostic> {
+pub fn validate_frasm_to_diagnostics(source: &str) -> Vec<IdeDiagnostic> {
+    if let Err(err_msg) = check_source_size(source) {
+        let mut preview_end = source.len().min(64);
+        while preview_end > 0 && !source.is_char_boundary(preview_end) {
+            preview_end -= 1;
+        }
+        if let Some(nl) = source[..preview_end].find(['\r', '\n']) {
+            preview_end = nl;
+        }
+        let end_col = source[..preview_end].encode_utf16().count() as u32;
+        return vec![IdeDiagnostic {
+            start_line: 0,
+            start_col: 0,
+            end_line: 0,
+            end_col,
+            message: err_msg,
+            help: Some(
+                "Split large specifications into smaller .frasm files or use the native frameassembly CLI."
+                    .to_string(),
+            ),
+        }];
+    }
+
     let mut diagnostics = Vec::new();
 
     match parse_program(source) {
         Ok(program) => {
             if let Err(err) = compile_program(&program) {
                 let (start_byte, end_byte) = find_backend_error_span(source, &err);
-                let (start_line, start_col) = byte_to_utf16_pos(source, start_byte);
-                let (end_line, end_col) =
-                    byte_to_utf16_pos(source, end_byte.max(start_byte.saturating_add(1)));
-                diagnostics.push(IdeDiagnostic {
-                    start_line,
-                    start_col,
-                    end_line,
-                    end_col,
-                    message: err,
-                    help: None,
-                });
+                diagnostics.push(make_diagnostic(
+                    source,
+                    start_byte,
+                    end_byte.max(start_byte.saturating_add(1)),
+                    err,
+                    None,
+                ));
             }
         }
         Err(err) => push_diagnostic(source, &err, &mut diagnostics),
@@ -281,420 +441,56 @@ pub fn validate_fasm_to_diagnostics(source: &str) -> Vec<IdeDiagnostic> {
     diagnostics
 }
 
-/// Validates `.frasm` source and returns UTF-16 line/column diagnostics for Monaco, CodeMirror, and VS Code.
-#[wasm_bindgen(unchecked_return_type = "IdeDiagnostic[]")]
-pub fn validate_fasm(source: &str) -> Result<JsValue, JsError> {
-    let diagnostics = validate_fasm_to_diagnostics(source);
-    Ok(serde_wasm_bindgen::to_value(&diagnostics)?)
-}
-
-/// Validates `.frasm` source and returns UTF-16 line/column diagnostics (`validateFasm` 2.x alias).
-#[wasm_bindgen(js_name = validateFasm, unchecked_return_type = "IdeDiagnostic[]")]
-pub fn validate_fasm_js(source: &str) -> Result<JsValue, JsError> {
-    validate_fasm(source)
+/// Compatibility alias for [`validate_frasm_to_diagnostics`].
+pub fn validate_fasm_to_diagnostics(source: &str) -> Vec<IdeDiagnostic> {
+    validate_frasm_to_diagnostics(source)
 }
 
 /// Validates `.frasm` source and returns UTF-16 line/column diagnostics for Monaco, CodeMirror, and VS Code.
+///
+/// # Errors
+/// Returns a JavaScript `Error` if diagnostic serialization fails.
 #[wasm_bindgen(unchecked_return_type = "IdeDiagnostic[]")]
 pub fn validate_frasm(source: &str) -> Result<JsValue, JsError> {
-    validate_fasm(source)
+    let diagnostics = validate_frasm_to_diagnostics(source);
+    Ok(serialize_to_js_object(&diagnostics)?)
 }
 
 /// Validates `.frasm` source and returns UTF-16 line/column diagnostics (`validateFrasm` camelCase alias).
-#[wasm_bindgen(js_name = validateFrasm, unchecked_return_type = "IdeDiagnostic[]")]
-pub fn validate_frasm_js(source: &str) -> Result<JsValue, JsError> {
-    validate_fasm(source)
-}
-
-/// Maps well-known TCP/UDP port numbers to concise L7 protocol display labels for packet ladder previews.
-fn port_to_l7_name(port: u16, is_tcp: bool) -> Option<&'static str> {
-    match (port, is_tcp) {
-        (21, true) => Some("FTP"),
-        (22, true) => Some("SSH"),
-        (23, true) => Some("TELNET"),
-        (25 | 587, true) => Some("SMTP"),
-        (43, true) => Some("WHOIS"),
-        (49, true) => Some("TACACS"),
-        (53, _) => Some("DNS"),
-        (67 | 68 | 546 | 547, false) => Some("DHCP"),
-        (69, false) => Some("TFTP"),
-        (80, true) => Some("HTTP"),
-        (88, _) => Some("KERBEROS"),
-        (102, true) => Some("S7COMM"),
-        (110, true) => Some("POP3"),
-        (123, false) => Some("NTP"),
-        (143, true) => Some("IMAP"),
-        (161 | 162, false) => Some("SNMP"),
-        (179, true) => Some("BGP"),
-        (319 | 320, false) => Some("PTP"),
-        (389, _) => Some("LDAP"),
-        (443, true) => Some("TLS"),
-        (443, false) => Some("QUIC"),
-        (445, true) => Some("SMB"),
-        (500 | 4500, false) => Some("IKEV2"),
-        (502, _) => Some("MODBUS"),
-        (514, _) => Some("SYSLOG"),
-        (520 | 521, false) => Some("RIP"),
-        (554, true) => Some("RTSP"),
-        (1812 | 1813, false) => Some("RADIUS"),
-        (1883, true) => Some("MQTT"),
-        (1900, false) => Some("SSDP"),
-        (1985, false) => Some("HSRP"),
-        (2049, _) => Some("NFS"),
-        (2055, false) => Some("NETFLOW"),
-        (3306, true) => Some("MYSQL"),
-        (3478, false) => Some("STUN"),
-        (3784, false) => Some("BFD"),
-        (4739, false) => Some("IPFIX"),
-        (4789, false) => Some("VXLAN"),
-        (4840, true) => Some("OPCUA"),
-        (5004, false) => Some("RTP"),
-        (5060, _) => Some("SIP"),
-        (5353, false) => Some("MDNS"),
-        (5432, true) => Some("POSTGRES"),
-        (5672, true) => Some("AMQP"),
-        (5683, false) => Some("COAP"),
-        (6081, false) => Some("GENEVE"),
-        (6343, false) => Some("SFLOW"),
-        (6379, true) => Some("REDIS"),
-        (6653, true) => Some("OPENFLOW"),
-        (11211, _) => Some("MEMCACHED"),
-        (20000, _) => Some("DNP3"),
-        (44818, _) => Some("ETHERNETIP"),
-        (47808, false) => Some("BACNET"),
-        (50051, true) => Some("GRPC"),
-        (51820, false) => Some("WIREGUARD"),
-        _ => None,
-    }
-}
-
-/// Formats a 6-byte Ethernet MAC address slice as `xx:xx:xx:xx:xx:xx`.
-fn format_mac(b: &[u8]) -> String {
-    if b.len() < 6 {
-        return "00:00:00:00:00:00".to_string();
-    }
-    format!(
-        "{:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x}",
-        b[0], b[1], b[2], b[3], b[4], b[5]
-    )
-}
-
-/// Dissects a raw Ethernet frame into `(source_dest, protocol, summary)` strings.
-fn summarize_frame(data: &[u8]) -> (String, String, String) {
-    if data.len() < 14 {
-        return (
-            "unknown -> unknown".to_string(),
-            "RAW".to_string(),
-            format!("{} bytes", data.len()),
-        );
-    }
-
-    let dst_mac = format_mac(&data[0..6]);
-    let src_mac = format_mac(&data[6..12]);
-    let mut etype = u16::from_be_bytes([data[12], data[13]]);
-    let mut offset = 14usize;
-    let mut l2_tags = Vec::new();
-
-    while (etype == 0x8100 || etype == 0x88A8 || etype == 0x9100) && offset + 4 <= data.len() {
-        let tci = u16::from_be_bytes([data[offset], data[offset + 1]]);
-        let vid = tci & 0x0FFF;
-        let pcp = (tci >> 13) & 0x07;
-        if etype == 0x88A8 || etype == 0x9100 {
-            l2_tags.push(format!("SVLAN={vid}"));
-        } else if l2_tags.iter().any(|t: &String| t.starts_with("SVLAN=")) {
-            l2_tags.push(format!("CVLAN={vid}"));
-        } else if pcp > 0 {
-            l2_tags.push(format!("VLAN={vid}(PCP={pcp})"));
-        } else {
-            l2_tags.push(format!("VLAN={vid}"));
-        }
-        etype = u16::from_be_bytes([data[offset + 2], data[offset + 3]]);
-        offset += 4;
-    }
-
-    if (etype == 0x8847 || etype == 0x8848) && offset + 4 <= data.len() {
-        while offset + 4 <= data.len() {
-            let entry = u32::from_be_bytes([
-                data[offset],
-                data[offset + 1],
-                data[offset + 2],
-                data[offset + 3],
-            ]);
-            let label = entry >> 12;
-            let bos = (entry >> 8) & 1;
-            l2_tags.push(format!("MPLS={label}"));
-            offset += 4;
-            if bos == 1 {
-                break;
-            }
-        }
-        if offset < data.len() {
-            let first_nibble = data[offset] >> 4;
-            if first_nibble == 4 {
-                etype = 0x0800;
-            } else if first_nibble == 6 {
-                etype = 0x86DD;
-            }
-        }
-    }
-
-    let tag_prefix = if l2_tags.is_empty() {
-        String::new()
-    } else {
-        format!("[{}] ", l2_tags.join(" "))
-    };
-
-    match etype {
-        0x0806 if offset + 28 <= data.len() => {
-            let oper = u16::from_be_bytes([data[offset + 6], data[offset + 7]]);
-            let spa = Ipv4Addr::new(
-                data[offset + 14],
-                data[offset + 15],
-                data[offset + 16],
-                data[offset + 17],
-            );
-            let tpa = Ipv4Addr::new(
-                data[offset + 24],
-                data[offset + 25],
-                data[offset + 26],
-                data[offset + 27],
-            );
-            let detail = if oper == 1 {
-                format!("{tag_prefix}Who has {tpa}? Tell {spa}")
-            } else {
-                format!("{tag_prefix}{spa} is at {src_mac}")
-            };
-            (format!("{spa} -> {tpa}"), "ARP".to_string(), detail)
-        }
-        0x0800 if offset + 20 <= data.len() => {
-            let ihl = ((data[offset] & 0x0F) as usize) * 4;
-            let proto = data[offset + 9];
-            let src_ip = Ipv4Addr::new(
-                data[offset + 12],
-                data[offset + 13],
-                data[offset + 14],
-                data[offset + 15],
-            );
-            let dst_ip = Ipv4Addr::new(
-                data[offset + 16],
-                data[offset + 17],
-                data[offset + 18],
-                data[offset + 19],
-            );
-            let l4_slice = if offset + ihl <= data.len() {
-                &data[offset + ihl..]
-            } else {
-                &[]
-            };
-            let (p_label, summary) = summarize_l4(proto, l4_slice, &tag_prefix);
-            (format!("{src_ip} -> {dst_ip}"), p_label, summary)
-        }
-        0x86DD if offset + 40 <= data.len() => {
-            let mut next_hdr = data[offset + 6];
-            let mut src_bytes = [0u8; 16];
-            src_bytes.copy_from_slice(&data[offset + 8..offset + 24]);
-            let mut dst_bytes = [0u8; 16];
-            dst_bytes.copy_from_slice(&data[offset + 24..offset + 40]);
-            let src_ip = Ipv6Addr::from(src_bytes);
-            let dst_ip = Ipv6Addr::from(dst_bytes);
-            let mut l4_offset = offset + 40;
-            if next_hdr == 0 && l4_offset + 8 <= data.len() {
-                next_hdr = data[l4_offset];
-                let ext_len = (data[l4_offset + 1] as usize + 1) * 8;
-                if l4_offset + ext_len <= data.len() {
-                    l4_offset += ext_len;
-                }
-            }
-            let l4_slice = if l4_offset <= data.len() {
-                &data[l4_offset..]
-            } else {
-                &[]
-            };
-            let (p_label, summary) = summarize_l4(next_hdr, l4_slice, &tag_prefix);
-            (format!("{src_ip} -> {dst_ip}"), p_label, summary)
-        }
-        0x88CC => (
-            format!("{src_mac} -> {dst_mac}"),
-            "LLDP".to_string(),
-            format!("{tag_prefix}Link Layer Discovery Protocol frame"),
-        ),
-        0x8809 => (
-            format!("{src_mac} -> {dst_mac}"),
-            "LACP".to_string(),
-            format!("{tag_prefix}Link Aggregation Control Protocol PDU"),
-        ),
-        0x888E => (
-            format!("{src_mac} -> {dst_mac}"),
-            "EAPOL".to_string(),
-            format!("{tag_prefix}IEEE 802.1X EAP over LAN frame"),
-        ),
-        _ => {
-            let proto = if dst_mac == "01:80:c2:00:00:00" {
-                "STP"
-            } else if l2_tags.iter().any(|t| t.starts_with("SVLAN=")) {
-                "QINQ"
-            } else if l2_tags.iter().any(|t| t.starts_with("VLAN=")) {
-                "VLAN"
-            } else if l2_tags.iter().any(|t| t.starts_with("MPLS=")) {
-                "MPLS"
-            } else {
-                "L2"
-            };
-            (
-                format!("{src_mac} -> {dst_mac}"),
-                proto.to_string(),
-                format!("{tag_prefix}EtherType 0x{etype:04x}"),
-            )
-        }
-    }
-}
-
-/// Dissects the Layer 4 / Layer 3-control header inside an IPv4 or IPv6 packet.
-fn summarize_l4(proto: u8, l4: &[u8], tag_prefix: &str) -> (String, String) {
-    match proto {
-        6 if l4.len() >= 20 => {
-            let sport = u16::from_be_bytes([l4[0], l4[1]]);
-            let dport = u16::from_be_bytes([l4[2], l4[3]]);
-            let seq = u32::from_be_bytes([l4[4], l4[5], l4[6], l4[7]]);
-            let ack = u32::from_be_bytes([l4[8], l4[9], l4[10], l4[11]]);
-            let hdr_len = (((l4[12] >> 4) as usize) * 4).max(20);
-            let flags = l4[13];
-            let payload_len = l4.len().saturating_sub(hdr_len);
-            let payload = if hdr_len <= l4.len() {
-                &l4[hdr_len..]
-            } else {
-                &[]
-            };
-
-            let mut flag_names = Vec::new();
-            for (bit, name) in [
-                (0x02, "SYN"),
-                (0x10, "ACK"),
-                (0x08, "PSH"),
-                (0x04, "RST"),
-                (0x01, "FIN"),
-                (0x20, "URG"),
-                (0x40, "ECE"),
-                (0x80, "CWR"),
-            ] {
-                if flags & bit != 0 {
-                    flag_names.push(name);
-                }
-            }
-            let flags_str = if flag_names.is_empty() {
-                "NONE".to_string()
-            } else {
-                flag_names.join(" ")
-            };
-
-            let l7_proto = if payload_len > 0 {
-                if payload.starts_with(b"PRI * HTTP/2.0") {
-                    Some("HTTP2")
-                } else {
-                    port_to_l7_name(dport, true).or_else(|| port_to_l7_name(sport, true))
-                }
-            } else {
-                None
-            };
-            let label = l7_proto.unwrap_or("TCP").to_string();
-            let ack_part = if flags & 0x10 != 0 {
-                format!(" ack={ack}")
-            } else {
-                String::new()
-            };
-            (
-                label,
-                format!(
-                    "{tag_prefix}{sport} -> {dport} [{flags_str}] seq={seq}{ack_part} len={payload_len}"
-                ),
-            )
-        }
-        17 if l4.len() >= 8 => {
-            let sport = u16::from_be_bytes([l4[0], l4[1]]);
-            let dport = u16::from_be_bytes([l4[2], l4[3]]);
-            let payload_len = l4.len().saturating_sub(8);
-            let l7_proto = port_to_l7_name(dport, false).or_else(|| port_to_l7_name(sport, false));
-            let label = l7_proto.unwrap_or("UDP").to_string();
-            (
-                label,
-                format!("{tag_prefix}{sport} -> {dport} len={payload_len}"),
-            )
-        }
-        1 if l4.len() >= 4 => {
-            let icmp_type = l4[0];
-            let icmp_code = l4[1];
-            let desc = match icmp_type {
-                8 => "Echo Request",
-                0 => "Echo Reply",
-                3 => "Destination Unreachable",
-                5 => "Redirect",
-                11 => "Time Exceeded",
-                _ => "Control Message",
-            };
-            (
-                "ICMP".to_string(),
-                format!("{tag_prefix}{desc} (type={icmp_type} code={icmp_code})"),
-            )
-        }
-        58 if l4.len() >= 4 => {
-            let icmp6_type = l4[0];
-            let (label, desc) = match icmp6_type {
-                128 => ("ICMPv6", "Echo Request"),
-                129 => ("ICMPv6", "Echo Reply"),
-                130..=132 | 143 => ("MLD", "Multicast Listener Discovery"),
-                133..=137 => ("NDP", "Neighbor Discovery Protocol"),
-                _ => ("ICMPv6", "Control Message"),
-            };
-            (
-                label.to_string(),
-                format!("{tag_prefix}{desc} (type={icmp6_type})"),
-            )
-        }
-        2 => (
-            "IGMP".to_string(),
-            format!("{tag_prefix}Multicast Membership Message"),
-        ),
-        47 => ("GRE".to_string(), format!("{tag_prefix}GRE Tunnel Packet")),
-        50 => (
-            "ESP".to_string(),
-            format!("{tag_prefix}IPsec Encapsulating Security Payload"),
-        ),
-        51 => (
-            "AH".to_string(),
-            format!("{tag_prefix}IPsec Authentication Header"),
-        ),
-        89 => (
-            "OSPF".to_string(),
-            format!("{tag_prefix}Open Shortest Path First"),
-        ),
-        103 => (
-            "PIM".to_string(),
-            format!("{tag_prefix}Protocol Independent Multicast"),
-        ),
-        112 => (
-            "VRRP".to_string(),
-            format!("{tag_prefix}Virtual Router Redundancy Protocol"),
-        ),
-        132 if l4.len() >= 12 => {
-            let sport = u16::from_be_bytes([l4[0], l4[1]]);
-            let dport = u16::from_be_bytes([l4[2], l4[3]]);
-            (
-                "SCTP".to_string(),
-                format!("{tag_prefix}{sport} -> {dport}"),
-            )
-        }
-        other => (
-            format!("IP({other})"),
-            format!("{tag_prefix}Protocol {other} ({} bytes)", l4.len()),
-        ),
-    }
-}
-
-/// Compiles `.frasm` source into typed [`PacketPreview`] entries without invoking JS bindings.
 ///
 /// # Errors
-/// Returns a human-readable compilation error string if parsing or wire synthesis fails.
-pub fn inspect_fasm_to_previews(source: &str) -> Result<Vec<PacketPreview>, String> {
+/// Returns a JavaScript `Error` if diagnostic serialization fails.
+#[wasm_bindgen(js_name = validateFrasm, unchecked_return_type = "IdeDiagnostic[]")]
+pub fn validate_frasm_js(source: &str) -> Result<JsValue, JsError> {
+    validate_frasm(source)
+}
+
+/// Validates `.frasm` source and returns UTF-16 line/column diagnostics (`validate_fasm` 2.x alias).
+///
+/// # Errors
+/// Returns a JavaScript `Error` if diagnostic serialization fails.
+#[wasm_bindgen(unchecked_return_type = "IdeDiagnostic[]")]
+pub fn validate_fasm(source: &str) -> Result<JsValue, JsError> {
+    validate_frasm(source)
+}
+
+/// Validates `.frasm` source and returns UTF-16 line/column diagnostics (`validateFasm` 2.x alias).
+///
+/// # Errors
+/// Returns a JavaScript `Error` if diagnostic serialization fails.
+#[wasm_bindgen(js_name = validateFasm, unchecked_return_type = "IdeDiagnostic[]")]
+pub fn validate_fasm_js(source: &str) -> Result<JsValue, JsError> {
+    validate_frasm(source)
+}
+
+/// Compiles `.frasm` source into typed [`PacketPreview`] entries without invoking JS bindings,
+/// delegating frame dissection to [`frameassembly::inspect::summarize_frame`].
+///
+/// # Errors
+/// Returns a human-readable error string if `source` exceeds [`MAX_WASM_SOURCE_BYTES`] or if
+/// parsing, semantic validation, or wire synthesis fails.
+pub fn inspect_frasm_to_previews(source: &str) -> Result<Vec<PacketPreview>, String> {
+    check_source_size(source)?;
     let program = parse_program(source).map_err(|e| e.to_string())?;
     let ast_protocols = program.emitted_protocols();
     let packets = compile_program(&program)?;
@@ -730,39 +526,62 @@ pub fn inspect_fasm_to_previews(source: &str) -> Result<Vec<PacketPreview>, Stri
     Ok(previews)
 }
 
-/// Returns decoded frame metadata, endpoint/protocol summaries, and hex strings for packet ladder inspectors.
-#[wasm_bindgen(unchecked_return_type = "PacketPreview[]")]
-pub fn inspect_fasm(source: &str) -> Result<JsValue, JsError> {
-    let previews = inspect_fasm_to_previews(source).map_err(|e| JsError::new(&e))?;
-    Ok(serde_wasm_bindgen::to_value(&previews)?)
+/// Compatibility alias for [`inspect_frasm_to_previews`].
+///
+/// # Errors
+/// Returns a human-readable compilation error string if parsing or wire synthesis fails.
+pub fn inspect_fasm_to_previews(source: &str) -> Result<Vec<PacketPreview>, String> {
+    inspect_frasm_to_previews(source)
 }
 
 /// Returns decoded frame metadata, endpoint/protocol summaries, and hex strings for `.frasm` source.
+///
+/// # Errors
+/// Returns a JavaScript `Error` if `source` exceeds [`MAX_WASM_SOURCE_BYTES`], compilation fails,
+/// or JS serialization fails.
 #[wasm_bindgen(unchecked_return_type = "PacketPreview[]")]
 pub fn inspect_frasm(source: &str) -> Result<JsValue, JsError> {
-    inspect_fasm(source)
+    let previews = inspect_frasm_to_previews(source).map_err(|e| JsError::new(&e))?;
+    Ok(serialize_to_js_object(&previews)?)
 }
 
 /// Returns decoded frame metadata for `.frasm` source (`inspectFrasm` camelCase alias).
+///
+/// # Errors
+/// Returns a JavaScript `Error` if `source` exceeds [`MAX_WASM_SOURCE_BYTES`], compilation fails,
+/// or JS serialization fails.
 #[wasm_bindgen(js_name = inspectFrasm, unchecked_return_type = "PacketPreview[]")]
 pub fn inspect_frasm_js(source: &str) -> Result<JsValue, JsError> {
-    inspect_fasm(source)
+    inspect_frasm(source)
+}
+
+/// Returns decoded frame metadata, endpoint/protocol summaries, and hex strings (`inspect_fasm` 2.x alias).
+///
+/// # Errors
+/// Returns a JavaScript `Error` if `source` exceeds [`MAX_WASM_SOURCE_BYTES`], compilation fails,
+/// or JS serialization fails.
+#[wasm_bindgen(unchecked_return_type = "PacketPreview[]")]
+pub fn inspect_fasm(source: &str) -> Result<JsValue, JsError> {
+    inspect_frasm(source)
 }
 
 /// Compiles `.frasm` source into an in-memory classic libpcap (`.pcap`) byte vector without invoking JS bindings.
 ///
 /// # Errors
-/// Returns a human-readable compilation or serialization error string if parsing or wire synthesis fails.
+/// Returns a human-readable error string if `source` exceeds [`MAX_WASM_SOURCE_BYTES`] or if
+/// parsing, wire synthesis, or serialization fails.
 pub fn compile_frasm_to_pcap(source: &str) -> Result<Vec<u8>, String> {
+    check_source_size(source)?;
     let program = parse_program(source).map_err(|e| e.to_string())?;
     let packets = compile_program(&program)?;
-    frameassembly::pcap::serialize_classic_pcap(&packets)
+    serialize_classic_pcap(&packets)
 }
 
 /// Compiles `.frasm` source into a classic libpcap (`.pcap`) byte array (`compileFrasmToPcap` JS `Uint8Array`).
 ///
 /// # Errors
-/// Returns a JavaScript `JsValue` error if parsing, validation, or serialization fails.
+/// Returns a JavaScript `JsValue` error if `source` exceeds [`MAX_WASM_SOURCE_BYTES`] or if
+/// parsing, validation, or serialization fails.
 #[cfg(target_arch = "wasm32")]
 #[wasm_bindgen(js_name = compileFrasmToPcap)]
 pub fn compile_frasm_to_pcap_js(source: &str) -> Result<Vec<u8>, JsValue> {
@@ -772,79 +591,105 @@ pub fn compile_frasm_to_pcap_js(source: &str) -> Result<Vec<u8>, JsValue> {
 /// Compiles `.frasm` source into a classic libpcap (`.pcap`) byte array (`compile_frasm_to_pcap` JS alias).
 ///
 /// # Errors
-/// Returns a JavaScript `JsValue` error if parsing, validation, or serialization fails.
+/// Returns a JavaScript `JsValue` error if `source` exceeds [`MAX_WASM_SOURCE_BYTES`] or if
+/// parsing, validation, or serialization fails.
 #[cfg(target_arch = "wasm32")]
 #[wasm_bindgen(js_name = compile_frasm_to_pcap)]
 pub fn compile_frasm_to_pcap_wasm(source: &str) -> Result<Vec<u8>, JsValue> {
     compile_frasm_to_pcap(source).map_err(|e| JsError::new(&e).into())
 }
 
-/// Compiles `.frasm` source into a standards-compliant PCAPNG byte array (JS `Uint8Array`).
-#[wasm_bindgen]
-pub fn compile_fasm_to_pcapng(source: &str) -> Result<Vec<u8>, JsError> {
-    let program = parse_program(source).map_err(|e| JsError::new(&e.to_string()))?;
-    let packets = compile_program(&program).map_err(|e| JsError::new(&e.to_string()))?;
-    Ok(packets_to_pcapng(&packets))
+/// Compiles `.frasm` source into an in-memory PCAPNG byte vector with `NameResolutionBlock` host
+/// metadata and per-frame `comment` options without invoking JS bindings.
+///
+/// # Errors
+/// Returns a human-readable error string if `source` exceeds [`MAX_WASM_SOURCE_BYTES`] or if
+/// parsing, wire synthesis, or PCAPNG serialization fails.
+pub fn compile_frasm_to_pcapng_bytes(source: &str) -> Result<Vec<u8>, String> {
+    check_source_size(source)?;
+    let program = parse_program(source).map_err(|e| e.to_string())?;
+    let (compiled, hosts) = compile_program_with_metadata(&program)?;
+    let raw_meta: Vec<(Vec<u8>, u64, Option<String>)> = compiled
+        .into_iter()
+        .map(|frame| (frame.data, frame.timestamp_ns, frame.comment))
+        .collect();
+    serialize_pcapng_with_metadata(&raw_meta, &hosts)
 }
 
-/// Compiles `.frasm` source into a standards-compliant PCAPNG byte array (`compileFasm` 2.x alias).
-#[wasm_bindgen(js_name = compileFasm)]
-pub fn compile_fasm(source: &str) -> Result<Vec<u8>, JsError> {
-    compile_fasm_to_pcapng(source)
-}
-
 /// Compiles `.frasm` source into a standards-compliant PCAPNG byte array (JS `Uint8Array`).
+///
+/// # Errors
+/// Returns a JavaScript `Error` if `source` exceeds [`MAX_WASM_SOURCE_BYTES`] or compilation fails.
 #[wasm_bindgen]
 pub fn compile_frasm_to_pcapng(source: &str) -> Result<Vec<u8>, JsError> {
-    compile_fasm_to_pcapng(source)
+    compile_frasm_to_pcapng_bytes(source).map_err(|e| JsError::new(&e))
 }
 
 /// Compiles `.frasm` source into a standards-compliant PCAPNG byte array (`compileFrasm` alias).
+///
+/// # Errors
+/// Returns a JavaScript `Error` if `source` exceeds [`MAX_WASM_SOURCE_BYTES`] or compilation fails.
 #[wasm_bindgen(js_name = compileFrasm)]
 pub fn compile_frasm(source: &str) -> Result<Vec<u8>, JsError> {
-    compile_fasm_to_pcapng(source)
+    compile_frasm_to_pcapng(source)
+}
+
+/// Compiles `.frasm` source into a standards-compliant PCAPNG byte array (`compile_fasm_to_pcapng` 2.x alias).
+///
+/// # Errors
+/// Returns a JavaScript `Error` if `source` exceeds [`MAX_WASM_SOURCE_BYTES`] or compilation fails.
+#[wasm_bindgen]
+pub fn compile_fasm_to_pcapng(source: &str) -> Result<Vec<u8>, JsError> {
+    compile_frasm_to_pcapng(source)
+}
+
+/// Compiles `.frasm` source into a standards-compliant PCAPNG byte array (`compileFasm` 2.x alias).
+///
+/// # Errors
+/// Returns a JavaScript `Error` if `source` exceeds [`MAX_WASM_SOURCE_BYTES`] or compilation fails.
+#[wasm_bindgen(js_name = compileFasm)]
+pub fn compile_fasm(source: &str) -> Result<Vec<u8>, JsError> {
+    compile_frasm_to_pcapng(source)
+}
+
+/// Shared size-guarded core decompilation helper returning [`ReverseOutput`] or [`ReversePcapError`].
+fn reverse_pcap_core(pcap_bytes: &[u8]) -> Result<ReverseOutput, ReversePcapError> {
+    check_pcap_size(pcap_bytes)?;
+    reverse_pcap_bytes(pcap_bytes).map_err(|err| ReversePcapError::new(err.to_string()))
 }
 
 /// Decompiles an in-memory `.pcap` or `.pcapng` byte slice into a typed [`ReversePcapResult`]
 /// or [`ReversePcapError`] without invoking JavaScript heap bindings.
 ///
 /// # Errors
-/// Returns [`ReversePcapError`] if `pcap_bytes` is not a valid `.pcap` or `.pcapng` capture.
+/// Returns [`ReversePcapError`] if `pcap_bytes` exceeds [`MAX_WASM_PCAP_BYTES`] or is not a
+/// valid `.pcap` or `.pcapng` capture.
 pub fn reverse_pcap_to_result(pcap_bytes: &[u8]) -> Result<ReversePcapResult, ReversePcapError> {
-    match reverse_pcap_bytes(pcap_bytes) {
-        Ok(out) => Ok(ReversePcapResult {
-            success: true,
-            frasm: out.fasm.clone(),
-            fasm: out.fasm,
-            packet_count: out.packet_count,
-            host_count: out.host_count,
-        }),
-        Err(err) => {
-            let message = err.to_string();
-            Err(ReversePcapError {
-                success: false,
-                error: message.clone(),
-                message,
-            })
-        }
-    }
+    reverse_pcap_core(pcap_bytes).map(ReversePcapResult::from)
 }
 
 /// Decompiles an in-memory `.pcap` or `.pcapng` capture (`Uint8Array`) into canonical `.frasm`
 /// source code and summary counts (`{ success: true, frasm, fasm, packetCount, hostCount }`).
 ///
 /// # Errors
-/// Returns a structured `JsValue` error object (`{ success: false, error, message }`) if
-/// `pcap_bytes` is not a valid `.pcap` or `.pcapng` capture.
+/// Returns a structured plain `JsValue` error object (`{ success: false, error, message }`) if
+/// `pcap_bytes` exceeds [`MAX_WASM_PCAP_BYTES`] or is not a valid `.pcap` or `.pcapng` capture.
 #[wasm_bindgen(unchecked_return_type = "ReversePcapResult")]
 pub fn reverse_pcap(pcap_bytes: &[u8]) -> Result<JsValue, JsValue> {
-    match reverse_pcap_to_result(pcap_bytes) {
-        Ok(result) => serde_wasm_bindgen::to_value(&result)
-            .map_err(|e| JsValue::from_str(&e.to_string())),
+    match reverse_pcap_core(pcap_bytes) {
+        Ok(out) => {
+            let payload = ReversePcapJsPayload {
+                success: true,
+                frasm: &out.fasm,
+                fasm: &out.fasm,
+                packet_count: out.packet_count,
+                host_count: out.host_count,
+            };
+            serialize_to_js_object(&payload).map_err(|e| JsValue::from_str(&e.to_string()))
+        }
         Err(err) => {
             let fallback = err.message.clone();
-            Err(serde_wasm_bindgen::to_value(&err)
-                .unwrap_or_else(|_| JsValue::from_str(&fallback)))
+            Err(serialize_to_js_object(&err).unwrap_or_else(|_| JsValue::from_str(&fallback)))
         }
     }
 }
@@ -852,8 +697,8 @@ pub fn reverse_pcap(pcap_bytes: &[u8]) -> Result<JsValue, JsValue> {
 /// Decompiles an in-memory `.pcap` or `.pcapng` capture (`reversePcap` camelCase alias).
 ///
 /// # Errors
-/// Returns a structured `JsValue` error object (`{ success: false, error, message }`) if
-/// `pcap_bytes` is not a valid `.pcap` or `.pcapng` capture.
+/// Returns a structured plain `JsValue` error object (`{ success: false, error, message }`) if
+/// `pcap_bytes` exceeds [`MAX_WASM_PCAP_BYTES`] or is not a valid `.pcap` or `.pcapng` capture.
 #[wasm_bindgen(js_name = reversePcap, unchecked_return_type = "ReversePcapResult")]
 pub fn reverse_pcap_js(pcap_bytes: &[u8]) -> Result<JsValue, JsValue> {
     reverse_pcap(pcap_bytes)
@@ -862,86 +707,11 @@ pub fn reverse_pcap_js(pcap_bytes: &[u8]) -> Result<JsValue, JsValue> {
 /// Serializes `(frame_bytes, timestamp_ns)` tuples into an in-memory PCAPNG byte vector
 /// with nanosecond timestamp resolution (`IfTsResol = 9`).
 pub fn packets_to_pcapng(packets: &[(Vec<u8>, u64)]) -> Vec<u8> {
-    let mut buf = Vec::with_capacity(60 + packets.len() * 96);
-
-    // Section Header Block (28 bytes)
-    buf.extend_from_slice(&0x0A0D_0D0Au32.to_le_bytes());
-    buf.extend_from_slice(&28u32.to_le_bytes());
-    buf.extend_from_slice(&0x1A2B_3C4Du32.to_le_bytes());
-    buf.extend_from_slice(&1u16.to_le_bytes());
-    buf.extend_from_slice(&0u16.to_le_bytes());
-    buf.extend_from_slice(&(-1i64).to_le_bytes());
-    buf.extend_from_slice(&28u32.to_le_bytes());
-
-    // Interface Description Block (32 bytes, Ethernet + snaplen 65535 + nanosecond resolution)
-    buf.extend_from_slice(&1u32.to_le_bytes());
-    buf.extend_from_slice(&32u32.to_le_bytes());
-    buf.extend_from_slice(&1u16.to_le_bytes());
-    buf.extend_from_slice(&0u16.to_le_bytes());
-    buf.extend_from_slice(&65_535u32.to_le_bytes());
-    buf.extend_from_slice(&9u16.to_le_bytes());
-    buf.extend_from_slice(&1u16.to_le_bytes());
-    buf.extend_from_slice(&[9, 0, 0, 0]);
-    buf.extend_from_slice(&0u16.to_le_bytes());
-    buf.extend_from_slice(&0u16.to_le_bytes());
-    buf.extend_from_slice(&32u32.to_le_bytes());
-
-    // Enhanced Packet Blocks
-    for (frame, ts_ns) in packets {
-        let orig_len = frame.len() as u32;
-        let padded_len = (frame.len() + 3) & !3;
-        let block_len = (32 + padded_len) as u32;
-
-        buf.extend_from_slice(&6u32.to_le_bytes());
-        buf.extend_from_slice(&block_len.to_le_bytes());
-        buf.extend_from_slice(&0u32.to_le_bytes());
-        buf.extend_from_slice(&((ts_ns >> 32) as u32).to_le_bytes());
-        buf.extend_from_slice(&(*ts_ns as u32).to_le_bytes());
-        buf.extend_from_slice(&orig_len.to_le_bytes());
-        buf.extend_from_slice(&orig_len.to_le_bytes());
-        buf.extend_from_slice(frame);
-        buf.resize(buf.len() + (padded_len - frame.len()), 0);
-        buf.extend_from_slice(&block_len.to_le_bytes());
-    }
-
-    buf
+    serialize_pcapng(packets).unwrap_or_default()
 }
 
-/// Extracts span coordinates and remediation hints from a `miette::Diagnostic` and appends an [`IdeDiagnostic`].
-fn push_diagnostic(source: &str, err: &dyn Diagnostic, out: &mut Vec<IdeDiagnostic>) {
-    let message = err.to_string();
-    let help = err.help().map(|h| h.to_string());
-
-    if let Some(mut labels) = err.labels()
-        && let Some(span) = labels.next()
-    {
-        let (start_line, start_col) = byte_to_utf16_pos(source, span.offset());
-        let (end_line, end_col) = byte_to_utf16_pos(source, span.offset() + span.len().max(1));
-        out.push(IdeDiagnostic {
-            start_line,
-            start_col,
-            end_line,
-            end_col,
-            message,
-            help,
-        });
-    } else {
-        let (start_byte, end_byte) = find_backend_error_span(source, &message);
-        let (start_line, start_col) = byte_to_utf16_pos(source, start_byte);
-        let (end_line, end_col) =
-            byte_to_utf16_pos(source, end_byte.max(start_byte.saturating_add(1)));
-        out.push(IdeDiagnostic {
-            start_line,
-            start_col,
-            end_line,
-            end_col,
-            message,
-            help,
-        });
-    }
-}
-
-/// Unit tests for UTF-16 span mapping, diagnostics, packet previews, PCAPNG serialization, and decompilation.
+/// Unit tests for UTF-16 span mapping, diagnostics, packet previews, PCAP/PCAPNG serialization,
+/// input size caps, and capture decompilation.
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -959,6 +729,39 @@ mod tests {
             byte_offset_to_utf16_line_col(src, src.len() + 100),
             byte_offset_to_utf16_line_col(src, src.len())
         );
+    }
+
+    /// Verifies that `byte_offset_to_utf16_line_col`, `make_diagnostic`, and
+    /// `validate_frasm_to_diagnostics` handle `\r\n` (CRLF), bare `\r`, astral emoji before `\r\n`,
+    /// and zero-width EOF clamping without off-by-one UTF-16 column drift.
+    #[test]
+    fn test_utf16_line_col_handles_crlf_bare_cr_and_eof_clamp() {
+        let crlf = "host a { ip 10.0.0.1 }\r\n// 🔥\r\ncompile { a -> a icmp }";
+        let cmt = crlf.find("//").unwrap_or(0);
+        assert_eq!(byte_offset_to_utf16_line_col(crlf, cmt - 2), (0, 22));
+        assert_eq!(byte_offset_to_utf16_line_col(crlf, cmt), (1, 0));
+        assert_eq!(byte_offset_to_utf16_line_col(crlf, cmt + 7), (1, 5));
+        assert_eq!(byte_offset_to_utf16_line_col(crlf, cmt + 8), (2, 0));
+        assert_eq!(byte_offset_to_utf16_line_col(crlf, cmt + 9), (2, 0));
+        assert_eq!(byte_offset_to_utf16_line_col(crlf, cmt + 16), (2, 7));
+
+        let bare_cr = "host a { ip 10.0.0.1 }\r// 🔥\rcompile { a -> a icmp }";
+        let bare_cmt = bare_cr.find("//").unwrap_or(0);
+        assert_eq!(byte_offset_to_utf16_line_col(bare_cr, bare_cmt), (1, 0));
+        assert_eq!(byte_offset_to_utf16_line_col(bare_cr, bare_cmt + 7), (1, 5));
+        assert_eq!(byte_offset_to_utf16_line_col(bare_cr, bare_cmt + 8), (2, 0));
+
+        let crlf_err = "host a { ip 10.0.0.1 }\r\ncompile {\r\n    a -> a icmp ECHO_REQUEST\r\n}";
+        let diags = validate_frasm_to_diagnostics(crlf_err);
+        assert_eq!(diags.len(), 1);
+        assert_eq!(diags[0].start_line, 2);
+        assert_eq!(diags[0].start_col, 16);
+        assert_eq!(diags[0].end_line, 2);
+        assert_eq!(diags[0].end_col, 28);
+
+        let eof_diag = make_diagnostic("host a {\r\n", usize::MAX, usize::MAX, "eof".to_string(), None);
+        assert_eq!((eof_diag.start_line, eof_diag.start_col), (1, 0));
+        assert_eq!((eof_diag.end_line, eof_diag.end_col), (1, 0));
     }
 
     /// Verifies in-memory `.frasm` -> PCAPNG compilation, enriched `PacketPreview` summaries, and `reverse_pcap_to_result`.
@@ -989,15 +792,14 @@ mod tests {
         assert_eq!(rev.host_count, 2);
         assert_eq!(rev.frasm, rev.fasm);
         assert!(rev.frasm.contains("host1"));
-        assert!(rev.fasm.contains("host2"));
-        assert!(rev.fasm.contains("dns"));
+        assert!(rev.frasm.contains("host2"));
+        assert!(rev.frasm.contains("dns"));
     }
 
     /// Verifies that backend errors highlight the offending statement or `compile` block instead of `(0, 0)`,
-    /// and that v3.0.0 lowercase keyword hints are preserved in `IdeDiagnostic.help`.
+    /// and that strict-lowercase keyword hints are preserved in `IdeDiagnostic.help`.
     #[test]
     fn test_validate_fasm_backend_span_and_lowercase_help_hints() {
-        // 1. General backend error fallback locates the `compile` keyword (ignoring `compile` in comments)
         let comment_and_compile = "// compile comment on line 0\n\
                                    host host1 { ip 10.0.0.1 }\n\
                                    compile {\n\
@@ -1007,7 +809,6 @@ mod tests {
         assert_eq!(&comment_and_compile[s_byte..e_byte], "compile");
         assert_eq!(byte_offset_to_utf16_line_col(comment_and_compile, s_byte), (2, 0));
 
-        // 2. Real backend error (`SNMPv3` privacy without authentication) highlights the non-(0,0) statement
         let bad_backend = "host host1 { ip 10.0.0.1 }\n\
                            host host2 { ip 10.0.0.2 }\n\
                            compile {\n\
@@ -1018,7 +819,6 @@ mod tests {
         assert_eq!(diags[0].start_line, 3);
         assert!(diags[0].start_col > 0);
 
-        // 3. Uppercase / snake_case keyword error preserves self-healing `replace '...' with '...'` help
         let bad_kw = "host host1 { ip 10.0.0.1 }\n\
                       compile {\n\
                           host1 -> host1 icmp echo_request\n\
@@ -1028,7 +828,7 @@ mod tests {
         let help = kw_diags[0].help.as_deref().unwrap_or("");
         assert!(
             help.contains("replace 'echo_request' with 'echorequest'"),
-            "expected v3.0.0 lowercase help hint, got: {help}"
+            "expected strict-lowercase help hint, got: {help}"
         );
     }
 
@@ -1076,5 +876,75 @@ mod tests {
             "expected classic nanosecond libpcap magic bytes, got {:02x?}",
             &nsec_bytes[0..4]
         );
+    }
+
+    /// Verifies v3.3.0 frame dissection delegation (`frameassembly::inspect::summarize_frame`),
+    /// `compile_frasm_to_pcapng_bytes` NRB/comment metadata, and reverse roundtrips on new L2/L3/L7 protocols.
+    #[test]
+    fn test_v330_inspect_delegation_pcapng_metadata_and_reverse() {
+        let src = "host h1 { ip 10.10.0.1 mac 00:11:22:33:44:01 }\n\
+                   host h2 { ip 10.10.0.2 mac 00:11:22:33:44:02 }\n\
+                   compile {\n\
+                       h1 -> h2 pppoe comment \"pppoe pdi\" wait 5ms\n\
+                       h1 -> h2 profinet wait 5ms\n\
+                       h1 -> h2 ngap comment \"5g ngap\" wait 5ms\n\
+                       repeat 2 {\n\
+                           h1 -> h2 llmnr wait 2ms\n\
+                       }\n\
+                   }";
+        assert!(validate_frasm_to_diagnostics(src).is_empty());
+
+        let previews = inspect_frasm_to_previews(src).expect("inspect v3.3.0 protocols");
+        assert_eq!(previews.len(), 5);
+        assert_eq!(previews[0].protocol, "PPPOE");
+        assert!(previews[0].summary.contains("PPPoE"));
+        assert_eq!(previews[1].protocol, "PROFINET");
+        assert!(previews[1].summary.contains("PROFINET"));
+        assert_eq!(previews[2].protocol, "NGAP");
+        assert_eq!(previews[3].protocol, "LLMNR");
+        assert_eq!(previews[4].protocol, "LLMNR");
+
+        let pcapng = compile_frasm_to_pcapng_bytes(src).expect("compile v3.3.0 pcapng");
+        assert_eq!(&pcapng[0..4], &[0x0A, 0x0D, 0x0D, 0x0A]);
+        assert!(pcapng.windows(9).any(|w| w == b"pppoe pdi"));
+        assert!(pcapng.windows(7).any(|w| w == b"5g ngap"));
+
+        let rev = reverse_pcap_to_result(&pcapng).expect("reverse v3.3.0 pcapng");
+        assert_eq!(rev.packet_count, 5);
+        assert!(rev.frasm.contains("pppoe"));
+        assert!(rev.frasm.contains("ngap"));
+        assert!(rev.frasm.contains("llmnr"));
+
+        let srv6_src = "host v6a { ip 2001:db8::1 mac 00:11:22:33:44:11 }\n\
+                        host v6b { ip 2001:db8::2 mac 00:11:22:33:44:22 }\n\
+                        compile { v6a -> v6b srv6 }";
+        let srv6_previews = inspect_frasm_to_previews(srv6_src).expect("inspect srv6");
+        assert_eq!(srv6_previews.len(), 1);
+        assert_eq!(srv6_previews[0].protocol, "SRV6");
+        assert_eq!(srv6_previews[0].source_dest, "2001:db8::1 -> 2001:db8::2");
+        assert!(srv6_previews[0].summary.contains("SRv6"));
+    }
+
+    /// Verifies that oversized browser inputs exceeding [`MAX_WASM_SOURCE_BYTES`] and
+    /// [`MAX_WASM_PCAP_BYTES`] return structured diagnostics or errors without panicking.
+    #[test]
+    fn test_wasm_input_size_caps_return_structured_errors() {
+        let oversized_source = "a".repeat(MAX_WASM_SOURCE_BYTES + 1);
+        let diags = validate_frasm_to_diagnostics(&oversized_source);
+        assert_eq!(diags.len(), 1);
+        assert_eq!(diags[0].start_line, 0);
+        assert_eq!(diags[0].start_col, 0);
+        assert!(diags[0].message.contains("exceeds maximum supported WebAssembly size"));
+        assert!(diags[0].help.is_some());
+
+        assert!(inspect_frasm_to_previews(&oversized_source).is_err());
+        assert!(compile_frasm_to_pcap(&oversized_source).is_err());
+        assert!(compile_frasm_to_pcapng_bytes(&oversized_source).is_err());
+
+        let oversized_pcap = vec![0u8; MAX_WASM_PCAP_BYTES + 1];
+        let rev_err = reverse_pcap_to_result(&oversized_pcap).expect_err("reject oversized capture");
+        assert!(!rev_err.success);
+        assert!(rev_err.error.contains("exceeds maximum supported WebAssembly size"));
+        assert_eq!(rev_err.error, rev_err.message);
     }
 }

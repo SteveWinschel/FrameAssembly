@@ -12,14 +12,25 @@
 use alloc::format;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
+use std::collections::HashMap;
 
 use logos::Logos;
 
-use crate::ast::{Direction, Protocol, TcpFlag};
+use crate::ast::{Direction, MplsSpec, Protocol, TcpFlag};
 use crate::lexer::Token;
 
-use super::topology::{DiscoveredHost, ResolvedFrameEndpoints};
+use super::topology::{DiscoveredHost, ResolvedFrameEndpoints, derive_host_mac};
 use super::{DissectedPacket, format_mac_lower, format_payload_modifier};
+
+/// Maximum number of unique single-statement compilations retained in [`OracleCache`].
+const MAX_ORACLE_CACHE_ENTRIES: usize = 4096;
+
+/// Bounded per-capture cache of compiled oracle wire frames keyed by `(caller_decl, callee_decl, dir, stmt_body)`.
+#[derive(Debug, Default)]
+pub(crate) struct OracleCache {
+    /// Cached compiled wire bytes (`None` if compilation failed for that key).
+    compiled: HashMap<(String, String, u8, String), Option<Vec<u8>>>,
+}
 
 /// Result of verifying a candidate `.frasm` statement through the in-memory compiler oracle.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -29,34 +40,55 @@ pub(crate) struct VerifiedStatement {
 }
 
 /// Compares synthesized wire bytes against `pkt.raw_eth_frame` using strict 100% raw-frame byte
-/// equality on Ethernet captures and L2-MAC-independent byte equality (`bytes[12..]`) on L3-only
-/// linktypes (`RAW`, `IPV4`, `IPV6`, `NULL`, `LOOP`) that lack wire MAC headers.
+/// equality on Ethernet captures (accounting for trailing 4-byte IEEE 802.3 FCS stripped during
+/// normalization) and L2-MAC-independent byte equality (`bytes[12..]`) on L3-only linktypes.
 fn frames_match(synth_bytes: &[u8], pkt: &DissectedPacket) -> bool {
     if pkt.is_l3_only {
-        synth_bytes.get(12..) == pkt.raw_eth_frame.get(12..)
-    } else {
-        synth_bytes == pkt.raw_eth_frame
+        return synth_bytes.get(12..) == pkt.raw_eth_frame.get(12..);
     }
+    if !pkt.is_l3_only && (pkt.l2.fcs || pkt.l2.bad_fcs) {
+        if synth_bytes == pkt.raw_eth_frame {
+            return true;
+        }
+        let body_len = pkt.raw_eth_frame.len();
+        if synth_bytes.len() == body_len.saturating_add(4)
+            && synth_bytes[..body_len] == pkt.raw_eth_frame[..]
+        {
+            let crc = crate::packet::ieee8023_crc32(&synth_bytes[..body_len]);
+            let expected = if pkt.l2.bad_fcs {
+                crc ^ 0xFFFF_FFFF
+            } else {
+                crc
+            };
+            return synth_bytes[body_len..] == expected.to_le_bytes();
+        }
+        return false;
+    }
+    synth_bytes == pkt.raw_eth_frame
 }
 
-/// Verifies a candidate `.frasm` statement against the original [`DissectedPacket`] using the
-/// in-memory FrameAssembly parser and compiler as a self-checking oracle.
-///
-/// Always operates in best-effort mode without failing:
-/// 1. Tries compiling `candidate_stmt_body` (hydrated via [`hydrate_elided_l4_fields`]) and checks
-///    whether the synthesized frame matches `pkt.raw_eth_frame` byte-for-byte (auto-attaching any
-///    trailing `payload`/`hexpayload` bytes if `pkt.dissection.residual_payload` was empty and the
-///    synthesized frame is shorter than `pkt.raw_eth_frame`).
-/// 2. If `synth_bytes != pkt.raw_eth_frame` or the candidate failed to compile, steps down to a raw
-///    L4 (`tcp`/`udp`) or raw L2 (`vlan`/`qinq`/`mpls`) statement with payload bytes.
-/// 3. Falls back to `best_candidate` (when no L4/L2 step-down applies and `best_candidate`
-///    compiled) or [`build_emergency_fallback`].
+/// Verifies a candidate `.frasm` statement against `pkt` with an isolated one-shot cache.
+#[allow(dead_code)]
 pub(crate) fn verify_with_oracle(
     pkt: &DissectedPacket,
     caller: &DiscoveredHost,
     callee: &DiscoveredHost,
     ep: &ResolvedFrameEndpoints,
     candidate_stmt_body: &str,
+) -> VerifiedStatement {
+    let mut cache = OracleCache::default();
+    verify_with_oracle_cached(pkt, caller, callee, ep, candidate_stmt_body, &mut cache)
+}
+
+/// Verifies a candidate `.frasm` statement against the original [`DissectedPacket`] using the
+/// in-memory FrameAssembly parser and compiler in `O(1)` amortized work per frame (`O(N)` total).
+pub(crate) fn verify_with_oracle_cached(
+    pkt: &DissectedPacket,
+    caller: &DiscoveredHost,
+    callee: &DiscoveredHost,
+    ep: &ResolvedFrameEndpoints,
+    candidate_stmt_body: &str,
+    cache: &mut OracleCache,
 ) -> VerifiedStatement {
     let trimmed = candidate_stmt_body.trim();
     let callee_prefix = format!("{} ", callee.name);
@@ -66,48 +98,79 @@ pub(crate) fn verify_with_oracle(
         .trim()
         .to_string();
 
-    // 1. Test the candidate statement (and hydrate elided L4 ports/seq/ack for single-packet wire comparison).
-    let candidate_compiled =
-        compile_single_statement(caller, callee, ep.dir, &best_candidate).is_some();
-    if candidate_compiled {
-        let hydrated = hydrate_elided_l4_fields(&best_candidate, pkt);
-        let synth_opt = compile_single_statement(caller, callee, ep.dir, &hydrated)
-            .or_else(|| compile_single_statement(caller, callee, ep.dir, &best_candidate));
+    let (oracle_caller, oracle_callee) = resolve_oracle_hosts(caller, callee, ep, pkt.is_l3_only);
 
-        if let Some(synth_bytes) = synth_opt {
+    // 1. Hydrate elided L4 fields once and compile cleanly via the bounded oracle cache.
+    let hydrated = hydrate_elided_l4_fields(&best_candidate, pkt);
+    let mut candidate_compiled_opt: Option<bool> = None;
+
+    if let Some(synth_bytes) =
+        compile_cached(&oracle_caller, &oracle_callee, ep.dir, &hydrated, cache)
+    {
+        if hydrated == best_candidate {
+            candidate_compiled_opt = Some(true);
             if frames_match(&synth_bytes, pkt) {
                 return VerifiedStatement {
                     statement_body: best_candidate,
                 };
             }
+        } else if frames_match(&synth_bytes, pkt)
+            && statement_parses(&oracle_caller, &oracle_callee, ep.dir, &best_candidate)
+        {
+            return VerifiedStatement {
+                statement_body: best_candidate,
+            };
+        }
 
-            // If residual_payload was empty and pkt.raw_eth_frame has extra trailing bytes,
-            // try appending `payload "..."` / `hexpayload "..."` and re-running the oracle.
-            if pkt.dissection.residual_payload.is_empty()
-                && synth_bytes.len() < pkt.raw_eth_frame.len()
-                && !has_payload_token(&best_candidate)
-            {
-                let extra_bytes = &pkt.raw_eth_frame[synth_bytes.len()..];
-                let payload_mod = format_payload_modifier(extra_bytes);
-                if !payload_mod.is_empty() {
-                    let with_payload = insert_before_wait(&best_candidate, &payload_mod);
-                    if compile_single_statement(caller, callee, ep.dir, &with_payload).is_some() {
-                        let hydrated_with_payload = hydrate_elided_l4_fields(&with_payload, pkt);
-                        if let Some(synth2) =
-                            compile_single_statement(caller, callee, ep.dir, &hydrated_with_payload)
-                                .or_else(|| {
-                                    compile_single_statement(caller, callee, ep.dir, &with_payload)
-                                })
-                            && frames_match(&synth2, pkt)
-                        {
-                            return VerifiedStatement {
-                                statement_body: with_payload,
-                            };
-                        }
-                    }
+        // If residual_payload was empty and pkt.raw_eth_frame has extra trailing bytes,
+        // try appending `payload "..."` / `hexpayload "..."` with a single hydrated compile.
+        let synth_body_len = if !pkt.is_l3_only && (pkt.l2.fcs || pkt.l2.bad_fcs) {
+            synth_bytes.len().saturating_sub(4)
+        } else {
+            synth_bytes.len()
+        };
+        if pkt.dissection.residual_payload.is_empty()
+            && synth_body_len < pkt.raw_eth_frame.len()
+            && !has_payload_token(&best_candidate)
+        {
+            let extra_bytes = &pkt.raw_eth_frame[synth_body_len..];
+            let payload_mod = format_payload_modifier(extra_bytes);
+            if !payload_mod.is_empty() {
+                let with_payload = insert_before_wait(&best_candidate, &payload_mod);
+                let hydrated_with_payload = hydrate_elided_l4_fields(&with_payload, pkt);
+                if let Some(synth2) = compile_cached(
+                    &oracle_caller,
+                    &oracle_callee,
+                    ep.dir,
+                    &hydrated_with_payload,
+                    cache,
+                ) && frames_match(&synth2, pkt)
+                    && (hydrated_with_payload == with_payload
+                        || statement_parses(&oracle_caller, &oracle_callee, ep.dir, &with_payload))
+                {
+                    return VerifiedStatement {
+                        statement_body: with_payload,
+                    };
                 }
             }
         }
+    } else if hydrated != best_candidate {
+        let direct_ok = if let Some(direct_bytes) =
+            compile_cached(&oracle_caller, &oracle_callee, ep.dir, &best_candidate, cache)
+        {
+            candidate_compiled_opt = Some(true);
+            frames_match(&direct_bytes, pkt)
+        } else {
+            candidate_compiled_opt = Some(false);
+            false
+        };
+        if direct_ok {
+            return VerifiedStatement {
+                statement_body: best_candidate,
+            };
+        }
+    } else {
+        candidate_compiled_opt = Some(false);
     }
 
     // 2. Step down to raw L4 (`tcp` or `udp`) or raw L2 (`vlan`/`qinq`/`mpls`) statement.
@@ -120,17 +183,35 @@ pub(crate) fn verify_with_oracle(
             && matches!(pkt.ip_proto, Some(6 | 17))
             && pkt.src_ip.is_some_and(super::topology::is_unicast_ip)
             && pkt.dst_ip.is_some_and(super::topology::is_unicast_ip);
-        if let Some(stepdown_bytes) =
-            compile_single_statement(caller, callee, ep.dir, &stepdown_body)
-                .or_else(|| compile_single_statement(caller, callee, ep.dir, &raw_stepdown))
-            && (frames_match(&stepdown_bytes, pkt) || !candidate_compiled || is_unicast_l4)
-        {
-            return VerifiedStatement {
-                statement_body: stepdown_body,
-            };
+        let stepdown_bytes_opt = compile_cached(
+            &oracle_caller,
+            &oracle_callee,
+            ep.dir,
+            &stepdown_body,
+            cache,
+        )
+        .or_else(|| {
+            (stepdown_body != raw_stepdown).then(|| {
+                compile_cached(&oracle_caller, &oracle_callee, ep.dir, &raw_stepdown, cache)
+            })?
+        });
+        if let Some(stepdown_bytes) = stepdown_bytes_opt {
+            let matches = frames_match(&stepdown_bytes, pkt);
+            let candidate_ok = *candidate_compiled_opt.get_or_insert_with(|| {
+                compile_cached(&oracle_caller, &oracle_callee, ep.dir, &best_candidate, cache)
+                    .is_some()
+            });
+            if matches || !candidate_ok || is_unicast_l4 {
+                return VerifiedStatement {
+                    statement_body: stepdown_body,
+                };
+            }
         }
     }
 
+    let candidate_compiled = *candidate_compiled_opt.get_or_insert_with(|| {
+        compile_cached(&oracle_caller, &oracle_callee, ep.dir, &best_candidate, cache).is_some()
+    });
     if candidate_compiled {
         return VerifiedStatement {
             statement_body: best_candidate,
@@ -142,6 +223,26 @@ pub(crate) fn verify_with_oracle(
     VerifiedStatement {
         statement_body: emergency,
     }
+}
+
+/// Ensures isolated 2-host oracle runs preserve multi-host deterministic MAC synthesis (`host3+` -> `:03+`).
+fn resolve_oracle_hosts(
+    caller: &DiscoveredHost,
+    callee: &DiscoveredHost,
+    ep: &ResolvedFrameEndpoints,
+    is_l3_only: bool,
+) -> (DiscoveredHost, DiscoveredHost) {
+    let mut c = caller.clone();
+    let mut s = callee.clone();
+    if !is_l3_only {
+        if c.mac.is_none() {
+            c.mac = Some(derive_host_mac(None, None, c.ip, ep.caller_idx));
+        }
+        if s.mac.is_none() {
+            s.mac = Some(derive_host_mac(None, None, s.ip, ep.callee_idx));
+        }
+    }
+    (c, s)
 }
 
 /// Returns the canonical lowercase direction arrow (`"->"` or `"<-"`).
@@ -165,6 +266,54 @@ fn format_host_decl(host: &DiscoveredHost) -> String {
         fields.push(String::from("mac 00:00:00:00:00:01"));
     }
     format!("host {} {{ {} }}", host.name, fields.join(" "))
+}
+
+/// Parses a single isolated statement without wire synthesis to confirm syntactic validity.
+fn statement_parses(
+    caller: &DiscoveredHost,
+    callee: &DiscoveredHost,
+    dir: Direction,
+    stmt_body: &str,
+) -> bool {
+    let hosts = if caller.name == callee.name {
+        format_host_decl(caller)
+    } else {
+        format!("{}\n{}", format_host_decl(caller), format_host_decl(callee))
+    };
+    let arrow = direction_arrow(dir);
+    let src = format!(
+        "{hosts}\ncompile {{\n    {} {arrow} {} {stmt_body}\n}}\n",
+        caller.name, callee.name
+    );
+    crate::parser::parse_program(&src).is_ok()
+}
+
+/// Compiles a single statement using a bounded in-memory [`OracleCache`] to avoid redundant reparsing.
+fn compile_cached(
+    caller: &DiscoveredHost,
+    callee: &DiscoveredHost,
+    dir: Direction,
+    stmt_body: &str,
+    cache: &mut OracleCache,
+) -> Option<Vec<u8>> {
+    let dir_tag = match dir {
+        Direction::LeftToRight => 0u8,
+        Direction::RightToLeft => 1u8,
+    };
+    let key = (
+        format_host_decl(caller),
+        format_host_decl(callee),
+        dir_tag,
+        stmt_body.to_string(),
+    );
+    if let Some(cached) = cache.compiled.get(&key) {
+        return cached.clone();
+    }
+    let res = compile_single_statement(caller, callee, dir, stmt_body);
+    if cache.compiled.len() < MAX_ORACLE_CACHE_ENTRIES {
+        cache.compiled.insert(key, res.clone());
+    }
+    res
 }
 
 /// Parses and compiles a minimal 1-statement `.frasm` program in memory, returning the
@@ -210,7 +359,7 @@ fn extract_wait_suffix(stmt_body: &str) -> Option<String> {
 }
 
 /// Inserts `modifier` immediately before any trailing `wait <n><unit>` clause in `stmt_body`.
-fn insert_before_wait(stmt_body: &str, modifier: &str) -> String {
+pub(crate) fn insert_before_wait(stmt_body: &str, modifier: &str) -> String {
     if modifier.is_empty() {
         return stmt_body.to_string();
     }
@@ -291,6 +440,30 @@ fn hydrate_elided_l4_fields(stmt_body: &str, pkt: &DissectedPacket) -> String {
     }
 }
 
+/// Appends single- or multi-label MPLS shim modifiers onto `parts`, eliding default `bos` flags.
+fn append_mpls_stack(parts: &mut Vec<String>, mpls_entries: &[MplsSpec]) {
+    let total = mpls_entries.len();
+    for (idx, m) in mpls_entries.iter().enumerate() {
+        parts.push(format!("mpls {}", m.label));
+        if let Some(exp) = m.exp
+            && exp != 0
+        {
+            parts.push(format!("exp {exp}"));
+        }
+        let default_bos = u8::from(idx + 1 == total);
+        if let Some(bos) = m.bos
+            && bos != default_bos
+        {
+            parts.push(format!("bos {bos}"));
+        }
+        if let Some(ttl) = m.ttl
+            && ttl != 64
+        {
+            parts.push(format!("mplsttl {ttl}"));
+        }
+    }
+}
+
 /// Builds a raw L4 (`tcp`/`udp`) or raw L2 (`vlan`/`qinq`/`mpls`) step-down statement from `pkt`.
 fn build_stepdown_statement(
     pkt: &DissectedPacket,
@@ -300,12 +473,12 @@ fn build_stepdown_statement(
     wait_suffix: Option<&str>,
 ) -> Option<String> {
     let mut parts = Vec::new();
-    let (src_host, dst_host, is_forward) = match ep.dir {
-        Direction::LeftToRight => (caller, callee, true),
-        Direction::RightToLeft => (callee, caller, false),
+    let (src_host, dst_host, src_idx, dst_idx) = match ep.dir {
+        Direction::LeftToRight => (caller, callee, ep.caller_idx, ep.callee_idx),
+        Direction::RightToLeft => (callee, caller, ep.callee_idx, ep.caller_idx),
     };
-    let synth_src = super::topology::derive_mac(src_host.mac, None, src_host.ip, is_forward);
-    let synth_dst = super::topology::derive_mac(dst_host.mac, None, dst_host.ip, !is_forward);
+    let synth_src = derive_host_mac(src_host.mac, None, src_host.ip, src_idx);
+    let synth_dst = derive_host_mac(dst_host.mac, None, dst_host.ip, dst_idx);
     let emit_src_mac = (!pkt.is_l3_only && pkt.src_mac != synth_src).then_some(pkt.src_mac);
     let emit_dst_mac = (!pkt.is_l3_only && pkt.dst_mac != synth_dst).then_some(pkt.dst_mac);
 
@@ -380,6 +553,11 @@ fn build_stepdown_statement(
             parts.push(pmod);
         }
     } else if !pkt.has_ip_header {
+        let mpls_entries: &[MplsSpec] = if !pkt.l2.mpls_stack.is_empty() {
+            &pkt.l2.mpls_stack
+        } else {
+            pkt.l2.mpls.as_slice()
+        };
         if let Some(q) = &pkt.l2.qinq {
             parts.push(format!("qinq {}", q.outer_vid));
             if let Some(iv) = q.inner_vid
@@ -397,41 +575,11 @@ fn build_stepdown_statement(
             {
                 parts.push(format!("dei {dei}"));
             }
-            if let Some(m) = &pkt.l2.mpls {
-                parts.push(format!("mpls {}", m.label));
-                if let Some(exp) = m.exp
-                    && exp != 0
-                {
-                    parts.push(format!("exp {exp}"));
-                }
-                if let Some(bos) = m.bos
-                    && bos != 1
-                {
-                    parts.push(format!("bos {bos}"));
-                }
-                if let Some(ttl) = m.ttl
-                    && ttl != 64
-                {
-                    parts.push(format!("mplsttl {ttl}"));
-                }
+            if !mpls_entries.is_empty() {
+                append_mpls_stack(&mut parts, mpls_entries);
             }
-        } else if let Some(m) = &pkt.l2.mpls {
-            parts.push(format!("mpls {}", m.label));
-            if let Some(exp) = m.exp
-                && exp != 0
-            {
-                parts.push(format!("exp {exp}"));
-            }
-            if let Some(bos) = m.bos
-                && bos != 1
-            {
-                parts.push(format!("bos {bos}"));
-            }
-            if let Some(ttl) = m.ttl
-                && ttl != 64
-            {
-                parts.push(format!("mplsttl {ttl}"));
-            }
+        } else if !mpls_entries.is_empty() {
+            append_mpls_stack(&mut parts, mpls_entries);
             if let Some(v) = &pkt.l2.vlan {
                 parts.push(format!("vlan {}", v.vid));
                 if let Some(pcp) = v.pcp
@@ -462,7 +610,7 @@ fn build_stepdown_statement(
             }
         }
         if pkt.inner_ethertype != 0x88B5
-            && !(pkt.l2.mpls.is_some() && matches!(pkt.inner_ethertype, 0x8847 | 0x8848))
+            && !(!mpls_entries.is_empty() && matches!(pkt.inner_ethertype, 0x8847 | 0x8848))
         {
             parts.push(format!("ethertype 0x{:04x}", pkt.inner_ethertype));
         }
@@ -471,6 +619,12 @@ fn build_stepdown_statement(
         }
         if let Some(dm) = emit_dst_mac {
             parts.push(format!("dstmac {}", format_mac_lower(dm)));
+        }
+        if pkt.l2.fcs {
+            parts.push(String::from("fcs"));
+        }
+        if pkt.l2.bad_fcs {
+            parts.push(String::from("badfcs"));
         }
         let pmod = format_payload_modifier(&pkt.l2_payload);
         if !pmod.is_empty() {
@@ -533,24 +687,20 @@ fn append_l2_l3_modifiers(
                 parts.push(format!("dei {dei}"));
             }
         }
-        if let Some(m) = &pkt.l2.mpls {
-            parts.push(format!("mpls {}", m.label));
-            if let Some(exp) = m.exp
-                && exp != 0
-            {
-                parts.push(format!("exp {exp}"));
-            }
-            if let Some(bos) = m.bos
-                && bos != 1
-            {
-                parts.push(format!("bos {bos}"));
-            }
-            if let Some(ttl) = m.ttl
-                && ttl != 64
-            {
-                parts.push(format!("mplsttl {ttl}"));
-            }
+        let mpls_entries: &[MplsSpec] = if !pkt.l2.mpls_stack.is_empty() {
+            &pkt.l2.mpls_stack
+        } else {
+            pkt.l2.mpls.as_slice()
+        };
+        if !mpls_entries.is_empty() {
+            append_mpls_stack(parts, mpls_entries);
         }
+    }
+    if pkt.l2.fcs {
+        parts.push(String::from("fcs"));
+    }
+    if pkt.l2.bad_fcs {
+        parts.push(String::from("badfcs"));
     }
 
     if pkt.has_ip_header {
@@ -576,23 +726,24 @@ fn append_l2_l3_modifiers(
         {
             parts.push(format!("flowlabel 0x{fl:x}"));
         }
-        if !is_ipv6 {
-            if let Some(ipid) = pkt.l3.ipid
-                && ipid != 0
-            {
-                parts.push(format!("ipid 0x{ipid:04x}"));
-            }
-            if pkt.l3.df {
-                parts.push(String::from("df"));
-            }
-            if pkt.l3.mf {
-                parts.push(String::from("mf"));
-            }
-            if let Some(fo) = pkt.l3.frag_offset
-                && fo != 0
-            {
-                parts.push(format!("fragoffset {fo}"));
-            }
+        if let Some(ipid) = pkt.l3.ipid
+            && (is_ipv6 || ipid != 0)
+        {
+            parts.push(format!("ipid 0x{ipid:04x}"));
+        }
+        if !is_ipv6 && pkt.l3.df {
+            parts.push(String::from("df"));
+        }
+        if pkt.l3.mf {
+            parts.push(String::from("mf"));
+        }
+        if let Some(fo) = pkt.l3.frag_offset
+            && fo != 0
+        {
+            parts.push(format!("fragoffset {fo}"));
+        }
+        if pkt.l3.router_alert {
+            parts.push(String::from("routeralert"));
         }
     }
 }

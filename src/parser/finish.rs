@@ -4,7 +4,7 @@
 //! Layer 3, Layer 4, and Layer 7 [`ParsedField`](super::fields::ParsedField) modifiers have been
 //! applied to a statement's [`FrameBuilder`]. It resolves default transport and encapsulation
 //! protocols, synthesizes strongly typed [`L2Modifiers`], [`L3Modifiers`], [`L4Modifiers`], and
-//! [`ProtocolSpec`] payloads across all 81 supported protocols, and returns the spanned
+//! [`ProtocolSpec`] payloads across all 146 supported protocols, and returns the spanned
 //! [`FrameStatement`] AST node.
 
 use crate::ast::*;
@@ -16,7 +16,7 @@ impl<'a> FrameBuilder<'a> {
         self.protocol.is_some()
             || self.vlan_val.is_some()
             || self.qinq_val.is_some()
-            || self.mpls_val.is_some()
+            || !self.mpls_entries.is_empty()
     }
 
     /// Finalizes the [`FrameBuilder`] and produces a complete [`FrameStatement`] AST node.
@@ -30,12 +30,13 @@ impl<'a> FrameBuilder<'a> {
             (Some(p), _) => p,
             (None, Some(TransportProto::Udp)) => Protocol::Udp,
             (None, Some(TransportProto::Tcp)) => Protocol::Tcp,
+            (None, Some(TransportProto::Sctp)) => Protocol::Sctp,
             (None, None) => {
                 if self.vlan_val.is_some() {
                     Protocol::Vlan
                 } else if self.qinq_val.is_some() {
                     Protocol::Qinq
-                } else if self.mpls_val.is_some() {
+                } else if !self.mpls_entries.is_empty() {
                     Protocol::Mpls
                 } else {
                     Protocol::Tcp
@@ -80,7 +81,14 @@ impl<'a> FrameBuilder<'a> {
         }
 
         if let Some((p, span)) = self.priority_val
-            && matches!(protocol, Protocol::Ospf | Protocol::Vrrp | Protocol::Hsrp)
+            && matches!(
+                protocol,
+                Protocol::Ospf
+                    | Protocol::Vrrp
+                    | Protocol::Hsrp
+                    | Protocol::Lisp
+                    | Protocol::Glbp
+            )
         {
             self.check_bound("priority", p as u64, 0, 255, span);
         }
@@ -88,6 +96,17 @@ impl<'a> FrameBuilder<'a> {
             && protocol == Protocol::Hsrp
         {
             self.check_bound("HSRP holdtime", ht as u64, 0, 255, span);
+        }
+        if let Some((v, _)) = self.ttl_val {
+            if self.cdp_spec.ttl.is_none() && v <= 255 {
+                self.cdp_spec.ttl = Some(v as u8);
+            }
+            if self.nsh_spec.ttl.is_none() && v <= 63 {
+                self.nsh_spec.ttl = Some(v as u8);
+            }
+        }
+        if self.srv6_spec.next_header.is_none() {
+            self.srv6_spec.next_header = self.next_header_val;
         }
         let deferred = core::mem::take(&mut self.deferred_u32_fields);
         for (key, val, span) in deferred {
@@ -101,7 +120,16 @@ impl<'a> FrameBuilder<'a> {
                 "VRID" if protocol == Protocol::Vrrp => {
                     self.check_bound("VRRP vrid", val as u64, 1, 255, span);
                 }
-                "TXID" if matches!(protocol, Protocol::Dns | Protocol::Mdns | Protocol::Modbus) => {
+                "TXID"
+                    if matches!(
+                        protocol,
+                        Protocol::Dns
+                            | Protocol::Mdns
+                            | Protocol::Modbus
+                            | Protocol::Doh
+                            | Protocol::Hartip
+                    ) =>
+                {
                     self.check_bound("txid", val as u64, 0, 65535, span);
                 }
                 "CODE" if protocol == Protocol::Icmp => {
@@ -113,17 +141,91 @@ impl<'a> FrameBuilder<'a> {
                 "MSGID" if protocol == Protocol::Coap => {
                     self.check_bound("CoAP msgid", val as u64, 0, 65535, span);
                 }
-                "STATUS" if matches!(protocol, Protocol::Http | Protocol::Sip | Protocol::Rtsp) => {
+                "STATUS"
+                    if matches!(
+                        protocol,
+                        Protocol::Http
+                            | Protocol::Sip
+                            | Protocol::Rtsp
+                            | Protocol::Doh
+                            | Protocol::Mgcp
+                            | Protocol::Nvmetcp
+                            | Protocol::Gesrtp
+                    ) =>
+                {
                     self.check_bound("status", val as u64, 0, 65535, span);
                 }
-                "FLAGS" if matches!(protocol, Protocol::Stp | Protocol::Ikev2 | Protocol::Tacacs) =>
+                "STATUS"
+                    if matches!(protocol, Protocol::Iscsi | Protocol::Ipmi | Protocol::Twamp) =>
+                {
+                    self.check_bound("status", val as u64, 0, 255, span);
+                }
+                "FLAGS"
+                    if matches!(
+                        protocol,
+                        Protocol::Stp
+                            | Protocol::Ikev2
+                            | Protocol::Tacacs
+                            | Protocol::S7commplus
+                            | Protocol::Iscsi
+                            | Protocol::Nvmetcp
+                    ) =>
                 {
                     self.check_bound("flags", val as u64, 0, 255, span);
+                }
+                "FLAGS" if protocol == Protocol::Tns => {
+                    self.check_bound("flags", val as u64, 0, 65535, span);
                 }
                 "VALUE" if protocol == Protocol::Modbus => {
                     self.check_bound("Modbus value", val as u64, 0, 65535, span);
                 }
+                "VALUE"
+                    if matches!(
+                        protocol,
+                        Protocol::Fins | Protocol::Melsec | Protocol::C1222
+                    ) =>
+                {
+                    self.check_bound("value", val as u64, 0, 65535, span);
+                }
+                "VERSION" if protocol == Protocol::Ipmi => {
+                    self.check_bound("version", val as u64, 0, 255, span);
+                }
+                "VERSION" if protocol == Protocol::Tns => {
+                    self.check_bound("version", val as u64, 0, 65535, span);
+                }
+                "SEQ_NUM" if matches!(protocol, Protocol::Gesrtp | Protocol::H323) => {
+                    self.check_bound("seqnum", val as u64, 0, 65535, span);
+                }
+                "REQ_ID" if protocol == Protocol::Nvmetcp => {
+                    self.check_bound("reqid", val as u64, 0, 65535, span);
+                }
+                "RECOVERY" if protocol == Protocol::Gtpc => {
+                    self.check_bound("recovery", val as u64, 0, 255, span);
+                }
+                "LUN" if protocol == Protocol::Ipmi => {
+                    self.check_bound("lun", val as u64, 0, 255, span);
+                }
+                "LUN" if protocol == Protocol::Iscsi => {
+                    self.check_bound("lun", val as u64, 0, 65535, span);
+                }
+                "tac" if protocol == Protocol::S1ap => {
+                    self.check_bound("tac", val as u64, 0, 65535, span);
+                }
+                "tac" if protocol == Protocol::Ngap => {
+                    self.check_bound("tac", val as u64, 0, 0xFF_FFFF, span);
+                }
                 _ => {}
+            }
+        }
+        let deferred_u64 = core::mem::take(&mut self.deferred_u64_fields);
+        for (key, val, span) in deferred_u64 {
+            if key == "SESSION_ID"
+                && matches!(
+                    protocol,
+                    Protocol::Tacacs | Protocol::Ipmi | Protocol::Netconf | Protocol::S7commplus
+                )
+            {
+                self.check_bound("sessionid", val, 0, u64::from(u32::MAX), span);
             }
         }
 
@@ -140,14 +242,19 @@ impl<'a> FrameBuilder<'a> {
             pcp,
             dei,
         });
-        let exp = self.exp_val.map(|(e, _)| e);
-        let bos = self.bos_val.map(|(b, _)| b);
-        let mpls = self.mpls_val.map(|(lbl, _)| MplsSpec {
-            label: lbl,
-            exp,
-            bos,
-            ttl: self.mpls_ttl_val.map(|(t, _)| t),
-        });
+        let mpls_len = self.mpls_entries.len();
+        let mpls_stack: Vec<MplsSpec> = self
+            .mpls_entries
+            .iter()
+            .enumerate()
+            .map(|(i, &(label, exp, bos, ttl, _))| MplsSpec {
+                label,
+                exp,
+                bos: bos.or(Some(if i + 1 < mpls_len { 0 } else { 1 })),
+                ttl,
+            })
+            .collect();
+        let mpls = mpls_stack.first().cloned();
         let l2 = L2Modifiers {
             src_mac: self.src_mac_val.map(|(m, _)| m),
             dst_mac: self.dst_mac_val.map(|(m, _)| m),
@@ -155,6 +262,9 @@ impl<'a> FrameBuilder<'a> {
             vlan: vlan.clone(),
             qinq: qinq.clone(),
             mpls: mpls.clone(),
+            mpls_stack,
+            fcs: self.fcs,
+            bad_fcs: self.bad_fcs,
         };
 
         let l3 = L3Modifiers {
@@ -172,13 +282,18 @@ impl<'a> FrameBuilder<'a> {
             df: self.df_val,
             mf: self.mf_val,
             frag_offset: self.frag_offset_val.map(|(v, _)| v),
+            router_alert: self.router_alert,
+            bad_ip_checksum: self.bad_ip_checksum,
         };
 
         let tcp_options = if self.mss_val.is_some()
             || self.wscale_val.is_some()
             || self.sack_perm_val
+            || !self.sack_blocks.is_empty()
             || self.tsval_val.is_some()
             || self.tsecr_val.is_some()
+            || self.tcp_md5.is_some()
+            || self.tfo.is_some()
         {
             Some(TcpOptions {
                 mss: self.mss_val.map(|(v, _)| v),
@@ -186,6 +301,9 @@ impl<'a> FrameBuilder<'a> {
                 sack_perm: self.sack_perm_val,
                 tsval: self.tsval_val.map(|(v, _)| v),
                 tsecr: self.tsecr_val.map(|(v, _)| v),
+                sack_blocks: self.sack_blocks,
+                tcp_md5: self.tcp_md5,
+                tfo: self.tfo,
             })
         } else {
             None
@@ -216,6 +334,8 @@ impl<'a> FrameBuilder<'a> {
             urgent: self.urgent_val.map(|(v, _)| v),
             tcp_options,
             sctp_params: sctp_params.clone(),
+            bad_checksum: self.bad_checksum,
+            no_checksum: self.no_checksum,
         };
 
         let protocol_spec = match protocol {
@@ -494,7 +614,15 @@ impl<'a> FrameBuilder<'a> {
             Protocol::Http => Some(ProtocolSpec::Http(self.http_spec)),
             Protocol::Http2 => Some(ProtocolSpec::Http2(self.http2_spec)),
             Protocol::Grpc => Some(ProtocolSpec::Grpc(self.grpc_spec)),
-            Protocol::Websocket => Some(ProtocolSpec::Websocket(self.websocket_spec)),
+            Protocol::Websocket => {
+                let mut ws = self.websocket_spec;
+                let has_empty_explicit = self.payload.as_deref() == Some("")
+                    || matches!(self.hex_payload.as_deref(), Some([]));
+                if ws.payload.is_none() && has_empty_explicit {
+                    ws.payload = Some("");
+                }
+                Some(ProtocolSpec::Websocket(ws))
+            }
             Protocol::Tls => Some(ProtocolSpec::Tls(self.tls_spec)),
             Protocol::Quic => Some(ProtocolSpec::Quic(self.quic_spec)),
             Protocol::Stun => Some(ProtocolSpec::Stun(self.stun_spec)),
@@ -512,7 +640,15 @@ impl<'a> FrameBuilder<'a> {
             Protocol::Memcached => Some(ProtocolSpec::Memcached(self.memcached_spec)),
             Protocol::Mysql => Some(ProtocolSpec::Mysql(self.mysql_spec)),
             Protocol::Postgres => Some(ProtocolSpec::Postgres(self.postgres_spec)),
-            Protocol::Mqtt => Some(ProtocolSpec::Mqtt(self.mqtt_spec)),
+            Protocol::Mqtt => {
+                let mut mqtt = self.mqtt_spec;
+                let has_empty_explicit = self.payload.as_deref() == Some("")
+                    || matches!(self.hex_payload.as_deref(), Some([]));
+                if mqtt.payload.is_none() && has_empty_explicit {
+                    mqtt.payload = Some("");
+                }
+                Some(ProtocolSpec::Mqtt(mqtt))
+            }
             Protocol::Coap => Some(ProtocolSpec::Coap(self.coap_spec)),
             Protocol::Amqp => Some(ProtocolSpec::Amqp(self.amqp_spec)),
             Protocol::Ssdp => Some(ProtocolSpec::Ssdp(self.ssdp_spec)),
@@ -523,6 +659,71 @@ impl<'a> FrameBuilder<'a> {
             Protocol::S7comm => Some(ProtocolSpec::S7comm(self.s7comm_spec)),
             Protocol::Ethernetip => Some(ProtocolSpec::Ethernetip(self.ethernetip_spec)),
             Protocol::Opcua => Some(ProtocolSpec::Opcua(self.opcua_spec)),
+            Protocol::Cdp => Some(ProtocolSpec::Cdp(self.cdp_spec)),
+            Protocol::Isis => Some(ProtocolSpec::Isis(self.isis_spec)),
+            Protocol::Macsec => Some(ProtocolSpec::Macsec(self.macsec_spec)),
+            Protocol::Pfc => Some(ProtocolSpec::Pfc(self.pfc_spec)),
+            Protocol::Pppoe => Some(ProtocolSpec::Pppoe(self.pppoe_spec)),
+            Protocol::Nsh => Some(ProtocolSpec::Nsh(self.nsh_spec)),
+            Protocol::Profinet => Some(ProtocolSpec::Profinet(self.profinet_spec)),
+            Protocol::Goose => Some(ProtocolSpec::Goose(self.goose_spec)),
+            Protocol::Sv => Some(ProtocolSpec::Sv(self.sv_spec)),
+            Protocol::Ethercat => Some(ProtocolSpec::Ethercat(self.ethercat_spec)),
+            Protocol::Ipip => Some(ProtocolSpec::Ipip(self.ipip_spec)),
+            Protocol::Srv6 => Some(ProtocolSpec::Srv6(self.srv6_spec)),
+            Protocol::Erspan => Some(ProtocolSpec::Erspan(self.erspan_spec)),
+            Protocol::Rsvp => Some(ProtocolSpec::Rsvp(self.rsvp_spec)),
+            Protocol::Ldp => Some(ProtocolSpec::Ldp(self.ldp_spec)),
+            Protocol::Bmp => Some(ProtocolSpec::Bmp(self.bmp_spec)),
+            Protocol::Rpkirtr => Some(ProtocolSpec::Rpkirtr(self.rpkirtr_spec)),
+            Protocol::L2tp => Some(ProtocolSpec::L2tp(self.l2tp_spec)),
+            Protocol::Lisp => Some(ProtocolSpec::Lisp(self.lisp_spec)),
+            Protocol::Glbp => Some(ProtocolSpec::Glbp(self.glbp_spec)),
+            Protocol::Gtpu => Some(ProtocolSpec::Gtpu(self.gtpu_spec)),
+            Protocol::Dcerpc => Some(ProtocolSpec::Dcerpc(self.dcerpc_spec)),
+            Protocol::Ntlm => Some(ProtocolSpec::Ntlm(self.ntlm_spec)),
+            Protocol::Rdp => Some(ProtocolSpec::Rdp(self.rdp_spec)),
+            Protocol::Llmnr => Some(ProtocolSpec::Llmnr(self.llmnr_spec)),
+            Protocol::Nbns => Some(ProtocolSpec::Nbns(self.nbns_spec)),
+            Protocol::Socks => Some(ProtocolSpec::Socks(self.socks_spec)),
+            Protocol::Vnc => Some(ProtocolSpec::Vnc(self.vnc_spec)),
+            Protocol::Doh => Some(ProtocolSpec::Doh(self.doh_spec)),
+            Protocol::Wsdiscovery => Some(ProtocolSpec::Wsdiscovery(self.wsdiscovery_spec)),
+            Protocol::Irc => Some(ProtocolSpec::Irc(self.irc_spec)),
+            Protocol::Iec104 => Some(ProtocolSpec::Iec104(self.iec104_spec)),
+            Protocol::Mms => Some(ProtocolSpec::Mms(self.mms_spec)),
+            Protocol::S7commplus => Some(ProtocolSpec::S7commplus(self.s7commplus_spec)),
+            Protocol::Synchrophasor => Some(ProtocolSpec::Synchrophasor(self.synchrophasor_spec)),
+            Protocol::Hartip => Some(ProtocolSpec::Hartip(self.hartip_spec)),
+            Protocol::Fins => Some(ProtocolSpec::Fins(self.fins_spec)),
+            Protocol::Melsec => Some(ProtocolSpec::Melsec(self.melsec_spec)),
+            Protocol::Someip => Some(ProtocolSpec::Someip(self.someip_spec)),
+            Protocol::Doip => Some(ProtocolSpec::Doip(self.doip_spec)),
+            Protocol::C1222 => Some(ProtocolSpec::C1222(self.c1222_spec)),
+            Protocol::Gesrtp => Some(ProtocolSpec::Gesrtp(self.gesrtp_spec)),
+            Protocol::Rocplus => Some(ProtocolSpec::Rocplus(self.rocplus_spec)),
+            Protocol::Bsap => Some(ProtocolSpec::Bsap(self.bsap_spec)),
+            Protocol::Knxnetip => Some(ProtocolSpec::Knxnetip(self.knxnetip_spec)),
+            Protocol::Rocev2 => Some(ProtocolSpec::Rocev2(self.rocev2_spec)),
+            Protocol::Ipmi => Some(ProtocolSpec::Ipmi(self.ipmi_spec)),
+            Protocol::Twamp => Some(ProtocolSpec::Twamp(self.twamp_spec)),
+            Protocol::Netconf => Some(ProtocolSpec::Netconf(self.netconf_spec)),
+            Protocol::Gtpc => Some(ProtocolSpec::Gtpc(self.gtpc_spec)),
+            Protocol::Pfcp => Some(ProtocolSpec::Pfcp(self.pfcp_spec)),
+            Protocol::Diameter => Some(ProtocolSpec::Diameter(self.diameter_spec)),
+            Protocol::Ngap => Some(ProtocolSpec::Ngap(self.ngap_spec)),
+            Protocol::S1ap => Some(ProtocolSpec::S1ap(self.s1ap_spec)),
+            Protocol::Mssql => Some(ProtocolSpec::Mssql(self.mssql_spec)),
+            Protocol::Kafka => Some(ProtocolSpec::Kafka(self.kafka_spec)),
+            Protocol::Mongodb => Some(ProtocolSpec::Mongodb(self.mongodb_spec)),
+            Protocol::Tns => Some(ProtocolSpec::Tns(self.tns_spec)),
+            Protocol::Iscsi => Some(ProtocolSpec::Iscsi(self.iscsi_spec)),
+            Protocol::Nvmetcp => Some(ProtocolSpec::Nvmetcp(self.nvmetcp_spec)),
+            Protocol::Rtcp => Some(ProtocolSpec::Rtcp(self.rtcp_spec)),
+            Protocol::Turn => Some(ProtocolSpec::Turn(self.turn_spec)),
+            Protocol::H323 => Some(ProtocolSpec::H323(self.h323_spec)),
+            Protocol::Sccp => Some(ProtocolSpec::Sccp(self.sccp_spec)),
+            Protocol::Mgcp => Some(ProtocolSpec::Mgcp(self.mgcp_spec)),
         };
 
         let statement_span = (caller.span.0, self.stmt_end_offset - caller.span.0);
@@ -540,13 +741,23 @@ impl<'a> FrameBuilder<'a> {
             payload: self.payload,
             payload_bytes: self.payload_bytes,
             hex_payload: self.hex_payload,
+            comment: self.comment,
             wait: self.wait,
             span: statement_span,
             raw_vlan: self.vlan_val,
+            raw_qinq_span: self.raw_qinq_span,
+            raw_inner_vlan_span: self.raw_inner_vlan_span,
+            raw_pcp_span: self.raw_pcp_span,
+            raw_dei_span: self.raw_dei_span,
+            raw_mpls_sub_span: self.raw_mpls_sub_span,
             raw_dscp: self.dscp_val,
             raw_ecn: self.ecn_val,
             raw_ttl: self.ttl_val,
             raw_flowlabel: self.flowlabel_val,
+            raw_df_span: self.raw_df_span,
+            raw_frag_offset: self.frag_offset_val.map(|(v, s)| (v as u32, s)),
+            raw_no_checksum_span: self.raw_no_checksum_span,
+            raw_bad_ip_checksum_span: self.raw_bad_ip_checksum_span,
             raw_gentrap_span: self.gentrap_span,
             raw_hellotime: self.raw_hellotime,
             raw_bounds: self.raw_bounds,

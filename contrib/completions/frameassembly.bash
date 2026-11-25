@@ -1,4 +1,5 @@
 # bash completion for frameassembly(1)                     -*- shell-script -*-
+# FrameAssembly v3.3.0
 # https://github.com/SteveWinschel/FrameAssembly
 
 _frameassembly_complete_files() {
@@ -27,8 +28,17 @@ _frameassembly_complete_files() {
                     *.pcap|*.pcapng) COMPREPLY+=("$item") ;;
                 esac
                 ;;
+            show)
+                case "$lower" in
+                    *.frasm|*.pcap|*.pcapng) COMPREPLY+=("$item") ;;
+                esac
+                ;;
         esac
     done < <(compgen -f -- "$cur")
+
+    if [ "$cur" = "-" ]; then
+        COMPREPLY+=("-")
+    fi
 }
 
 _frameassembly() {
@@ -47,7 +57,7 @@ _frameassembly() {
     case "$subcmd" in
         show)
             if [ "$COMP_CWORD" -eq 2 ]; then
-                _frameassembly_complete_files "$cur" "frasm"
+                _frameassembly_complete_files "$cur" "show"
             fi
             ;;
         reverse)
@@ -63,7 +73,7 @@ _frameassembly() {
                 COMPREPLY=($(compgen -W "show reverse update version help" -- "$cur"))
             fi
             ;;
-        update|version|-*)
+        update|version|-?*)
             COMPREPLY=()
             ;;
         *)

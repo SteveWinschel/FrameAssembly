@@ -11,6 +11,12 @@ use crate::ast::*;
 use crate::builders::WireContext;
 use alloc::vec::Vec;
 
+/// Returns `true` when the resolved source port identifies an IMAP server endpoint.
+fn is_imap_server_src(ctx: &WireContext) -> bool {
+    (matches!(ctx.src_port, 143 | 993) && !matches!(ctx.dst_port, 143 | 993))
+        || (ctx.src_port < 1024 && ctx.dst_port >= 1024)
+}
+
 /// Builds an RFC 9051 IMAP mail message.
 ///
 /// Syntax mapping: `imap [tag <str>] [cmd <str>] [arg <str>] [status <str>] [response <str>]`
@@ -18,25 +24,27 @@ use alloc::vec::Vec;
 #[doc(alias = "RFC3501")]
 #[doc(alias = "RFC9051")]
 pub fn build_imap_payload(
-    _ctx: &WireContext,
+    ctx: &WireContext,
     spec: &ImapSpec,
     payload_bytes: &[u8],
 ) -> Vec<u8> {
     let tag = spec.tag.unwrap_or("A01");
     let formatted = if let Some(status) = spec.status {
         let resp = spec.response.unwrap_or("Completed");
-        format!("{} {} {}\r\n", tag, status, resp)
+        format!("{tag} {status} {resp}\r\n")
     } else if spec.cmd.is_none()
         && let Some(resp) = spec.response
     {
         let status_tag = spec.tag.unwrap_or("*");
-        format!("{} OK {}\r\n", status_tag, resp)
+        format!("{status_tag} OK {resp}\r\n")
+    } else if spec.cmd.is_none() && spec.arg.is_none() && is_imap_server_src(ctx) {
+        format!("{tag} OK Completed\r\n")
     } else {
         let cmd = spec.cmd.unwrap_or("NOOP");
         if let Some(arg) = spec.arg {
-            format!("{} {} {}\r\n", tag, cmd, arg)
+            format!("{tag} {cmd} {arg}\r\n")
         } else {
-            format!("{} {}\r\n", tag, cmd)
+            format!("{tag} {cmd}\r\n")
         }
     };
 

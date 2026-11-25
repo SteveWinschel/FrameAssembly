@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Existing git tag to build and publish (e.g. v3.2.2)'
+        description: 'Existing git tag to build and publish (e.g. v3.3.0)'
         required: false
         type: string
 
@@ -170,7 +170,7 @@ jobs:
           done
 
           cat <<'EOF' > "$STAGE/quickstart.frasm"
-          // FrameAssembly 3.2 Quickstart
+          // FrameAssembly 3.3 Quickstart
           // Preview ladder: frameassembly show quickstart.frasm
           // Compile PCAP:   frameassembly quickstart.frasm quickstart.pcap
 

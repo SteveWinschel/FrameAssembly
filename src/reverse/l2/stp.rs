@@ -22,8 +22,19 @@ fn format_stp_bridge_id(bytes: &[u8]) -> (u16, [u8; 6], String) {
     (prio, mac, format!("{prio}:{}", format_mac_lower(mac)))
 }
 
-/// Decompiles an IEEE 802.1D / 802.1w `stp` / `rstp` BPDU over 802.3 LLC (`0x424203`).
+/// Decompiles an IEEE 802.1D / 802.1w `stp` / `rstp` BPDU over 802.3 LLC (`0x424203`),
+/// safely handling short TCN or truncated BPDUs without panicking.
 pub(crate) fn dissect_stp(bpdu: &[u8], src_mac: [u8; 6]) -> ProtocolDissection {
+    if bpdu.len() < 35 {
+        let is_rstp = bpdu.get(2).copied().unwrap_or(0) >= 2;
+        let kw = if is_rstp { "stp rstp" } else { "stp" };
+        let res = if bpdu.len() > 4 {
+            bpdu[4..].to_vec()
+        } else {
+            alloc::vec::Vec::new()
+        };
+        return sd(Protocol::Stp, String::from(kw), res);
+    }
     let (is_rstp, flags) = (bpdu[2] >= 2, bpdu[4]);
     let (r_prio, r_mac, r_str) = format_stp_bridge_id(&bpdu[5..13]);
     let (b_prio, b_mac, b_str) = format_stp_bridge_id(&bpdu[17..25]);

@@ -5,12 +5,14 @@
 //! wire, a CoAP frame starts with a 4-byte binary header (2-bit Version `1`, 2-bit Type `con`/`non`
 //! /`ack`/`rst`, 4-bit Token Length, 8-bit `c.dd` Code byte, and 16-bit big-endian Message ID),
 //! followed by the variable-length Token, delta-encoded CoAP Options (`Uri-Path` option 11,
-//! `Content-Format` option 12), and an optional `0xFF` payload marker. Canonical `.frasm` syntax:
-//! `coap [con | non | ack | rst] [code <str>] [msgid <u16>] [token <u32>] [uripath <str>] [contentformat <u16>]`.
+//! payload marker. Canonical `.frasm` syntax:
+//! `coap [con | non | ack | rst] [code <str>] [msgid <u16>] [token <u32|str>] [uripath <str>] [contentformat <u16>]`.
+
+use alloc::vec::Vec;
 
 /// RFC 7252 Constrained Application Protocol (CoAP) specification.
 ///
-/// Syntax mapping: `coap [con | non | ack | rst] [code <str>] [msgid <u16>] [token <u32>] [uripath <str>] [contentformat <u16>]`
+/// Syntax mapping: `coap [con | non | ack | rst] [code <str>] [msgid <u16>] [token <u32|str>] [uripath <str>] [contentformat <u16>]`
 #[doc(alias = "coap")]
 #[doc(alias = "RFC 7252")]
 #[doc(alias = "RFC7252")]
@@ -34,6 +36,8 @@ pub struct CoapSpec<'a> {
     pub msgid: Option<u16>,
     /// 32-bit request/response matching Token (`token <u32>`).
     pub token: Option<u32>,
+    /// Variable-length opaque CoAP Token bytes (`0..=8` bytes, ASCII or hex `token <str|u64>`).
+    pub token_bytes: Option<Vec<u8>>,
     /// Slash-delimited `Uri-Path` option segments (`uripath <str>`).
     pub uri_path: Option<&'a str>,
     /// Numeric CoAP `Content-Format` option 12 identifier (`contentformat <u16>`, e.g., `50` for JSON, `60` for CBOR).

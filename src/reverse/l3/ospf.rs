@@ -57,7 +57,17 @@ pub(crate) fn dissect_ospf(b: &[u8], src_ip: Option<IpAddr>) -> ProtocolDissecti
             body[8..].to_vec()
         }
         3 if body.len() >= 12 => body[12..].to_vec(),
-        4 if body.len() >= 4 => body[4..].to_vec(),
+        4 => {
+            let rid = ipv4_at(b, 4).octets();
+            let def_lsu = crate::builders::l3::ospf::default_ospf_lsu_body(ver == 3, rid);
+            if body == def_lsu.as_slice() {
+                Vec::new()
+            } else if body.len() >= 4 {
+                body[4..].to_vec()
+            } else {
+                body.to_vec()
+            }
+        }
         5 if body.len() >= 20 => {
             push_if(&mut t, "hellointerval", be_u16(body, 0), 1);
             body[20..].to_vec()

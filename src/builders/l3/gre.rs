@@ -14,8 +14,26 @@ use crate::ast::*;
 use crate::builders::WireContext;
 use alloc::vec::Vec;
 
+/// Builds a deterministic 42-byte inner Ethernet II + IPv4 + ICMPv4 Echo Request frame for
+/// empty-payload L2 overlay tunnels (`vxlan`, `geneve`, and NVGRE `greproto 0x6558`).
+pub(crate) fn default_overlay_inner_ethernet() -> [u8; 42] {
+    let mut frame = [0u8; 42];
+    frame[0..6].copy_from_slice(&[0x00, 0x00, 0x5e, 0x00, 0x53, 0x02]);
+    frame[6..12].copy_from_slice(&[0x00, 0x00, 0x5e, 0x00, 0x53, 0x01]);
+    frame[12..14].copy_from_slice(&0x0800_u16.to_be_bytes());
+    frame[14..34].copy_from_slice(&[
+        0x45, 0x00, 0x00, 28, 0x00, 0x01, 0x00, 0x00, 64, 1, 0x00, 0x00, 10, 0, 0, 1, 10, 0, 0, 2,
+    ]);
+    let ip_csum = crate::packet::internet_checksum(&[&frame[14..34]]);
+    frame[24..26].copy_from_slice(&ip_csum.to_be_bytes());
+    frame[34..42].copy_from_slice(&[0x08, 0x00, 0x00, 0x00, 0x12, 0x34, 0x00, 0x01]);
+    let icmp_csum = crate::packet::internet_checksum(&[&frame[34..42]]);
+    frame[36..38].copy_from_slice(&icmp_csum.to_be_bytes());
+    frame
+}
+
 /// Builds a deterministic default inner packet stub for zero-payload GRE tunnels so network
-/// dissectors (`Wireshark`, `tshark`, `tcpdump`) decode a valid encapsulated L3 header.
+/// dissectors (`Wireshark`, `tshark`, `tcpdump`) decode a valid encapsulated L3/L2 header.
 pub(crate) fn default_gre_inner_packet(proto: u16) -> Vec<u8> {
     match proto {
         0x0800 => {
@@ -51,6 +69,7 @@ pub(crate) fn default_gre_inner_packet(proto: u16) -> Vec<u8> {
             inner.extend_from_slice(&icmp6);
             inner
         }
+        0x6558 => default_overlay_inner_ethernet().to_vec(),
         _ => alloc::vec![0u8; 16],
     }
 }

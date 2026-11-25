@@ -6,11 +6,13 @@
 //! frames or override specific protocol header fields and attributes.
 //!
 //! Canonical `.frasm` syntax:
-//! `a -> b dns [query | response] [txid <u16>] [qname <str>] [qtype <str>] [rdata <str>] [rcode <u8>] [ansttl <u32>] [transport tcp]`
+//! `a -> b dns [query | response] [txid <u16>] [qname <str>] [qtype <str>] [rdata <str>]... [rcode <u8>] [ansttl <u32>] [edns0] [udpsize <u16>] [dobit] [transport tcp]`
+
+use alloc::vec::Vec;
 
 /// RFC 1035 / RFC 6762 Domain Name System specification.
 ///
-/// Syntax mapping: `dns [query | response] [txid <u16>] [qname <str>] [qtype <str>] [rdata <str>] [rcode <u8>] [ansttl <u32>] [transport tcp]`
+/// Syntax mapping: `dns [query | response] [txid <u16>] [qname <str>] [qtype <str>] [rdata <str>]... [rcode <u8>] [ansttl <u32>] [edns0] [udpsize <u16>] [dobit] [transport tcp]`
 #[doc(alias = "dns")]
 #[doc(alias = "RFC 1035")]
 #[doc(alias = "RFC1035")]
@@ -25,6 +27,9 @@
 #[doc(alias = "rdata")]
 #[doc(alias = "rcode")]
 #[doc(alias = "ansttl")]
+#[doc(alias = "edns0")]
+#[doc(alias = "udpsize")]
+#[doc(alias = "dobit")]
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct DnsSpec<'a> {
     /// Query flag (`query`).
@@ -43,6 +48,14 @@ pub struct DnsSpec<'a> {
     pub rcode: Option<u8>,
     /// Answer time-to-live in seconds (`ansttl <u32>`).
     pub ans_ttl: Option<u32>,
+    /// Enable EDNS0 OPT pseudo-RR (`edns0`).
+    pub edns0: bool,
+    /// EDNS0 UDP payload size in bytes (`udpsize <u16>`).
+    pub udp_size: Option<u16>,
+    /// EDNS0 DNSSEC OK (`DO`) bit (`dobit`).
+    pub do_bit: bool,
+    /// All answer resource data values when multiple `rdata` modifiers are given.
+    pub rdata_list: Vec<&'a str>,
 }
 
 /// Type alias for Multicast DNS specification (RFC 6762).

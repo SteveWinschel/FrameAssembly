@@ -85,7 +85,7 @@ pub(crate) fn append_v2_pdu_body_tokens(
         }
         Pdus::Report(rep) => {
             push_if(tokens, "reqid", rep.0.request_id as u32, 1);
-            append_v2_vb_list(tokens, &rep.0.variable_bindings)
+            append_v2_report_vbs(tokens, &rep.0.variable_bindings)
         }
     }
 }
@@ -131,6 +131,24 @@ fn append_v2_vb_list(tokens: &mut String, vbs: &[rasn_snmp::v2::VarBind]) -> Opt
         }
     }
     Some(())
+}
+
+/// Elides the default RFC 3414 `usmStatsUnknownEngineIDs.0` (`Counter32(1)`) VarBind on `Report` PDUs.
+fn append_v2_report_vbs(tokens: &mut String, vbs: &[rasn_snmp::v2::VarBind]) -> Option<()> {
+    use rasn_smi::v2::{ApplicationSyntax as App, ObjectSyntax as Obj};
+    use rasn_snmp::v2::VarBindValue::Value;
+
+    if vbs.len() == 1
+        && let Value(Obj::ApplicationWide(App::Counter(c))) = &vbs[0].value
+        && c.0 == 1
+    {
+        let oid = format_oid(&vbs[0].name);
+        if oid != "1.3.6.1.6.3.15.1.1.4.0" {
+            let _ = write!(tokens, " oid {oid}");
+        }
+        return Some(());
+    }
+    append_v2_vb_list(tokens, vbs)
 }
 
 /// Formats a single SMIv2 `VarBind` into canonical `.frasm` `varbind <oid> <type> [val]` syntax.

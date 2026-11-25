@@ -1,10 +1,10 @@
 //! IEEE 802.1Q Virtual LAN (VLAN) tag peeler and standalone Layer 2 decompiler.
 //!
-//! This module implements outer IEEE 802.1Q (`0x8100`) and IEEE 802.1ad (`0x88A8` / `0x9100`) tag
-//! peeling ([`peel_vlan_or_qinq`]) as well as standalone `vlan` frame decompilation
-//! ([`dissect_vlan`]) for FrameAssembly's PCAP and PCAPNG reverse decompiler. It extracts the
-//! 12-bit VLAN Identifier (`vlan`), 3-bit Priority Code Point (`pcp`), and 1-bit Drop Eligible
-//! Indicator (`dei`) from the Tag Control Information (TCI) word.
+//! This module implements multi-tag IEEE 802.1Q (`0x8100` / `0x9100`) and IEEE 802.1ad (`0x88A8`)
+//! tag stack peeling ([`peel_vlan_or_qinq`]) as well as standalone `vlan` frame decompilation
+//! ([`dissect_vlan`]) for FrameAssembly's PCAP and PCAPNG reverse decompiler. It extracts stacked
+//! 12-bit VLAN Identifiers (`vlan` / `qinq` + `innervlan`), preserving `vlan 0`, 3-bit Priority
+//! Code Point (`pcp`), and 1-bit Drop Eligible Indicator (`dei`) fields from each TCI word.
 
 use alloc::format;
 use alloc::vec::Vec;
@@ -12,50 +12,59 @@ use alloc::vec::Vec;
 use crate::ast::{L2Modifiers, Protocol, QinqSpec, VlanSpec};
 use crate::reverse::{ProtocolDissection, be_u16, push_if, sd};
 
-/// Peels outer IEEE 802.1ad `qinq` or single 802.1Q `vlan` tags from `b` at `*off`, updating `*et`
-/// and `*l2`, and returning `(qinq_pcp, qinq_dei)`.
+/// Peels one or more stacked IEEE 802.1ad `qinq` or 802.1Q `vlan` tags from `b` at `*off`,
+/// updating `*et` and `*l2`, preserving `vlan 0`, and returning `(qinq_pcp, qinq_dei)`.
 pub(crate) fn peel_vlan_or_qinq(
     b: &[u8],
     et: &mut u16,
     off: &mut usize,
     l2: &mut L2Modifiers,
 ) -> (u8, u8) {
-    let (mut qp, mut qd) = (0u8, 0u8);
-    if matches!(*et, 0x88A8 | 0x8100 | 0x9100) && *off + 4 <= b.len() {
-        let (tci1, et1) = (be_u16(b, *off), be_u16(b, *off + 2));
-        let (pcp, dei) = (((tci1 >> 13) & 0x07) as u8, ((tci1 >> 12) & 0x01) as u8);
-        if et1 == 0x8100 && *off + 8 <= b.len() {
-            let tci2 = be_u16(b, *off + 4);
-            *et = be_u16(b, *off + 6);
-            *off += 8;
-            (qp, qd) = (pcp, dei);
+    let mut tags: Vec<(u16, u16, u8, u8)> = Vec::new();
+    while matches!(*et, 0x88A8 | 0x8100 | 0x9100) && *off + 4 <= b.len() && tags.len() < 16 {
+        let tpid = *et;
+        let (tci, next_et) = (be_u16(b, *off), be_u16(b, *off + 2));
+        let pcp = ((tci >> 13) & 0x07) as u8;
+        let dei = ((tci >> 12) & 0x01) as u8;
+        let vid = tci & 0x0FFF;
+        tags.push((tpid, vid, pcp, dei));
+        *et = next_et;
+        *off += 4;
+    }
+
+    match tags.len() {
+        0 => (0, 0),
+        1 => {
+            let (tpid, vid, pcp, dei) = tags[0];
+            if tpid == 0x88A8 {
+                l2.qinq = Some(QinqSpec {
+                    outer_vid: vid,
+                    inner_vid: None,
+                    pcp: (pcp != 0).then_some(pcp),
+                    dei: (dei != 0).then_some(dei),
+                });
+                (pcp, dei)
+            } else {
+                l2.vlan = Some(VlanSpec {
+                    vid,
+                    pcp: (pcp != 0).then_some(pcp),
+                    dei: (dei != 0).then_some(dei),
+                });
+                (0, 0)
+            }
+        }
+        _ => {
+            let (_, outer_vid, qp, qd) = tags[0];
+            let (_, inner_vid, _, _) = tags[tags.len() - 1];
             l2.qinq = Some(QinqSpec {
-                outer_vid: tci1 & 0x0FFF,
-                inner_vid: Some(tci2 & 0x0FFF),
+                outer_vid,
+                inner_vid: Some(inner_vid),
                 pcp: (qp != 0).then_some(qp),
                 dei: (qd != 0).then_some(qd),
             });
-        } else if *et == 0x88A8 {
-            *off += 4;
-            *et = et1;
-            (qp, qd) = (pcp, dei);
-            l2.qinq = Some(QinqSpec {
-                outer_vid: tci1 & 0x0FFF,
-                inner_vid: None,
-                pcp: (qp != 0).then_some(qp),
-                dei: (qd != 0).then_some(qd),
-            });
-        } else {
-            *off += 4;
-            *et = et1;
-            l2.vlan = Some(VlanSpec {
-                vid: tci1 & 0x0FFF,
-                pcp: (pcp != 0).then_some(pcp),
-                dei: (dei != 0).then_some(dei),
-            });
+            (qp, qd)
         }
     }
-    (qp, qd)
 }
 
 /// Formats a standalone `vlan` [`ProtocolDissection`] from an optional [`VlanSpec`] and residual payload.

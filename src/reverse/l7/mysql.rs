@@ -1,10 +1,10 @@
 //! MySQL Client/Server Wire Protocol v10 Layer 7 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements fuzz-safe wire-to-AST dissection for `mysql` 4-byte framed packets
-//! (3-byte little-endian payload length + 1-byte sequence number) over TCP ports `3306`, `6033`
-//! (ProxySQL), and `15306` (Vitess VTGate). It decodes `HandshakeV10` (`greeting`, `serverversion`),
-//! `HandshakeResponse41` (`login`, `user`, `db`), `COM_QUERY` (`sql`), `OK_Packet` (`ok`),
-//! `ERR_Packet` (`err`, `errcode`), and `EOF_Packet` (`eof`).
+//! (3-byte little-endian payload length + 1-byte sequence number) over TCP and SCTP ports
+//! `3306`, `6033` (ProxySQL), and `15306` (Vitess VTGate). It decodes `HandshakeV10` (`greeting`,
+//! `serverversion`), `HandshakeResponse41` (`login`, `user`, `db`), `COM_QUERY` (`sql`),
+//! `OK_Packet` (`ok`), `ERR_Packet` (`err`, `errcode`), and `EOF_Packet` (`eof`).
 
 use alloc::format;
 use alloc::string::String;
@@ -12,12 +12,11 @@ use alloc::string::String;
 use crate::ast::{Protocol, TransportProto};
 use crate::reverse::ProtocolDissection;
 
-/// Checks whether `s` can be emitted inside `"..."` for a parser field that uses
-/// `parse_raw_string_lit` (which strips outer quotes without unescaping).
-fn is_valid_raw_str(s: &str) -> bool {
-    !s.contains('"')
-        && s.chars().all(|c| !c.is_control())
-        && (s.bytes().rev().take_while(|&b| b == b'\\').count() % 2 == 0)
+use super::quote_raw_str;
+
+/// Checks whether `s` contains no control characters so it can safely be emitted as a quoted field.
+fn is_printable_mysql_str(s: &str) -> bool {
+    s.chars().all(|c| !c.is_control())
 }
 
 /// Reads a little-endian `u16` from `b[off..off + 2]`.
@@ -54,7 +53,7 @@ pub(crate) fn dissect_mysql(
     payload: &[u8],
 ) -> Option<ProtocolDissection> {
     if payload.len() < 5
-        || !matches!(transport, TransportProto::Tcp)
+        || !matches!(transport, TransportProto::Tcp | TransportProto::Sctp)
         || !(matches!(dst_port, 3306 | 6033 | 15306) || matches!(src_port, 3306 | 6033 | 15306))
     {
         return None;
@@ -89,22 +88,22 @@ pub(crate) fn dissect_mysql(
     } else if body[0] == 0x0A {
         let nul_pos = body[1..].iter().position(|&b| b == 0)?;
         let ver = core::str::from_utf8(&body[1..1 + nul_pos]).ok()?;
-        if !is_valid_raw_str(ver) {
+        if !is_printable_mysql_str(ver) {
             return None;
         }
         let rem = body[2 + nul_pos..].strip_prefix(HANDSHAKE_V10_TRAILER)?;
         tokens.push_str(" greeting");
         if ver != "8.0.35" {
-            tokens.push_str(&format!(" serverversion \"{ver}\""));
+            tokens.push_str(&format!(" serverversion \"{}\"", quote_raw_str(ver)));
         }
         residual = rem;
     } else if body[0] == 0x03 {
         let sql = core::str::from_utf8(&body[1..]).ok()?;
-        if !is_valid_raw_str(sql) {
+        if !is_printable_mysql_str(sql) {
             return None;
         }
         if sql != "SELECT 1" {
-            tokens.push_str(&format!(" sql \"{sql}\""));
+            tokens.push_str(&format!(" sql \"{}\"", quote_raw_str(sql)));
         }
         residual = &[];
     } else if body.len() >= 34 && body[8] == 0x21 && body[9..32].iter().all(|&b| b == 0) {
@@ -115,21 +114,21 @@ pub(crate) fn dissect_mysql(
         let rest = &body[32..];
         let u_end = rest.iter().position(|&b| b == 0)?;
         let user = core::str::from_utf8(&rest[..u_end]).ok()?;
-        if !is_valid_raw_str(user) || rest.get(u_end + 1) != Some(&0) {
+        if !is_printable_mysql_str(user) || rest.get(u_end + 1) != Some(&0) {
             return None;
         }
         tokens.push_str(" login");
         if user != "root" {
-            tokens.push_str(&format!(" user \"{user}\""));
+            tokens.push_str(&format!(" user \"{}\"", quote_raw_str(user)));
         }
         let after_auth = &rest[u_end + 2..];
         if (caps & 0x08) != 0 {
             let db_end = after_auth.iter().position(|&b| b == 0)?;
             let db = core::str::from_utf8(&after_auth[..db_end]).ok()?;
-            if !is_valid_raw_str(db) {
+            if !is_printable_mysql_str(db) {
                 return None;
             }
-            tokens.push_str(&format!(" db \"{db}\""));
+            tokens.push_str(&format!(" db \"{}\"", quote_raw_str(db)));
             residual = &after_auth[db_end + 1..];
         } else {
             residual = after_auth;

@@ -1,11 +1,10 @@
 //! Open Shortest Path First (OSPFv2 RFC 2328 / OSPFv3 RFC 5340) Layer 3 wire builder.
 //!
-//! Serializes an [`OspfSpec`] into a 44-byte RFC 2328 OSPF Hello packet encapsulated directly over
-//! IP protocol `89` (`0x59`) and addressed to AllSPFRouters (`224.0.0.5` for IPv4, `ff02::5` for
-//! IPv6). The 24-byte OSPF header encodes Version `2`, Type `1` (`hello`), 16-bit `Packet Length`,
-//! 32-bit `Router ID` (`routerid`), 32-bit `Area ID` (`areaid`, default `0`), 16-bit Internet
-//! Checksum, `AuType = 0`, and 8-byte zeroed Authentication, followed by a 20-byte Hello body with
-//! `255.255.255.0` mask, `hellointerval` (`10`s), `Options = 0x02` (E-bit), `priority` (`1`), and `deadinterval` (`40`s).
+//! Serializes an [`OspfSpec`] into an RFC 2328 OSPFv2 or RFC 5340 OSPFv3 packet encapsulated over
+//! IP protocol `89` (`0x59`), defaulting unspecified destinations to AllSPFRouters (`224.0.0.5` /
+//! `ff02::5`) while preserving explicit unicast or multicast peer addresses. Supports `hello`,
+//! `dbd`, `lsr`, `lsu` (synthesizing a deterministic Router-LSA with Fletcher-16 checksum when empty),
+//! and `lsack`, computing the IPv4 header-less checksum or OSPFv3 IPv6 pseudo-header checksum.
 //!
 //! Canonical `.frasm` syntax:
 //! `a -> b ospf [hello | dbd | lsr | lsu | lsack] [routerid <ipv4>] [areaid <u32>] [hellointerval <u16>] [deadinterval <u32>] [priority <u8>]`
@@ -42,6 +41,48 @@ fn write_fletcher16_lsa_checksum(lsa: &mut [u8]) {
     lsa[17] = y as u8;
 }
 
+/// Builds a deterministic default Router-LSA payload (`# LSAs = 1` + LSA) for `OspfType::Lsu`
+/// when no explicit `payload` octets are supplied (`40`B OSPFv2 or `44`B OSPFv3).
+pub(crate) fn default_ospf_lsu_body(is_v3: bool, router_id: [u8; 4]) -> Vec<u8> {
+    let mut out = Vec::with_capacity(if is_v3 { 44 } else { 40 });
+    out.extend_from_slice(&1_u32.to_be_bytes()); // # LSAs = 1
+    if is_v3 {
+        // 40-byte OSPFv3 Router-LSA (RFC 5340 §A.4.3): 20B LSA header + 4B flags/opts + 16B P2P link
+        let mut lsa = [0u8; 40];
+        lsa[0..2].copy_from_slice(&1_u16.to_be_bytes()); // LS Age = 1
+        lsa[2..4].copy_from_slice(&0x2001_u16.to_be_bytes()); // LS Type: Router-LSA
+        lsa[8..12].copy_from_slice(&router_id); // Advertising Router
+        lsa[12..16].copy_from_slice(&0x8000_0001_u32.to_be_bytes()); // LS Sequence Number
+        lsa[18..20].copy_from_slice(&40_u16.to_be_bytes()); // Length
+        lsa[21..24].copy_from_slice(&[0x00, 0x00, 0x13]); // Options: V6 | E | R
+        lsa[24] = 1; // Link Type: Point-to-Point
+        lsa[26..28].copy_from_slice(&1_u16.to_be_bytes()); // Metric = 1
+        lsa[28..32].copy_from_slice(&1_u32.to_be_bytes()); // Interface ID
+        lsa[32..36].copy_from_slice(&1_u32.to_be_bytes()); // Neighbor Interface ID
+        lsa[36..40].copy_from_slice(&router_id); // Neighbor Router ID
+        write_fletcher16_lsa_checksum(&mut lsa);
+        out.extend_from_slice(&lsa);
+    } else {
+        // 36-byte OSPFv2 Router-LSA (RFC 2328 §A.4.2): 20B LSA header + 4B #links + 12B Stub link
+        let mut lsa = [0u8; 36];
+        lsa[0..2].copy_from_slice(&1_u16.to_be_bytes()); // LS Age = 1
+        lsa[2] = 0x02; // Options: E-bit
+        lsa[3] = 1; // LS Type: Router-LSA
+        lsa[4..8].copy_from_slice(&router_id); // Link State ID
+        lsa[8..12].copy_from_slice(&router_id); // Advertising Router
+        lsa[12..16].copy_from_slice(&0x8000_0001_u32.to_be_bytes()); // LS Sequence Number
+        lsa[18..20].copy_from_slice(&36_u16.to_be_bytes()); // Length
+        lsa[22..24].copy_from_slice(&1_u16.to_be_bytes()); // # Links = 1
+        lsa[24..28].copy_from_slice(&[router_id[0], router_id[1], router_id[2], 0]); // Stub net
+        lsa[28..32].copy_from_slice(&[255, 255, 255, 0]); // Netmask
+        lsa[32] = 3; // Link Type 3: Stub Network
+        lsa[34..36].copy_from_slice(&1_u16.to_be_bytes()); // Metric = 1
+        write_fletcher16_lsa_checksum(&mut lsa);
+        out.extend_from_slice(&lsa);
+    }
+    out
+}
+
 /// Builds an RFC 2328 (OSPFv2) or RFC 5340 (OSPFv3 over IPv6) OSPF payload over IP protocol `89`.
 pub fn build_ospf_payload(ctx: &WireContext, spec: &OspfSpec, payload: &[u8]) -> (Vec<u8>, IpAddr, u8) {
     let router_id = match spec.router_id {
@@ -61,9 +102,12 @@ pub fn build_ospf_payload(ctx: &WireContext, spec: &OspfSpec, payload: &[u8]) ->
         OspfType::LsAck => 5_u8,
     };
 
-    let mut ospf = Vec::with_capacity(44 + payload.len());
+    let mut ospf = Vec::with_capacity(64 + payload.len());
     if let IpAddr::V6(src_v6) = ctx.src_ip {
-        let dst_v6 = core::net::Ipv6Addr::new(0xff02, 0, 0, 0, 0, 0, 0, 5);
+        let dst_v6 = match ctx.dst_ip {
+            IpAddr::V6(d) if !d.is_unspecified() => d,
+            _ => core::net::Ipv6Addr::new(0xff02, 0, 0, 0, 0, 0, 0, 5),
+        };
         // 16-byte OSPFv3 Header (RFC 5340 §A.3.1)
         ospf.push(3); // Version 3
         ospf.push(type_code);
@@ -103,7 +147,12 @@ pub fn build_ospf_payload(ctx: &WireContext, spec: &OspfSpec, payload: &[u8]) ->
                 ospf.extend_from_slice(&router_id); // Advertising Router
             }
             OspfType::Lsu => {
-                ospf.extend_from_slice(&0_u32.to_be_bytes()); // # LSAs = 0
+                if payload.is_empty() {
+                    ospf.extend_from_slice(&default_ospf_lsu_body(true, router_id));
+                } else {
+                    let count = u32::from(payload.len() >= 20);
+                    ospf.extend_from_slice(&count.to_be_bytes());
+                }
             }
             OspfType::LsAck => {
                 // 20-byte OSPFv3 LSA Header (RFC 5340 §A.4.2)
@@ -122,7 +171,7 @@ pub fn build_ospf_payload(ctx: &WireContext, spec: &OspfSpec, payload: &[u8]) ->
         let total_len = ospf.len().min(usize::from(u16::MAX)) as u16;
         ospf[2..4].copy_from_slice(&total_len.to_be_bytes());
 
-        let ph_len = (ospf.len() as u32).to_be_bytes();
+        let ph_len = u32::try_from(ospf.len()).unwrap_or(u32::MAX).to_be_bytes();
         let next_hdr = [0_u8, 0, 0, 89];
         let cksum = internet_checksum(&[
             &src_v6.octets(),
@@ -170,8 +219,12 @@ pub fn build_ospf_payload(ctx: &WireContext, spec: &OspfSpec, payload: &[u8]) ->
             ospf.extend_from_slice(&router_id); // Advertising Router
         }
         OspfType::Lsu => {
-            // 4-byte Link State Update Header (# LSAs = 0)
-            ospf.extend_from_slice(&0_u32.to_be_bytes());
+            if payload.is_empty() {
+                ospf.extend_from_slice(&default_ospf_lsu_body(false, router_id));
+            } else {
+                let count = u32::from(payload.len() >= 20);
+                ospf.extend_from_slice(&count.to_be_bytes());
+            }
         }
         OspfType::LsAck => {
             // 20-byte LSA Header Acknowledgment (RFC 2328 §A.3.6)
@@ -195,6 +248,10 @@ pub fn build_ospf_payload(ctx: &WireContext, spec: &OspfSpec, payload: &[u8]) ->
     let cksum = internet_checksum(&[&ospf[..]]);
     ospf[12..14].copy_from_slice(&cksum.to_be_bytes());
 
-    (ospf, IpAddr::V4(core::net::Ipv4Addr::new(224, 0, 0, 5)), 89)
+    let dst_v4 = match ctx.dst_ip {
+        IpAddr::V4(d) if !d.is_unspecified() => d,
+        _ => core::net::Ipv4Addr::new(224, 0, 0, 5),
+    };
+    (ospf, IpAddr::V4(dst_v4), 89)
 }
 

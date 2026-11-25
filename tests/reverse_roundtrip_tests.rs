@@ -1,5 +1,5 @@
 //! Comprehensive end-to-end round-trip verification suite (`fasm -> pcap -> reverse -> fasm -> pcap`)
-//! for FrameAssembly v3.0.0's 5-stage PCAP and PCAPNG to `.frasm` reverse decompiler across all 81
+//! for FrameAssembly v3.3.0's 5-stage PCAP and PCAPNG to `.frasm` reverse decompiler across all 146
 //! native Layer 2 through Layer 7 protocols.
 //!
 //! This integration test suite verifies that every protocol supported by FrameAssembly compiles to
@@ -190,13 +190,13 @@ fn assert_dual_stack_roundtrip(label: &str, stmt_body: &str, expected_kw: &str) 
     assert_protocol_roundtrip(&format!("{label}_ipv6"), &v6_src, expected_kw);
 }
 
-/// Verifies in one exhaustive pass that all 81 zero-keyword RFC-default protocol statements
+/// Verifies in one exhaustive pass that all 146 zero-keyword RFC-default protocol statements
 /// round-trip through `reverse_pcap_bytes` emitting protocol-specific keywords rather than
 /// stepping down to `hexpayload`.
 #[test]
-fn test_all_81_protocols_zero_keyword_roundtrip_without_hexpayload() {
-    let ipv4_79: &[(&str, &str)] = &[
-        // L2 (8 — note vlan/qinq/mpls over IP hosts carry default IPv4 ICMP/UDP or L2 ethertype)
+fn test_all_146_protocols_zero_keyword_roundtrip_without_hexpayload() {
+    let ipv4_143: &[(&str, &str)] = &[
+        // L2 (18 — note vlan/qinq/mpls over IP hosts carry default IPv4 ICMP/UDP or L2 ethertype)
         ("arp", "arp"),
         ("vlan 100 icmp", "vlan 100"),
         ("qinq 200 innervlan 50 icmp", "qinq 200 innervlan 50"),
@@ -205,7 +205,17 @@ fn test_all_81_protocols_zero_keyword_roundtrip_without_hexpayload() {
         ("lacp", "lacp"),
         ("eapol", "eapol"),
         ("mpls 1000 icmp", "mpls 1000"),
-        // L3 IPv4-capable (18 of 20; ndp & mld are IPv6-only)
+        ("cdp", "cdp"),
+        ("isis", "isis"),
+        ("macsec", "macsec"),
+        ("pfc", "pfc"),
+        ("pppoe", "pppoe"),
+        ("nsh", "nsh"),
+        ("profinet", "profinet"),
+        ("goose", "goose"),
+        ("sv", "sv"),
+        ("ethercat", "ethercat"),
+        // L3 IPv4-capable (28 of 31; ndp, mld, and srv6 are IPv6-only)
         ("icmp", "icmp"),
         ("igmp", "igmp"),
         ("gre", "gre"),
@@ -224,11 +234,21 @@ fn test_all_81_protocols_zero_keyword_roundtrip_without_hexpayload() {
         ("pim", "pim"),
         ("bfd", "bfd"),
         ("openflow", "openflow"),
+        ("ipip", "ipip"),
+        ("erspan", "erspan"),
+        ("rsvp", "rsvp"),
+        ("ldp", "ldp"),
+        ("bmp", "bmp"),
+        ("rpkirtr", "rpkirtr"),
+        ("l2tp", "l2tp"),
+        ("lisp", "lisp"),
+        ("glbp", "glbp"),
+        ("gtpu", "gtpu"),
         // L4 (3)
         ("tcp", "tcp"),
         ("udp", "udp"),
         ("sctp", "sctp"),
-        // L7 (50)
+        // L7 (94)
         ("snmp1", "snmp1"),
         ("snmp2", "snmp2"),
         ("snmp3", "snmp3"),
@@ -279,11 +299,55 @@ fn test_all_81_protocols_zero_keyword_roundtrip_without_hexpayload() {
         ("s7comm", "s7comm"),
         ("ethernetip", "ethernetip"),
         ("opcua", "opcua"),
+        ("dcerpc", "dcerpc"),
+        ("ntlm", "ntlm"),
+        ("rdp", "rdp"),
+        ("llmnr", "llmnr"),
+        ("nbns", "nbns"),
+        ("socks", "socks"),
+        ("vnc", "vnc"),
+        ("doh", "doh"),
+        ("wsdiscovery", "wsdiscovery"),
+        ("irc", "irc"),
+        ("iec104", "iec104"),
+        ("mms", "mms"),
+        ("s7commplus", "s7commplus"),
+        ("synchrophasor", "synchrophasor"),
+        ("hartip", "hartip"),
+        ("fins", "fins"),
+        ("melsec", "melsec"),
+        ("someip", "someip"),
+        ("doip", "doip"),
+        ("c1222", "c1222"),
+        ("gesrtp", "gesrtp"),
+        ("rocplus", "rocplus"),
+        ("bsap", "bsap"),
+        ("knxnetip", "knxnetip"),
+        ("rocev2", "rocev2"),
+        ("ipmi", "ipmi"),
+        ("twamp", "twamp"),
+        ("netconf", "netconf"),
+        ("gtpc", "gtpc"),
+        ("pfcp", "pfcp"),
+        ("diameter", "diameter"),
+        ("ngap", "ngap"),
+        ("s1ap", "s1ap"),
+        ("mssql", "mssql"),
+        ("kafka", "kafka"),
+        ("mongodb", "mongodb"),
+        ("tns", "tns"),
+        ("iscsi", "iscsi"),
+        ("nvmetcp", "nvmetcp"),
+        ("rtcp", "rtcp"),
+        ("turn", "turn"),
+        ("h323", "h323"),
+        ("sccp", "sccp"),
+        ("mgcp", "mgcp"),
     ];
-    assert_eq!(ipv4_79.len(), 79);
+    assert_eq!(ipv4_143.len(), 143);
 
     let mut stepped_down_or_hex = Vec::new();
-    for &(stmt, expected_kw) in ipv4_79 {
+    for &(stmt, expected_kw) in ipv4_143 {
         let src = format!(
             "host h1 {{ ip 10.99.0.1 mac 00:11:22:33:44:01 }}\n\
              host h2 {{ ip 10.99.0.2 mac 00:11:22:33:44:02 }}\n\
@@ -295,7 +359,7 @@ fn test_all_81_protocols_zero_keyword_roundtrip_without_hexpayload() {
         }
     }
 
-    for &(stmt, expected_kw) in &[("ndp", "ndp"), ("mld", "mld")] {
+    for &(stmt, expected_kw) in &[("ndp", "ndp"), ("mld", "mld"), ("srv6", "srv6")] {
         let src = format!(
             "host h1 {{ ip 2001:db8:99::1 mac 00:11:22:33:44:01 }}\n\
              host h2 {{ ip 2001:db8:99::2 mac 00:11:22:33:44:02 }}\n\
@@ -821,4 +885,421 @@ fn test_reverse_pcap_reader_and_file_entrypoints() {
     assert_eq!(from_reader, from_bytes);
     assert_eq!(from_file.packet_count, 2);
     assert_eq!(from_file.host_count, 2);
+}
+
+/// Verifies rich modifier round-trip decompilation across all 10 new v3.3.0 Layer 2 protocols,
+/// including MAC-only hosts and `profinet` / `ethercat` UDP Context Manager transports.
+#[test]
+fn test_roundtrip_10_new_l2_protocols() {
+    let l2_cases: &[(&str, &str, &str)] = &[
+        (
+            "l2_cdp",
+            "cdp version 2 ttl 120 deviceid \"core-rtr1\" portid \"Eth1/1\" capabilities 0x28 platform \"CSR1000v\" nativevlan 42",
+            "cdp",
+        ),
+        (
+            "l2_isis",
+            "isis l2iih hostname \"edge01\" holdtime 45 priority 80",
+            "isis l2iih",
+        ),
+        (
+            "l2_macsec",
+            "macsec an 2 sl 16 pn 42 icv \"0102030405060708090a0b0c0d0e0f10\"",
+            "macsec",
+        ),
+        ("l2_pfc", "pfc enable 0x00ff quanta 200", "pfc"),
+        (
+            "l2_pppoe_pado",
+            "pppoe pado servicename \"isp-fiber\" acname \"bng01\" hostuniq \"11223344\"",
+            "pppoe pado",
+        ),
+        (
+            "l2_pppoe_session",
+            "pppoe session sessionid 99 pppproto 0x0021",
+            "pppoe session",
+        ),
+        (
+            "l2_nsh",
+            "nsh oam ttl 16 spi 42 si 200 context \"00000001000000020000000300000004\"",
+            "nsh oam",
+        ),
+        (
+            "l2_profinet_rt",
+            "profinet frameid 0x8001 cycle 500 datastatus 0x25",
+            "profinet",
+        ),
+        (
+            "l2_goose",
+            "goose appid 0x0002 gocbref \"IED1/LLN0$GO$gcb01\" timetolive 4000 datset \"IED1/LLN0$ds01\" goid \"GO_TRIP\" stnum 5 sqnum 12",
+            "goose",
+        ),
+        (
+            "l2_sv",
+            "sv appid 0x4005 svid \"MU01\" smpcnt 42 confrev 3 smpsynch 2",
+            "sv",
+        ),
+        (
+            "l2_ethercat",
+            "ethercat write adp 0x0001 ado 0x1000 wkc 2",
+            "ethercat",
+        ),
+    ];
+
+    for &(label, stmt, kw) in l2_cases {
+        let src = format!(
+            "host s1 {{ mac 00:11:22:33:44:01 }}\n\
+             host s2 {{ mac 00:11:22:33:44:02 }}\n\
+             compile {{ s1 -> s2 {stmt} }}\n"
+        );
+        assert_protocol_roundtrip(label, &src, kw);
+    }
+
+    assert_dual_stack_roundtrip(
+        "l2_profinet_udp",
+        "profinet transport udp service \"connect\" xid 77",
+        "profinet",
+    );
+    assert_dual_stack_roundtrip(
+        "l2_ethercat_udp",
+        "ethercat transport udp read adp 0x0002 ado 0x0120 wkc 1",
+        "ethercat",
+    );
+}
+
+/// Verifies rich modifier round-trip decompilation across all 11 new v3.3.0 Layer 3 protocols,
+/// covering IPv6-only `srv6`, `ipip`, `l2tp` IP/UDP, and dual-stack tunneling/control protocols.
+#[test]
+fn test_roundtrip_11_new_l3_protocols() {
+    let dual_stack_l3: &[(&str, &str, &str)] = &[
+        (
+            "l3_ipip",
+            "ipip v4 srcip 198.51.100.10 dstip 198.51.100.20 innerttl 32 innerdscp 10 proto 17",
+            "ipip",
+        ),
+        (
+            "l3_erspan",
+            "erspan v3 sessionid 12 vid 100 cos 5 greseq 77 timestamp 12345 direction 1",
+            "erspan v3",
+        ),
+        (
+            "l3_rsvp",
+            "rsvp path tunnelid 42 lspid 7 label 1001 refresh 60000",
+            "rsvp",
+        ),
+        (
+            "l3_ldp_tcp",
+            "ldp labelmapping lsrid 10.1.1.1 labelspace 0 msgid 99 label 500 prefix \"10.20.0.0/16\"",
+            "ldp",
+        ),
+        (
+            "l3_ldp_udp",
+            "ldp transport udp hello holdtime 30",
+            "ldp",
+        ),
+        (
+            "l3_bmp",
+            "bmp peerup peertype 1 peerip 192.0.2.10 asn 65100 bgpid 192.0.2.10",
+            "bmp peerup",
+        ),
+        (
+            "l3_rpkirtr",
+            "rpkirtr ipv4prefix version 1 flags 1 prefix \"203.0.113.0/24\" maxlen 24 asn 64512",
+            "rpkirtr ipv4prefix",
+        ),
+        (
+            "l3_l2tp_ip",
+            "l2tp v3 sccrq tunnelid 400 sessionid 800 ns 1 nr 2",
+            "l2tp",
+        ),
+        (
+            "l3_l2tp_udp",
+            "l2tp transport udp v2 sccrq tunnelid 42 sessionid 7 ns 3 nr 1",
+            "l2tp",
+        ),
+        (
+            "l3_lisp",
+            "lisp maprequest iid 100 nonce 0x0102030405060708 eid \"10.50.0.0/16\"",
+            "lisp maprequest",
+        ),
+        (
+            "l3_glbp",
+            "glbp hello version 1 group 10 priority 150 hellotime 2000 holdtime 8000 auth \"cisco123\"",
+            "glbp",
+        ),
+        (
+            "l3_gtpu",
+            "gtpu gpdu teid 0x11223344 seqnum 55 npdu 1 qfi 9",
+            "gtpu",
+        ),
+    ];
+
+    for &(label, stmt, kw) in dual_stack_l3 {
+        assert_dual_stack_roundtrip(label, stmt, kw);
+    }
+
+    let srv6_src = r#"
+        host r1 { ip 2001:db8:20::1 mac 00:11:22:33:44:01 }
+        host r2 { ip 2001:db8:20::2 mac 00:11:22:33:44:02 }
+        compile {
+            r1 -> r2 srv6 nextheader 58 segleft 1 tag 0x1234 sid 2001:db8:20::10 sid 2001:db8:20::20
+        }
+    "#;
+    let srv6_fasm = assert_protocol_roundtrip("l3_srv6_ipv6", srv6_src, "srv6");
+    assert!(srv6_fasm.contains("2001:db8:20::10") && srv6_fasm.contains("2001:db8:20::20"));
+}
+
+/// Verifies rich modifier round-trip decompilation across all 44 new v3.3.0 Layer 7 protocols.
+#[test]
+fn test_roundtrip_44_new_l7_protocols() {
+    let cases: &[(&str, &str, &str)] = &[
+        (
+            "l7_dcerpc",
+            "dcerpc altercontext uuid \"4b324fc8-1670-01d3-1278-5a47bf6ee188\" vers \"3.0\" callid 42 ctxid 1",
+            "dcerpc altercontext",
+        ),
+        (
+            "l7_ntlm",
+            "ntlm challenge domain \"CORP\" workstation \"DC01\" nonce \"0102030405060708\"",
+            "ntlm challenge",
+        ),
+        (
+            "l7_rdp",
+            "rdp x224cr cookie \"mstshash=admin\" proto 2",
+            "rdp",
+        ),
+        (
+            "l7_llmnr_udp",
+            "llmnr query txid 0x5566 qname \"filesrv\" qtype \"a\"",
+            "llmnr",
+        ),
+        (
+            "l7_llmnr_tcp",
+            "llmnr transport tcp response txid 0x5567 qname \"filesrv\" qtype \"aaaa\" rdata \"2001:db8::9\"",
+            "llmnr",
+        ),
+        (
+            "l7_nbns",
+            "nbns register txid 0x2233 qname \"SQL01\" rdata \"10.20.30.40\" ansttl 600",
+            "nbns register",
+        ),
+        (
+            "l7_socks",
+            "socks connect addr \"93.184.216.34\" targetport 443",
+            "socks connect",
+        ),
+        (
+            "l7_vnc",
+            "vnc msgtype \"serverinit\" width 1920 height 1080 desktop \"prod-vm\"",
+            "vnc",
+        ),
+        (
+            "l7_doh",
+            "doh post uri \"/dns-query\" hosthdr \"dns.example\" txid 0x7788 qname \"api.example.com\" qtype \"a\"",
+            "doh",
+        ),
+        (
+            "l7_wsdiscovery",
+            "wsdiscovery hello msgid \"urn:uuid:11111111-1111-1111-1111-111111111111\" xaddrs \"http://10.0.0.5:5357/ws\"",
+            "wsdiscovery hello",
+        ),
+        (
+            "l7_irc",
+            "irc privmsg target \"#ops\" msg \"deploy ready\"",
+            "irc privmsg",
+        ),
+        (
+            "l7_iec104",
+            "iec104 txseq 4 rxseq 2 typeid 45 cot 6 ca 1 ioa 1001 value 1",
+            "iec104",
+        ),
+        (
+            "l7_mms",
+            "mms read invokeid 7 domain \"IED1\" item \"Measurements\"",
+            "mms read",
+        ),
+        (
+            "l7_s7commplus",
+            "s7commplus opcode 0x31 seqnum 12 sessionid 0x10203040",
+            "s7commplus",
+        ),
+        (
+            "l7_synchrophasor",
+            "synchrophasor msgtype \"cfg2\" id 10 station \"SUB_EAST\"",
+            "synchrophasor",
+        ),
+        (
+            "l7_hartip",
+            "hartip msgtype \"publish\" txid 55 cmd 1 addr 2",
+            "hartip",
+        ),
+        (
+            "l7_fins",
+            "fins read da1 10 sa1 20 sid 3 area \"dm\" addr 100 count 4",
+            "fins",
+        ),
+        (
+            "l7_melsec",
+            "melsec read network 1 station 2 io 0x03ff device \"d\" addr 100 count 5",
+            "melsec",
+        ),
+        (
+            "l7_someip",
+            "someip request serviceid 0x1234 methodid 0x0001 clientid 0x0010 sessionid 0x0002",
+            "someip",
+        ),
+        (
+            "l7_doip",
+            "doip diagnostic src 0x0e80 dst 0x1001",
+            "doip diagnostic",
+        ),
+        (
+            "l7_c1222",
+            "c1222 write callingap \"2.16.840.1.114416.3\" tableid 10 value 42",
+            "c1222 write",
+        ),
+        (
+            "l7_gesrtp",
+            "gesrtp read seqnum 5 area \"r\" addr 100 count 4",
+            "gesrtp",
+        ),
+        (
+            "l7_rocplus",
+            "rocplus read dst 2 group 1 src 1 type 98 param 0",
+            "rocplus",
+        ),
+        (
+            "l7_bsap",
+            "bsap read dst 10 src 1 seqnum 7 addr 200 count 2",
+            "bsap",
+        ),
+        (
+            "l7_knxnetip",
+            "knxnetip connect channel 3 seqnum 9",
+            "knxnetip",
+        ),
+        (
+            "l7_rocev2",
+            "rocev2 read pkey 0xffff destqp 0x000100 seqnum 42 addr 0x10002000 key 0xabcdef01 count 64",
+            "rocev2",
+        ),
+        (
+            "l7_ipmi",
+            "ipmi request version 2 netfn 6 cmd 1 rqseq 5 sessionid 0x11223344 seqnum 7",
+            "ipmi",
+        ),
+        (
+            "l7_twamp_udp",
+            "twamp sender seqnum 15 senderttl 128 errorestimate 0x8001",
+            "twamp",
+        ),
+        (
+            "l7_twamp_tcp",
+            "twamp transport tcp greeting mode 1 count 2048",
+            "twamp",
+        ),
+        (
+            "l7_netconf_rpc",
+            "netconf rpc msgid \"105\" operation \"get-config\" chunked",
+            "netconf",
+        ),
+        (
+            "l7_netconf_hello",
+            "netconf hello sessionid 42",
+            "netconf",
+        ),
+        (
+            "l7_gtpc",
+            "gtpc createsessionrequest teid 0x12345678 seqnum 101 cause 16 imsi \"310410123456789\" apn \"internet\"",
+            "gtpc createsessionrequest",
+        ),
+        (
+            "l7_pfcp",
+            "pfcp associationsetuprequest seid 0 seqnum 42 cause 1 nodeid 10.10.1.1 recovery 100",
+            "pfcp associationsetuprequest",
+        ),
+        (
+            "l7_diameter_tcp",
+            "diameter ccr appid 4 hopid 0x11112222 endid 0x33334444 originhost \"hss1.example.com\" realm \"example.com\" sessionid \"hss1;1;2\"",
+            "diameter ccr",
+        ),
+        (
+            "l7_diameter_sctp",
+            "diameter transport sctp dwa hopid 10 endid 20 resultcode 2001",
+            "diameter dwa",
+        ),
+        (
+            "l7_ngap",
+            "ngap initialuemessage criticality \"ignore\" amfueid 101 ranueid 202 plmn \"310410\" tac 0x010203 ranname \"gnb-01\"",
+            "ngap initialuemessage",
+        ),
+        (
+            "l7_s1ap",
+            "s1ap initialuemessage criticality \"ignore\" mmeueid 11 enbueid 22 plmn \"310410\" tac 0x1234 enbname \"enb-01\"",
+            "s1ap initialuemessage",
+        ),
+        (
+            "l7_mssql",
+            "mssql query sql \"SELECT @@VERSION\" pktid 1",
+            "mssql",
+        ),
+        (
+            "l7_kafka",
+            "kafka produce clientid \"producer-1\" correlationid 7 topic \"events\" partition 0",
+            "kafka produce",
+        ),
+        (
+            "l7_mongodb",
+            "mongodb query db \"appdb\" collection \"users\" reqid 42",
+            "mongodb query",
+        ),
+        (
+            "l7_tns",
+            "tns connect version 319 service \"ORCLPDB1\" sid \"ORCL\"",
+            "tns",
+        ),
+        (
+            "l7_iscsi",
+            "iscsi login initiator \"iqn.2026-01.com.example:init1\" target \"iqn.2026-01.com.example:tgt1\" itt 0x10 cmdsn 2",
+            "iscsi",
+        ),
+        (
+            "l7_nvmetcp",
+            "nvmetcp read nsid 1 qid 1 reqid 5 offset 0 count 4096",
+            "nvmetcp read",
+        ),
+        (
+            "l7_rtcp",
+            "rtcp sr ssrc 0x11223344 packets 100 octets 64000 fraction 5",
+            "rtcp sr",
+        ),
+        (
+            "l7_turn",
+            "turn allocate txid 0x10203040 lifetime 600 requestedtransport udp",
+            "turn",
+        ),
+        (
+            "l7_h323_tcp",
+            "h323 connect callref 0x0042 callingparty \"1001\" calledparty \"2002\"",
+            "h323 connect",
+        ),
+        (
+            "l7_h323_udp",
+            "h323 grq seqnum 12 rasaddr 10.10.1.1 1719",
+            "h323 grq",
+        ),
+        (
+            "l7_sccp",
+            "sccp register devicename \"SEP001122334455\" addr 10.10.1.1 version 22",
+            "sccp",
+        ),
+        (
+            "l7_mgcp",
+            "mgcp crcx txid 1001 endpoint \"aaln/1@gw1\" callid \"A1B2\" mode \"sendrecv\"",
+            "mgcp",
+        ),
+    ];
+
+    for &(label, stmt, kw) in cases {
+        assert_dual_stack_roundtrip(label, stmt, kw);
+    }
 }

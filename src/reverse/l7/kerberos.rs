@@ -1,11 +1,11 @@
 //! Kerberos Network Authentication Service v5 (RFC 4120) Layer 7 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements fuzz-safe ASN.1 DER wire-to-AST dissection for `kerberos` v5 messages
-//! (`asreq`, `asrep`, `tgsreq`, `tgsrep`, and `krberror`) over UDP and 4-byte record-marked
+//! (`asreq`, `asrep`, `tgsreq`, `tgsrep`, and `krberror`) over UDP, SCTP, and 4-byte record-marked
 //! TCP transports (port `88` and custom ports with valid ASN.1 APPLICATION tags `0x6A..=0x6D` or
-//! `0x7E`). It dissects outer unencrypted ASN.1 DER fields (`realm`, `cname`, `sname`, and
-//! `etype`) into canonical `.frasm` tokens without attempting to decrypt encrypted ticket or
-//! cipher payloads, and preserves trailing bytes in `residual_payload`.
+//! `0x7E`). It dissects outer unencrypted ASN.1 DER fields (`realm`, `cname`, `sname`, signed 32-bit
+//! `etype`, `PA-ETYPE-INFO2`/`ETYPE-INFO2` padata, and `GeneralizedTime` `stime`) into canonical
+//! `.frasm` tokens while preserving trailing bytes in `residual_payload`.
 
 use alloc::format;
 use alloc::string::{String, ToString};
@@ -14,12 +14,16 @@ use alloc::vec::Vec;
 use crate::ast::{Protocol, TransportProto};
 use crate::reverse::ProtocolDissection;
 
-/// Checks whether `s` can be emitted inside `"..."` for a parser field that uses
-/// `parse_raw_string_lit` (which strips outer quotes without unescaping).
-fn is_valid_raw_str(s: &str) -> bool {
-    !s.contains('"')
-        && s.chars().all(|c| !c.is_control())
-        && (s.bytes().rev().take_while(|&b| b == b'\\').count() % 2 == 0)
+use super::quote_raw_str;
+
+/// Checks whether `s` contains no control characters for safe quoted string emission.
+fn is_printable_krb_str(s: &str) -> bool {
+    s.chars().all(|c| !c.is_control())
+}
+
+/// Validates an RFC 4120 ASN.1 DER `GeneralizedTime` value (`YYYYMMDDHHMMSSZ`, 15 ASCII bytes).
+fn is_valid_generalized_time(bytes: &[u8]) -> bool {
+    bytes.len() == 15 && bytes[14] == b'Z' && bytes[..14].iter().all(|b| b.is_ascii_digit())
 }
 
 /// Parses a single ASN.1 BER/DER TLV header and returns `(tag, value_slice, rest_slice)`.
@@ -83,12 +87,68 @@ fn parse_krb_principal(input: &[u8]) -> Option<String> {
                     return None;
                 }
                 let s = core::str::from_utf8(gs_bytes).ok()?;
-                if !is_valid_raw_str(s) {
+                if !is_printable_krb_str(s) {
                     return None;
                 }
                 parts.push(s);
             }
             return Some(parts.join("/"));
+        }
+    }
+    None
+}
+
+/// Extracts the first signed `i32` `etype` from a `METHOD-DATA` (`PA-ETYPE-INFO2` = `19`) sequence.
+fn extract_etype_from_method_data(method_data: &[u8]) -> Option<i32> {
+    let (md_tag, mut pa_seq, _) = parse_ber_tlv(method_data)?;
+    if md_tag != 0x30 {
+        return None;
+    }
+    while !pa_seq.is_empty() {
+        let (pa_tag, mut pa_fields, next_pa) = parse_ber_tlv(pa_seq)?;
+        pa_seq = next_pa;
+        if pa_tag != 0x30 {
+            continue;
+        }
+        let mut padata_type: Option<i64> = None;
+        let mut padata_val: Option<&[u8]> = None;
+        while !pa_fields.is_empty() {
+            let (ft, fv, fn_rem) = parse_ber_tlv(pa_fields)?;
+            pa_fields = fn_rem;
+            match ft {
+                0xA1 => {
+                    if let Some((0x02, ib, _)) = parse_ber_tlv(fv) {
+                        padata_type = parse_ber_int(ib);
+                    }
+                }
+                0xA2 => {
+                    if let Some((0x04, ob, _)) = parse_ber_tlv(fv) {
+                        padata_val = Some(ob);
+                    }
+                }
+                _ => {}
+            }
+        }
+        if padata_type == Some(19)
+            && let Some(einfo_bytes) = padata_val
+            && let Some((0x30, mut entries, _)) = parse_ber_tlv(einfo_bytes)
+        {
+            while !entries.is_empty() {
+                let (et_tag, mut entry_fields, next_e) = parse_ber_tlv(entries)?;
+                entries = next_e;
+                if et_tag != 0x30 {
+                    continue;
+                }
+                while !entry_fields.is_empty() {
+                    let (eft, efv, ef_next) = parse_ber_tlv(entry_fields)?;
+                    entry_fields = ef_next;
+                    if eft == 0xA0
+                        && let Some((0x02, iv, _)) = parse_ber_tlv(efv)
+                    {
+                        return i32::try_from(parse_ber_int(iv)?).ok();
+                    }
+                }
+            }
         }
     }
     None
@@ -101,7 +161,12 @@ pub(crate) fn dissect_kerberos(
     _dst_port: u16,
     payload: &[u8],
 ) -> Option<ProtocolDissection> {
-    if payload.is_empty() || !matches!(transport, TransportProto::Tcp | TransportProto::Udp) {
+    if payload.is_empty()
+        || !matches!(
+            transport,
+            TransportProto::Tcp | TransportProto::Udp | TransportProto::Sctp
+        )
+    {
         return None;
     }
     let is_tcp = matches!(transport, TransportProto::Tcp);
@@ -166,7 +231,7 @@ pub(crate) fn dissect_kerberos(
                             let (t, v, _) = parse_ber_tlv(f_val)?;
                             if t == 0x1B {
                                 let s = core::str::from_utf8(v).ok()?;
-                                if is_valid_raw_str(s) {
+                                if is_printable_krb_str(s) {
                                     realm = Some(s.to_string());
                                 }
                             }
@@ -177,7 +242,7 @@ pub(crate) fn dissect_kerberos(
                             if t == 0x30 && !et_seq.is_empty() {
                                 let (it, iv, _) = parse_ber_tlv(et_seq)?;
                                 if it == 0x02 {
-                                    etype = parse_ber_int(iv).map(|n| n as i32);
+                                    etype = i32::try_from(parse_ber_int(iv)?).ok();
                                 }
                             }
                         }
@@ -185,11 +250,16 @@ pub(crate) fn dissect_kerberos(
                     }
                 }
             }
+            (11, 0xA2) => {
+                if etype.is_none() {
+                    etype = extract_etype_from_method_data(ctx_val);
+                }
+            }
             (11 | 13, 0xA3) => {
                 let (t, v, _) = parse_ber_tlv(ctx_val)?;
                 if t == 0x1B {
                     let s = core::str::from_utf8(v).ok()?;
-                    if is_valid_raw_str(s) {
+                    if is_printable_krb_str(s) {
                         realm = Some(s.to_string());
                     }
                 }
@@ -216,9 +286,15 @@ pub(crate) fn dissect_kerberos(
                         if et == 0xA0
                             && let Some((0x02, iv, _)) = parse_ber_tlv(ev)
                         {
-                            etype = parse_ber_int(iv).map(|n| n as i32);
+                            etype = i32::try_from(parse_ber_int(iv)?).ok();
                         }
                     }
+                }
+            }
+            (30, 0xA4) => {
+                let (gt_tag, gt_bytes, _) = parse_ber_tlv(ctx_val)?;
+                if gt_tag != 0x18 || !is_valid_generalized_time(gt_bytes) {
+                    return None;
                 }
             }
             (30, 0xA8) => cname = parse_krb_principal(ctx_val),
@@ -226,12 +302,19 @@ pub(crate) fn dissect_kerberos(
                 let (t, v, _) = parse_ber_tlv(ctx_val)?;
                 if t == 0x1B {
                     let s = core::str::from_utf8(v).ok()?;
-                    if is_valid_raw_str(s) {
+                    if is_printable_krb_str(s) {
                         realm = Some(s.to_string());
                     }
                 }
             }
             (30, 0xAA) => sname = parse_krb_principal(ctx_val),
+            (30, 0xAB) => {
+                if let Some((0x04, md_bytes, _)) = parse_ber_tlv(ctx_val)
+                    && let Some(e) = extract_etype_from_method_data(md_bytes)
+                {
+                    etype = Some(e);
+                }
+            }
             _ => {}
         }
     }
@@ -248,17 +331,17 @@ pub(crate) fn dissect_kerberos(
     if let Some(r) = realm.as_deref()
         && r != "CORP.LOCAL"
     {
-        tokens.push_str(&format!(" realm \"{r}\""));
+        tokens.push_str(&format!(" realm \"{}\"", quote_raw_str(r)));
     }
     if let Some(c) = cname.as_deref()
         && c != "user"
     {
-        tokens.push_str(&format!(" cname \"{c}\""));
+        tokens.push_str(&format!(" cname \"{}\"", quote_raw_str(c)));
     }
     if let Some(s) = sname.as_deref()
         && s != "krbtgt"
     {
-        tokens.push_str(&format!(" sname \"{s}\""));
+        tokens.push_str(&format!(" sname \"{}\"", quote_raw_str(s)));
     }
     if let Some(e) = etype
         && e != 18

@@ -87,6 +87,8 @@ impl<'a> FrameBuilder<'a> {
                 self.tacacs_spec.user = Some(*v);
                 self.mysql_spec.user = Some(*v);
                 self.postgres_spec.user = Some(*v);
+                self.diameter_spec.user = Some(*v);
+                self.mssql_spec.user = Some(*v);
             }
             ParsedField::SysUpTime(v, span) => {
                 self.touch_mod("SYSUPTIME", *span);
@@ -195,39 +197,83 @@ impl<'a> FrameBuilder<'a> {
                 self.touch_mod("PCP", *span);
                 self.check_bound("PCP", *v as u64, 0, 7, *span);
                 self.pcp_val = Some((*v, *span));
+                self.raw_pcp_span.get_or_insert(*span);
             }
             ParsedField::Dei(v, span) => {
                 self.touch_mod("DEI", *span);
                 self.check_bound("DEI", *v as u64, 0, 1, *span);
                 self.dei_val = Some((*v, *span));
+                self.raw_dei_span.get_or_insert(*span);
             }
             ParsedField::Qinq(v, span) => {
                 self.touch_mod("QINQ", *span);
                 self.check_bound("QinQ VLAN ID", *v as u64, 0, 4095, *span);
                 self.qinq_val = Some((*v, *span));
+                self.raw_qinq_span.get_or_insert(*span);
             }
             ParsedField::InnerVlan(v, span) => {
                 self.touch_mod("INNER_VLAN", *span);
                 self.check_bound("QinQ innervlan ID", *v as u64, 0, 4095, *span);
                 self.inner_vlan_val = Some((*v, *span));
+                self.raw_inner_vlan_span.get_or_insert(*span);
             }
             ParsedField::Mpls(v, span) => {
-                self.touch_mod("MPLS", *span);
-                self.mpls_val = Some((*v, *span));
+                self.stmt_end_offset = self.stmt_end_offset.max(span.0 + span.1);
+                self.check_bound("MPLS label", *v as u64, 0, 0xF_FFFF, *span);
+                self.mpls_entries.push((*v, None, None, None, *span));
             }
             ParsedField::Exp(v, span) => {
-                self.touch_mod("EXP", *span);
+                self.stmt_end_offset = self.stmt_end_offset.max(span.0 + span.1);
                 self.check_bound("MPLS exp", *v as u64, 0, 7, *span);
-                self.exp_val = Some((*v, *span));
+                if let Some(last) = self.mpls_entries.last_mut() {
+                    if last.1.is_some() {
+                        self.duplicate_modifiers
+                            .push((alloc::string::String::from("exp"), *span));
+                    } else {
+                        last.1 = Some(*v);
+                    }
+                } else {
+                    self.raw_mpls_sub_span.get_or_insert(*span);
+                }
             }
             ParsedField::Bos(v, span) => {
-                self.touch_mod("BOS", *span);
+                self.stmt_end_offset = self.stmt_end_offset.max(span.0 + span.1);
                 self.check_bound("MPLS bos", *v as u64, 0, 1, *span);
-                self.bos_val = Some((*v, *span));
+                if let Some(last) = self.mpls_entries.last_mut() {
+                    if last.2.is_some() {
+                        self.duplicate_modifiers
+                            .push((alloc::string::String::from("bos"), *span));
+                    } else {
+                        last.2 = Some(*v);
+                    }
+                } else {
+                    self.raw_mpls_sub_span.get_or_insert(*span);
+                }
             }
             ParsedField::MplsTtl(v, span) => {
-                self.touch_mod("MPLS_TTL", *span);
-                self.mpls_ttl_val = Some((*v, *span));
+                self.stmt_end_offset = self.stmt_end_offset.max(span.0 + span.1);
+                if let Some(last) = self.mpls_entries.last_mut() {
+                    if last.3.is_some() {
+                        self.duplicate_modifiers
+                            .push((alloc::string::String::from("mplsttl"), *span));
+                    } else {
+                        last.3 = Some(*v);
+                    }
+                } else {
+                    self.raw_mpls_sub_span.get_or_insert(*span);
+                }
+            }
+            ParsedField::Comment(v, span) => {
+                self.touch_mod("COMMENT", *span);
+                self.comment = Some(v.clone());
+            }
+            ParsedField::Fcs(span) => {
+                self.touch_mod("FCS", *span);
+                self.fcs = true;
+            }
+            ParsedField::BadFcs(span) => {
+                self.touch_mod("BADFCS", *span);
+                self.bad_fcs = true;
             }
             ParsedField::SrcMac(v, span) => {
                 self.touch_mod("SRCMAC", *span);
@@ -248,6 +294,7 @@ impl<'a> FrameBuilder<'a> {
             ParsedField::Df(span) => {
                 self.touch_mod("DF", *span);
                 self.df_val = true;
+                self.raw_df_span.get_or_insert(*span);
             }
             ParsedField::Mf(span) => {
                 self.touch_mod("MF", *span);
@@ -255,11 +302,30 @@ impl<'a> FrameBuilder<'a> {
             }
             ParsedField::FragOffset(v, span) => {
                 self.touch_mod("FRAGOFFSET", *span);
+                self.check_bound("fragoffset", *v as u64, 0, 8191, *span);
                 self.frag_offset_val = Some((*v, *span));
+            }
+            ParsedField::RouterAlert(span) => {
+                self.touch_mod("ROUTERALERT", *span);
+                self.router_alert = true;
+            }
+            ParsedField::BadIpChecksum(span) => {
+                self.touch_mod("BADIPCHECKSUM", *span);
+                self.bad_ip_checksum = true;
+                self.raw_bad_ip_checksum_span.get_or_insert(*span);
             }
             ParsedField::Transport(v, span) => {
                 self.touch_mod("TRANSPORT", *span);
                 self.transport_val = Some(*v);
+            }
+            ParsedField::BadChecksum(span) => {
+                self.touch_mod("BADCHECKSUM", *span);
+                self.bad_checksum = true;
+            }
+            ParsedField::NoChecksum(span) => {
+                self.touch_mod("NOCHECKSUM", *span);
+                self.no_checksum = true;
+                self.raw_no_checksum_span.get_or_insert(*span);
             }
             ParsedField::Urgent(v, span) => {
                 self.touch_mod("URGENT", *span);
@@ -277,6 +343,10 @@ impl<'a> FrameBuilder<'a> {
                 self.touch_mod("SACK_PERM", *span);
                 self.sack_perm_val = true;
             }
+            ParsedField::SackBlock(left, right, span) => {
+                self.stmt_end_offset = self.stmt_end_offset.max(span.0 + span.1);
+                self.sack_blocks.push((*left, *right));
+            }
             ParsedField::Tsval(v, span) => {
                 self.touch_mod("TSVAL", *span);
                 self.tsval_val = Some((*v, *span));
@@ -284,6 +354,14 @@ impl<'a> FrameBuilder<'a> {
             ParsedField::Tsecr(v, span) => {
                 self.touch_mod("TSECR", *span);
                 self.tsecr_val = Some((*v, *span));
+            }
+            ParsedField::TcpMd5(v, span) => {
+                self.touch_mod("TCPMD5", *span);
+                self.tcp_md5 = Some(v.clone());
+            }
+            ParsedField::Tfo(v, span) => {
+                self.touch_mod("TFO", *span);
+                self.tfo = Some(v.clone());
             }
             ParsedField::Vtag(v, span) => {
                 self.touch_mod("VTAG", *span);
@@ -337,6 +415,7 @@ impl<'a> FrameBuilder<'a> {
                 self.touch_mod("PORT_ID", *span);
                 if let Some(s) = ps {
                     self.port_id_str = Some(*s);
+                    self.cdp_spec.port_id = Some(*s);
                 }
                 if let Some(u) = pu {
                     self.port_id_u16 = Some(*u);
@@ -345,10 +424,12 @@ impl<'a> FrameBuilder<'a> {
             ParsedField::SysName(v, span) => {
                 self.touch_mod("SYSNAME", *span);
                 self.sysname = Some(*v);
+                self.bmp_spec.sysname = Some(*v);
             }
             ParsedField::SysDesc(v, span) => {
                 self.touch_mod("SYSDESC", *span);
                 self.sysdesc = Some(*v);
+                self.bmp_spec.sysdesc = Some(*v);
             }
             ParsedField::RootId(v, span) => {
                 self.touch_mod("ROOT_ID", *span);
@@ -370,6 +451,7 @@ impl<'a> FrameBuilder<'a> {
                 self.touch_mod("HELLO_TIME", *span);
                 self.hello_time = Some(*v);
                 self.hsrp_hellotime = Some((*v).min(255) as u8);
+                self.glbp_spec.hellotime = Some(u32::from(*v));
                 self.raw_hellotime = Some((*v, *span));
             }
             ParsedField::ForwardDelay(v, span) => {
@@ -386,6 +468,18 @@ impl<'a> FrameBuilder<'a> {
                 self.ike_flags = Some(*v);
                 self.tacacs_spec.flags = Some(*v);
                 self.memcached_spec.flags = Some(*v as u32);
+                self.bmp_spec.peer_flags = Some(*v);
+                self.rpkirtr_spec.flags = Some(*v);
+                self.lisp_spec.flags = Some(*v);
+                self.gtpu_spec.flags = Some(*v);
+                self.diameter_spec.flags = Some(*v);
+                self.s7commplus_spec.flags = Some(*v);
+                self.iscsi_spec.flags = Some(*v);
+                self.nvmetcp_spec.flags = Some(*v);
+                self.rdp_spec.flags = Some(*v);
+                self.dcerpc_spec.flags = Some(*v);
+                self.vnc_spec.flags = Some(*v);
+                self.srv6_spec.flags = Some(*v);
             }
             ParsedField::ActorSys(v, span) => {
                 self.touch_mod("ACTOR_SYS", *span);
@@ -423,6 +517,11 @@ impl<'a> FrameBuilder<'a> {
                 self.touch_mod("VERSION", *span);
                 self.version_byte = Some(*v);
                 self.quic_spec.version = Some(*v as u32);
+                self.cdp_spec.version = Some(*v);
+                self.bmp_spec.version = Some(*v);
+                self.rpkirtr_spec.version = Some(*v);
+                self.l2tp_spec.version = Some(*v);
+                self.glbp_spec.version = Some(*v);
             }
             ParsedField::EapolType(v, span) => {
                 self.touch_mod("EAPOL_TYPE", *span);
@@ -519,6 +618,7 @@ impl<'a> FrameBuilder<'a> {
             ParsedField::GreSeq(v, span) => {
                 self.touch_mod("GRE_SEQ", *span);
                 self.gre_seq = Some(*v);
+                self.erspan_spec.gre_seq = Some(*v);
             }
             ParsedField::GreProto(v, span) => {
                 self.touch_mod("GRE_PROTO", *span);
@@ -555,6 +655,7 @@ impl<'a> FrameBuilder<'a> {
             ParsedField::Icv(v, span) => {
                 self.touch_mod("ICV", *span);
                 self.icv_val = Some(v.clone());
+                self.macsec_spec.icv = Some(v.clone());
             }
             ParsedField::NextHeader(v, span) => {
                 self.touch_mod("NEXT_HEADER", *span);
@@ -631,6 +732,8 @@ impl<'a> FrameBuilder<'a> {
                 self.touch_mod("PRIORITY", *span);
                 self.priority_val = Some((*v, *span));
                 self.of_priority = Some(*v);
+                self.lisp_spec.priority = Some(*v as u8);
+                self.glbp_spec.priority = Some(*v as u8);
             }
             ParsedField::BgpType(v, span) => {
                 self.touch_mod("BGP_TYPE", *span);
@@ -639,14 +742,20 @@ impl<'a> FrameBuilder<'a> {
             ParsedField::Asn(v, span) => {
                 self.touch_mod("ASN", *span);
                 self.asn_val = Some(*v);
+                self.bmp_spec.peer_asn = Some(*v);
+                self.rpkirtr_spec.asn = Some(*v);
             }
             ParsedField::HoldTime(v, span) => {
                 self.touch_mod("HOLD_TIME", *span);
                 self.holdtime_val = Some((*v, *span));
+                self.isis_spec.hold_time = Some(*v);
+                self.ldp_spec.holdtime = Some(*v);
+                self.glbp_spec.holdtime = Some(u32::from(*v));
             }
             ParsedField::BgpId(v, span) => {
                 self.touch_mod("BGP_ID", *span);
                 self.bgpid_ip = Some(*v);
+                self.bmp_spec.peer_bgpid = Some(*v);
             }
             ParsedField::PrefixVal(ip, st, span) => {
                 self.touch_mod("PREFIX", *span);
@@ -655,6 +764,7 @@ impl<'a> FrameBuilder<'a> {
                 }
                 if let Some(s) = st {
                     self.prefix_str = Some(*s);
+                    self.rpkirtr_spec.prefix = Some(*s);
                 }
             }
             ParsedField::NextHop(v, span) => {
@@ -687,6 +797,7 @@ impl<'a> FrameBuilder<'a> {
             ParsedField::Vip(v, span) => {
                 self.touch_mod("VIP", *span);
                 self.vip_ip = Some(*v);
+                self.glbp_spec.vip = Some(*v);
             }
             ParsedField::HsrpState(v, span) => {
                 self.touch_mod("STATE", *span);
@@ -757,7 +868,10 @@ impl<'a> FrameBuilder<'a> {
             }
             ParsedField::L7StringField(..)
             | ParsedField::L7U32Field(..)
+            | ParsedField::L7I32Field(..)
             | ParsedField::L7U64Field(..)
+            | ParsedField::L7BytesField(..)
+            | ParsedField::StunXorMapped(..)
             | ParsedField::L7IpField(..)
             | ParsedField::L7MacField(..)
             | ParsedField::L7Flag(..)

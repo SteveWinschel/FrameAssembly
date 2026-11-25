@@ -5,16 +5,16 @@
 //! Every SCTP packet begins with a 12-byte Common Header containing the 16-bit Source Port,
 //! 16-bit Destination Port, 32-bit Verification Tag (`vtag`), and 32-bit little-endian
 //! Castagnoli CRC32c checksum, followed by one or more 32-bit aligned Chunks (`data`, `init`,
-//! `initack`, `sack`, `heartbeat`, `heartbeatack`, `abort`, `shutdown`, `shutdownack`, `cookieecho`, `cookieack`).
+//! `initack`, `sack`, `heartbeat`, `heartbeatack`, `abort`, `shutdown`, `shutdownack`, `shutdowncomplete`, `cookieecho`, `cookieack`).
 //!
 //! Canonical `.frasm` syntax:
-//! `a -> b sctp [chunk <type>] [vtag <u32>] [stream <u16>] [ssn <u16>] [ppid <u32>] [srcport <u16>] [dstport <u16>]`
+//! `a -> b sctp [chunk <type>] [vtag <u32>] [tsn <u32>] [stream <u16>] [ssn <u16>] [ppid <u32>] [srcport <u16>] [dstport <u16>]`
 
 use alloc::string::String;
 
 /// Stream Control Transmission Protocol (RFC 9260) association and chunk parameters specification.
 ///
-/// Syntax mapping: `sctp [chunk <data|init|initack|sack|heartbeat|heartbeatack|abort|shutdown|shutdownack|cookieecho|cookieack>] [vtag <u32>] [stream <u16>] [ssn <u16>] [ppid <u32>]`
+/// Syntax mapping: `sctp [chunk <data|init|initack|sack|heartbeat|heartbeatack|abort|shutdown|shutdownack|shutdowncomplete|cookieecho|cookieack>] [vtag <u32>] [tsn <u32>] [stream <u16>] [ssn <u16>] [ppid <u32>]`
 #[doc(alias = "sctp")]
 #[doc(alias = "RFC 9260")]
 #[doc(alias = "RFC9260")]
@@ -23,6 +23,7 @@ use alloc::string::String;
 #[doc(alias = "SctpSpec")]
 #[doc(alias = "chunk")]
 #[doc(alias = "vtag")]
+#[doc(alias = "tsn")]
 #[doc(alias = "stream")]
 #[doc(alias = "ssn")]
 #[doc(alias = "ppid")]
@@ -31,6 +32,7 @@ use alloc::string::String;
 #[doc(alias = "sack")]
 #[doc(alias = "heartbeat")]
 #[doc(alias = "shutdownack")]
+#[doc(alias = "shutdowncomplete")]
 #[doc(alias = "cookieecho")]
 #[doc(alias = "cookieack")]
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
@@ -43,17 +45,18 @@ pub struct SctpParams {
     pub ssn: Option<u16>,
     /// 32-bit Payload Protocol Identifier (`ppid <u32>`, e.g., `60` for 5G NGAP, `18` for LTE S1AP, `3` for M3UA).
     pub ppid: Option<u32>,
-    /// SCTP Chunk Type name (`chunk <name>`, e.g., `"INIT"`, `"INIT_ACK"`, `"COOKIE_ECHO"`, `"COOKIE_ACK"`, `"DATA"`, `"SACK"`, `"SHUTDOWN_ACK"`).
+    /// SCTP Chunk Type name (`chunk <name>`, e.g., `"INIT"`, `"INIT_ACK"`, `"COOKIE_ECHO"`, `"COOKIE_ACK"`, `"DATA"`, `"SACK"`, `"SHUTDOWN_ACK"`, `"SHUTDOWN_COMPLETE"`).
     pub chunk: Option<String>,
 }
 
 /// Type alias for Stream Control Transmission Protocol (RFC 9260) specification ([`SctpParams`]).
 ///
-/// Syntax mapping: `sctp [chunk <data|init|initack|sack|heartbeat|heartbeatack|abort|shutdown|shutdownack|cookieecho|cookieack>] [vtag <u32>] [stream <u16>] [ssn <u16>] [ppid <u32>]`
+/// Syntax mapping: `sctp [chunk <data|init|initack|sack|heartbeat|heartbeatack|abort|shutdown|shutdownack|shutdowncomplete|cookieecho|cookieack>] [vtag <u32>] [tsn <u32>] [stream <u16>] [ssn <u16>] [ppid <u32>]`
 #[doc(alias = "sctp")]
 #[doc(alias = "RFC 9260")]
 #[doc(alias = "chunk")]
 #[doc(alias = "vtag")]
+#[doc(alias = "tsn")]
 #[doc(alias = "stream")]
 #[doc(alias = "ssn")]
 #[doc(alias = "ppid")]

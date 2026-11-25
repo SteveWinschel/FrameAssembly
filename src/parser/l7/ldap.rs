@@ -12,7 +12,7 @@ use winnow::prelude::*;
 
 use crate::ast::*;
 use crate::lexer::Token;
-use crate::parser::{parse_str_val, parse_u32, tag, ParsedField, Stream};
+use crate::parser::{parse_i32, parse_str_val, parse_u32, tag, ParsedField, Stream};
 
 /// Parses an LDAP protocol declaration or directory operation field.
 pub(crate) fn parse_ldap_field<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<ParsedField<'a>> {
@@ -20,8 +20,8 @@ pub(crate) fn parse_ldap_field<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<Pa
         alt((
             tag(Token::Ldap)
                 .map(|(_, s)| ParsedField::Protocol(Protocol::Ldap, (s.start, s.len()))),
-            (tag(Token::MsgId), parse_u32)
-                .map(|((_, s), v)| ParsedField::L7U32Field("MSGID", v, (s.start, s.end - s.start))),
+            (tag(Token::MsgId), parse_i32)
+                .map(|((_, s), v)| ParsedField::L7I32Field("MSGID", v, (s.start, s.end - s.start))),
             tag(Token::BindReq).map(|(_, s)| ParsedField::L7Flag("BIND_REQ", (s.start, s.len()))),
             tag(Token::BindRes).map(|(_, s)| ParsedField::L7Flag("BIND_RES", (s.start, s.len()))),
             tag(Token::SearchReq)

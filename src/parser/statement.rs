@@ -25,6 +25,9 @@ use super::fields::{
 };
 use super::{ParsedField, Stream, parse_direction, parse_spanned_ident};
 
+/// Raw MPLS label stack entry `(label, exp, bos, ttl, span)`.
+type RawMplsEntry = (u32, Option<u8>, Option<u8>, Option<u8>, (usize, usize));
+
 /// Accumulator state for constructing a [`FrameStatement`] from parsed modifier fields.
 pub(crate) struct FrameBuilder<'a> {
     /// Active protocol for the statement.
@@ -43,6 +46,8 @@ pub(crate) struct FrameBuilder<'a> {
     pub(crate) payload_bytes: Option<Vec<u8>>,
     /// Decoded binary hex payload.
     pub(crate) hex_payload: Option<Vec<u8>>,
+    /// Optional per-frame PCAPNG comment (`comment <str>`).
+    pub(crate) comment: Option<String>,
     /// Inter-packet delay in nanoseconds.
     pub(crate) wait: Option<u64>,
     /// Source port override.
@@ -105,14 +110,12 @@ pub(crate) struct FrameBuilder<'a> {
     pub(crate) qinq_val: Option<(u16, (usize, usize))>,
     /// Raw 802.1ad QinQ inner VLAN ID and span.
     pub(crate) inner_vlan_val: Option<(u16, (usize, usize))>,
-    /// Raw MPLS label and span.
-    pub(crate) mpls_val: Option<(u32, (usize, usize))>,
-    /// Raw MPLS EXP and span.
-    pub(crate) exp_val: Option<(u8, (usize, usize))>,
-    /// Raw MPLS Bottom-of-Stack bit and span.
-    pub(crate) bos_val: Option<(u8, (usize, usize))>,
-    /// Raw MPLS TTL and span.
-    pub(crate) mpls_ttl_val: Option<(u8, (usize, usize))>,
+    /// Raw MPLS label stack entries `(label, exp, bos, ttl, span)`.
+    pub(crate) mpls_entries: Vec<RawMplsEntry>,
+    /// Append valid Ethernet FCS trailer (`fcs`).
+    pub(crate) fcs: bool,
+    /// Append corrupted Ethernet FCS trailer (`badfcs`).
+    pub(crate) bad_fcs: bool,
     /// Raw source MAC and span.
     pub(crate) src_mac_val: Option<([u8; 6], (usize, usize))>,
     /// Raw destination MAC and span.
@@ -127,8 +130,16 @@ pub(crate) struct FrameBuilder<'a> {
     pub(crate) mf_val: bool,
     /// Raw IPv4 Fragment Offset and span.
     pub(crate) frag_offset_val: Option<(u16, (usize, usize))>,
+    /// IPv4/IPv6 Router Alert flag.
+    pub(crate) router_alert: bool,
+    /// Corrupt IPv4 header checksum flag.
+    pub(crate) bad_ip_checksum: bool,
     /// Explicit L4 transport protocol override.
     pub(crate) transport_val: Option<TransportProto>,
+    /// Corrupt L4 checksum flag.
+    pub(crate) bad_checksum: bool,
+    /// Zero UDP checksum flag.
+    pub(crate) no_checksum: bool,
     /// Raw TCP Urgent pointer and span.
     pub(crate) urgent_val: Option<(u16, (usize, usize))>,
     /// Raw TCP MSS option and span.
@@ -137,10 +148,16 @@ pub(crate) struct FrameBuilder<'a> {
     pub(crate) wscale_val: Option<(u8, (usize, usize))>,
     /// TCP SACK Permitted option flag.
     pub(crate) sack_perm_val: bool,
+    /// TCP SACK blocks `(left, right)`.
+    pub(crate) sack_blocks: Vec<(u32, u32)>,
     /// Raw TCP TSval option and span.
     pub(crate) tsval_val: Option<(u32, (usize, usize))>,
     /// Raw TCP TSecr option and span.
     pub(crate) tsecr_val: Option<(u32, (usize, usize))>,
+    /// TCP MD5 digest bytes (`tcpmd5 <hex>`).
+    pub(crate) tcp_md5: Option<Vec<u8>>,
+    /// TCP Fast Open cookie bytes (`tfo <hex>`).
+    pub(crate) tfo: Option<Vec<u8>>,
     /// Raw SCTP Verification Tag and span.
     pub(crate) vtag_val: Option<(u32, (usize, usize))>,
     /// Raw SCTP Stream ID and span.
@@ -469,6 +486,136 @@ pub(crate) struct FrameBuilder<'a> {
     pub(crate) ethernetip_spec: EthernetipSpec<'a>,
     /// OPC UA specification.
     pub(crate) opcua_spec: OpcuaSpec<'a>,
+    /// Cisco Discovery Protocol (`cdp`) specification.
+    pub(crate) cdp_spec: CdpSpec<'a>,
+    /// IS-IS (`isis`) specification.
+    pub(crate) isis_spec: IsisSpec<'a>,
+    /// MACsec (`macsec`) specification.
+    pub(crate) macsec_spec: MacsecSpec,
+    /// IEEE 802.1Qbb PFC (`pfc`) specification.
+    pub(crate) pfc_spec: PfcSpec,
+    /// PPPoE (`pppoe`) specification.
+    pub(crate) pppoe_spec: PppoeSpec<'a>,
+    /// Network Service Header (`nsh`) specification.
+    pub(crate) nsh_spec: NshSpec,
+    /// PROFINET IO (`profinet`) specification.
+    pub(crate) profinet_spec: ProfinetSpec<'a>,
+    /// IEC 61850 GOOSE (`goose`) specification.
+    pub(crate) goose_spec: GooseSpec<'a>,
+    /// IEC 61850 Sampled Values (`sv`) specification.
+    pub(crate) sv_spec: SvSpec<'a>,
+    /// EtherCAT (`ethercat`) specification.
+    pub(crate) ethercat_spec: EthercatSpec<'a>,
+    /// IP-in-IP (`ipip`) specification.
+    pub(crate) ipip_spec: IpipSpec<'a>,
+    /// Segment Routing over IPv6 (`srv6`) specification.
+    pub(crate) srv6_spec: Srv6Spec<'a>,
+    /// ERSPAN (`erspan`) specification.
+    pub(crate) erspan_spec: ErspanSpec<'a>,
+    /// RSVP / RSVP-TE (`rsvp`) specification.
+    pub(crate) rsvp_spec: RsvpSpec<'a>,
+    /// Label Distribution Protocol (`ldp`) specification.
+    pub(crate) ldp_spec: LdpSpec<'a>,
+    /// BGP Monitoring Protocol (`bmp`) specification.
+    pub(crate) bmp_spec: BmpSpec<'a>,
+    /// RPKI-to-Router (`rpkirtr`) specification.
+    pub(crate) rpkirtr_spec: RpkirtrSpec<'a>,
+    /// Layer 2 Tunneling Protocol (`l2tp`) specification.
+    pub(crate) l2tp_spec: L2tpSpec<'a>,
+    /// LISP (`lisp`) specification.
+    pub(crate) lisp_spec: LispSpec<'a>,
+    /// Cisco GLBP (`glbp`) specification.
+    pub(crate) glbp_spec: GlbpSpec<'a>,
+    /// GTPv1-U (`gtpu`) specification.
+    pub(crate) gtpu_spec: GtpuSpec<'a>,
+    /// DCE/RPC (`dcerpc`) specification.
+    pub(crate) dcerpc_spec: DcerpcSpec<'a>,
+    /// NTLM / HTTP-NTLM (`ntlm`) specification.
+    pub(crate) ntlm_spec: NtlmSpec<'a>,
+    /// RDP / X.224 (`rdp`) specification.
+    pub(crate) rdp_spec: RdpSpec<'a>,
+    /// LLMNR (`llmnr`) specification.
+    pub(crate) llmnr_spec: LlmnrSpec<'a>,
+    /// NetBIOS Name Service (`nbns`) specification.
+    pub(crate) nbns_spec: NbnsSpec<'a>,
+    /// SOCKS4/5 (`socks`) specification.
+    pub(crate) socks_spec: SocksSpec<'a>,
+    /// VNC / RFB (`vnc`) specification.
+    pub(crate) vnc_spec: VncSpec<'a>,
+    /// DNS over HTTPS (`doh`) specification.
+    pub(crate) doh_spec: DohSpec<'a>,
+    /// WS-Discovery (`wsdiscovery`) specification.
+    pub(crate) wsdiscovery_spec: WsdiscoverySpec<'a>,
+    /// IRC (`irc`) specification.
+    pub(crate) irc_spec: IrcSpec<'a>,
+    /// IEC 60870-5-104 (`iec104`) specification.
+    pub(crate) iec104_spec: Iec104Spec<'a>,
+    /// ISO 9506 / IEC 61850 MMS (`mms`) specification.
+    pub(crate) mms_spec: MmsSpec<'a>,
+    /// Siemens S7commPlus (`s7commplus`) specification.
+    pub(crate) s7commplus_spec: S7commplusSpec<'a>,
+    /// IEEE C37.118 Synchrophasor (`synchrophasor`) specification.
+    pub(crate) synchrophasor_spec: SynchrophasorSpec<'a>,
+    /// HART-IP (`hartip`) specification.
+    pub(crate) hartip_spec: HartipSpec<'a>,
+    /// Omron FINS (`fins`) specification.
+    pub(crate) fins_spec: FinsSpec<'a>,
+    /// Mitsubishi MELSEC MC (`melsec`) specification.
+    pub(crate) melsec_spec: MelsecSpec<'a>,
+    /// AUTOSAR SOME/IP (`someip`) specification.
+    pub(crate) someip_spec: SomeipSpec<'a>,
+    /// ISO 13400 DoIP (`doip`) specification.
+    pub(crate) doip_spec: DoipSpec<'a>,
+    /// ANSI C12.22 (`c1222`) specification.
+    pub(crate) c1222_spec: C1222Spec<'a>,
+    /// GE-SRTP (`gesrtp`) specification.
+    pub(crate) gesrtp_spec: GesrtpSpec<'a>,
+    /// Emerson ROC Plus (`rocplus`) specification.
+    pub(crate) rocplus_spec: RocplusSpec<'a>,
+    /// Bristol BSAP (`bsap`) specification.
+    pub(crate) bsap_spec: BsapSpec<'a>,
+    /// KNXnet/IP (`knxnetip`) specification.
+    pub(crate) knxnetip_spec: KnxnetipSpec<'a>,
+    /// RDMA over Converged Ethernet v2 (`rocev2`) specification.
+    pub(crate) rocev2_spec: Rocev2Spec<'a>,
+    /// IPMI / RMCP+ (`ipmi`) specification.
+    pub(crate) ipmi_spec: IpmiSpec<'a>,
+    /// TWAMP (`twamp`) specification.
+    pub(crate) twamp_spec: TwampSpec<'a>,
+    /// NETCONF (`netconf`) specification.
+    pub(crate) netconf_spec: NetconfSpec<'a>,
+    /// GTPv2-C (`gtpc`) specification.
+    pub(crate) gtpc_spec: GtpcSpec<'a>,
+    /// 5G PFCP (`pfcp`) specification.
+    pub(crate) pfcp_spec: PfcpSpec<'a>,
+    /// Diameter (`diameter`) specification.
+    pub(crate) diameter_spec: DiameterSpec<'a>,
+    /// 5G NGAP (`ngap`) specification.
+    pub(crate) ngap_spec: NgapSpec<'a>,
+    /// 4G S1AP (`s1ap`) specification.
+    pub(crate) s1ap_spec: S1apSpec<'a>,
+    /// Microsoft SQL Server TDS (`mssql`) specification.
+    pub(crate) mssql_spec: MssqlSpec<'a>,
+    /// Apache Kafka (`kafka`) specification.
+    pub(crate) kafka_spec: KafkaSpec<'a>,
+    /// MongoDB Wire (`mongodb`) specification.
+    pub(crate) mongodb_spec: MongodbSpec<'a>,
+    /// Oracle TNS (`tns`) specification.
+    pub(crate) tns_spec: TnsSpec<'a>,
+    /// iSCSI (`iscsi`) specification.
+    pub(crate) iscsi_spec: IscsiSpec<'a>,
+    /// NVMe/TCP (`nvmetcp`) specification.
+    pub(crate) nvmetcp_spec: NvmetcpSpec<'a>,
+    /// RTCP (`rtcp`) specification.
+    pub(crate) rtcp_spec: RtcpSpec<'a>,
+    /// TURN (`turn`) specification.
+    pub(crate) turn_spec: TurnSpec<'a>,
+    /// ITU-T H.323 (`h323`) specification.
+    pub(crate) h323_spec: H323Spec<'a>,
+    /// Cisco SCCP (`sccp`) specification.
+    pub(crate) sccp_spec: SccpSpec<'a>,
+    /// MGCP (`mgcp`) specification.
+    pub(crate) mgcp_spec: MgcpSpec<'a>,
     /// Recorded duplicate modifiers and their source spans.
     pub(crate) duplicate_modifiers: Vec<(String, (usize, usize))>,
     /// Set of modifier keys already encountered in the statement.
@@ -479,8 +626,26 @@ pub(crate) struct FrameBuilder<'a> {
     pub(crate) raw_bounds: Vec<RawBoundEntry>,
     /// Deferred protocol-sensitive numeric checks `(key, value, span)` evaluated once `protocol` is finalized.
     pub(crate) deferred_u32_fields: Vec<(&'static str, u32, (usize, usize))>,
+    /// Deferred protocol-sensitive `u64` checks `(key, value, span)` evaluated once `protocol` is finalized.
+    pub(crate) deferred_u64_fields: Vec<(&'static str, u64, (usize, usize))>,
     /// Source span of a bare `nop` modifier if encountered.
     pub(crate) raw_nop_span: Option<(usize, usize)>,
+    /// Source span of `qinq` modifier if encountered.
+    pub(crate) raw_qinq_span: Option<(usize, usize)>,
+    /// Source span of `innervlan` modifier if encountered.
+    pub(crate) raw_inner_vlan_span: Option<(usize, usize)>,
+    /// Source span of `pcp` modifier if encountered.
+    pub(crate) raw_pcp_span: Option<(usize, usize)>,
+    /// Source span of `dei` modifier if encountered.
+    pub(crate) raw_dei_span: Option<(usize, usize)>,
+    /// Source span of an orphan `exp`/`bos`/`mplsttl` modifier if encountered before `mpls`.
+    pub(crate) raw_mpls_sub_span: Option<(usize, usize)>,
+    /// Source span of `df` modifier if encountered.
+    pub(crate) raw_df_span: Option<(usize, usize)>,
+    /// Source span of `nochecksum` modifier if encountered.
+    pub(crate) raw_no_checksum_span: Option<(usize, usize)>,
+    /// Source span of `badipchecksum` modifier if encountered.
+    pub(crate) raw_bad_ip_checksum_span: Option<(usize, usize)>,
     /// End byte offset of the statement.
     pub(crate) stmt_end_offset: usize,
 }
@@ -500,6 +665,7 @@ impl<'a> FrameBuilder<'a> {
             payload: None,
             payload_bytes: None,
             hex_payload: None,
+            comment: None,
             wait: None,
             src_port: None,
             dst_port: None,
@@ -531,10 +697,9 @@ impl<'a> FrameBuilder<'a> {
             dei_val: None,
             qinq_val: None,
             inner_vlan_val: None,
-            mpls_val: None,
-            exp_val: None,
-            bos_val: None,
-            mpls_ttl_val: None,
+            mpls_entries: Vec::new(),
+            fcs: false,
+            bad_fcs: false,
             src_mac_val: None,
             dst_mac_val: None,
             ethertype_val: None,
@@ -542,13 +707,20 @@ impl<'a> FrameBuilder<'a> {
             df_val: false,
             mf_val: false,
             frag_offset_val: None,
+            router_alert: false,
+            bad_ip_checksum: false,
             transport_val: None,
+            bad_checksum: false,
+            no_checksum: false,
             urgent_val: None,
             mss_val: None,
             wscale_val: None,
             sack_perm_val: false,
+            sack_blocks: Vec::new(),
             tsval_val: None,
             tsecr_val: None,
+            tcp_md5: None,
+            tfo: None,
             vtag_val: None,
             stream_val: None,
             ssn_val: None,
@@ -713,12 +885,86 @@ impl<'a> FrameBuilder<'a> {
             s7comm_spec: S7commSpec::default(),
             ethernetip_spec: EthernetipSpec::default(),
             opcua_spec: OpcuaSpec::default(),
+            cdp_spec: CdpSpec::default(),
+            isis_spec: IsisSpec::default(),
+            macsec_spec: MacsecSpec::default(),
+            pfc_spec: PfcSpec::default(),
+            pppoe_spec: PppoeSpec::default(),
+            nsh_spec: NshSpec::default(),
+            profinet_spec: ProfinetSpec::default(),
+            goose_spec: GooseSpec::default(),
+            sv_spec: SvSpec::default(),
+            ethercat_spec: EthercatSpec::default(),
+            ipip_spec: IpipSpec::default(),
+            srv6_spec: Srv6Spec::default(),
+            erspan_spec: ErspanSpec::default(),
+            rsvp_spec: RsvpSpec::default(),
+            ldp_spec: LdpSpec::default(),
+            bmp_spec: BmpSpec::default(),
+            rpkirtr_spec: RpkirtrSpec::default(),
+            l2tp_spec: L2tpSpec::default(),
+            lisp_spec: LispSpec::default(),
+            glbp_spec: GlbpSpec::default(),
+            gtpu_spec: GtpuSpec::default(),
+            dcerpc_spec: DcerpcSpec::default(),
+            ntlm_spec: NtlmSpec::default(),
+            rdp_spec: RdpSpec::default(),
+            llmnr_spec: LlmnrSpec::default(),
+            nbns_spec: NbnsSpec::default(),
+            socks_spec: SocksSpec::default(),
+            vnc_spec: VncSpec::default(),
+            doh_spec: DohSpec::default(),
+            wsdiscovery_spec: WsdiscoverySpec::default(),
+            irc_spec: IrcSpec::default(),
+            iec104_spec: Iec104Spec::default(),
+            mms_spec: MmsSpec::default(),
+            s7commplus_spec: S7commplusSpec::default(),
+            synchrophasor_spec: SynchrophasorSpec::default(),
+            hartip_spec: HartipSpec::default(),
+            fins_spec: FinsSpec::default(),
+            melsec_spec: MelsecSpec::default(),
+            someip_spec: SomeipSpec::default(),
+            doip_spec: DoipSpec::default(),
+            c1222_spec: C1222Spec::default(),
+            gesrtp_spec: GesrtpSpec::default(),
+            rocplus_spec: RocplusSpec::default(),
+            bsap_spec: BsapSpec::default(),
+            knxnetip_spec: KnxnetipSpec::default(),
+            rocev2_spec: Rocev2Spec::default(),
+            ipmi_spec: IpmiSpec::default(),
+            twamp_spec: TwampSpec::default(),
+            netconf_spec: NetconfSpec::default(),
+            gtpc_spec: GtpcSpec::default(),
+            pfcp_spec: PfcpSpec::default(),
+            diameter_spec: DiameterSpec::default(),
+            ngap_spec: NgapSpec::default(),
+            s1ap_spec: S1apSpec::default(),
+            mssql_spec: MssqlSpec::default(),
+            kafka_spec: KafkaSpec::default(),
+            mongodb_spec: MongodbSpec::default(),
+            tns_spec: TnsSpec::default(),
+            iscsi_spec: IscsiSpec::default(),
+            nvmetcp_spec: NvmetcpSpec::default(),
+            rtcp_spec: RtcpSpec::default(),
+            turn_spec: TurnSpec::default(),
+            h323_spec: H323Spec::default(),
+            sccp_spec: SccpSpec::default(),
+            mgcp_spec: MgcpSpec::default(),
             duplicate_modifiers: Vec::new(),
             seen_modifier_keys: HashSet::new(),
             gentrap_span: None,
             raw_bounds: Vec::new(),
             deferred_u32_fields: Vec::new(),
+            deferred_u64_fields: Vec::new(),
             raw_nop_span: None,
+            raw_qinq_span: None,
+            raw_inner_vlan_span: None,
+            raw_pcp_span: None,
+            raw_dei_span: None,
+            raw_mpls_sub_span: None,
+            raw_df_span: None,
+            raw_no_checksum_span: None,
+            raw_bad_ip_checksum_span: None,
             stmt_end_offset: callee_end,
         }
     }
@@ -764,10 +1010,11 @@ pub(crate) fn parse_frame_statement<'i, 'a>(
 
     let mut parsed_fields: Vec<ParsedField<'a>> = Vec::new();
     let mut current_protocol: Option<Protocol> = None;
+    let mut last_end: usize = callee.span.0 + callee.span.1;
 
     while !input.is_empty() {
-        // Stop if we reached the closing brace of the flow/compile block or the start of the next statement
-        if matches!(input[0].0, Token::RBrace)
+        // Stop if we reached the closing brace of the flow/compile/repeat block or the start of the next statement
+        if matches!(input[0].0, Token::RBrace | Token::Repeat)
             || (input.len() >= 2 && matches!(input[1].0, Token::RightArrow | Token::LeftArrow))
             || (input.len() >= 2 && matches!(input[1].0, Token::LParen))
         {
@@ -775,10 +1022,17 @@ pub(crate) fn parse_frame_statement<'i, 'a>(
         }
 
         let saved = *input;
+        let advance_end = |before: &Stream<'i, 'a>, after: &Stream<'i, 'a>, end_ref: &mut usize| {
+            let consumed = before.len().saturating_sub(after.len());
+            if consumed > 0 {
+                *end_ref = (*end_ref).max(before[consumed - 1].1.end);
+            }
+        };
 
-        // 1. Try universal modifiers (wait, payload, hexpayload, L2/L3/L4 header fields)
+        // 1. Try universal modifiers (wait, payload, hexpayload, comment, L2/L3/L4 header fields)
         match parse_universal_field(input, current_protocol.as_ref()) {
             Ok(field) => {
+                advance_end(&saved, input, &mut last_end);
                 if let ParsedField::Protocol(ref p, _) = field {
                     current_protocol = Some(p.clone());
                 }
@@ -791,12 +1045,13 @@ pub(crate) fn parse_frame_statement<'i, 'a>(
             }
         }
 
-        // 2. If a protocol has already been identified, try its protocol-specific field parser first;
-        //    otherwise try explicit protocol keywords before falling back across all protocol fields
-        //    (preventing `bacnet` `whois` from shadowing the `whois` protocol keyword).
+        // 2. Fail-closed post-protocol dispatch: once a protocol keyword is active, ONLY
+        //    universal modifiers, that active protocol's fields, or another explicit protocol
+        //    keyword (flagged as Multiple protocols in semantic validation) are permitted.
         if let Some(ref proto) = current_protocol {
             match dispatch_protocol_field(proto, input) {
                 Ok(field) => {
+                    advance_end(&saved, input, &mut last_end);
                     if let ParsedField::Protocol(ref p, _) = field {
                         current_protocol = Some(p.clone());
                     }
@@ -808,9 +1063,10 @@ pub(crate) fn parse_frame_statement<'i, 'a>(
                     *input = saved;
                 }
             }
-        } else {
+
             match parse_protocol_keyword(input) {
                 Ok(field) => {
+                    advance_end(&saved, input, &mut last_end);
                     if let ParsedField::Protocol(ref p, _) = field {
                         current_protocol = Some(p.clone());
                     }
@@ -820,13 +1076,31 @@ pub(crate) fn parse_frame_statement<'i, 'a>(
                 Err(ErrMode::Cut(e)) => return Err(ErrMode::Cut(e)),
                 Err(_) => {
                     *input = saved;
+                    return Err(ErrMode::Cut(winnow::error::ContextError::new()));
                 }
             }
         }
 
-        // 3. Fallback across all protocol declarations and fields
+        // 3. Before any protocol keyword is active, try explicit protocol keywords first
+        //    (preventing `bacnet` `whois` from shadowing `whois`), then pre-protocol fields.
+        match parse_protocol_keyword(input) {
+            Ok(field) => {
+                advance_end(&saved, input, &mut last_end);
+                if let ParsedField::Protocol(ref p, _) = field {
+                    current_protocol = Some(p.clone());
+                }
+                parsed_fields.push(field);
+                continue;
+            }
+            Err(ErrMode::Cut(e)) => return Err(ErrMode::Cut(e)),
+            Err(_) => {
+                *input = saved;
+            }
+        }
+
         match parse_fallback_field(input) {
             Ok(field) => {
+                advance_end(&saved, input, &mut last_end);
                 if let ParsedField::Protocol(ref p, _) = field {
                     current_protocol = Some(p.clone());
                 }
@@ -841,13 +1115,13 @@ pub(crate) fn parse_frame_statement<'i, 'a>(
         }
     }
 
-    let mut builder = FrameBuilder::new(callee.span.0 + callee.span.1);
+    let mut builder = FrameBuilder::new(last_end);
     for f in &parsed_fields {
         builder.apply_field(f);
     }
 
     let stopped_at_stmt_boundary = input.is_empty()
-        || matches!(input[0].0, Token::RBrace)
+        || matches!(input[0].0, Token::RBrace | Token::Repeat)
         || (input.len() >= 2
             && matches!(
                 input[1].0,

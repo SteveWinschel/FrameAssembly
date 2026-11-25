@@ -36,8 +36,17 @@ pub fn build_ssh_payload(
         if code == 20 || spec.is_kexinit || spec.cookie.is_some() {
             let mut cookie_bytes = [0xAAu8; 16];
             if let Some(c_str) = spec.cookie {
-                let raw = c_str.as_bytes();
-                if raw.len() == 32 && raw.iter().all(|b| b.is_ascii_hexdigit()) {
+                let trimmed = c_str
+                    .strip_prefix("0x")
+                    .or_else(|| c_str.strip_prefix("0X"))
+                    .unwrap_or(c_str);
+                let raw = trimmed.as_bytes();
+                if !raw.is_empty()
+                    && raw.len() <= 32
+                    && raw.len().is_multiple_of(2)
+                    && raw.iter().all(u8::is_ascii_hexdigit)
+                {
+                    cookie_bytes.fill(0);
                     for (i, pair) in raw.as_chunks::<2>().0.iter().enumerate() {
                         if let Ok(s) = core::str::from_utf8(pair)
                             && let Ok(val) = u8::from_str_radix(s, 16)
@@ -46,8 +55,8 @@ pub fn build_ssh_payload(
                         }
                     }
                 } else {
-                    let copy_len = raw.len().min(16);
-                    cookie_bytes[..copy_len].copy_from_slice(&raw[..copy_len]);
+                    let copy_len = c_str.len().min(16);
+                    cookie_bytes[..copy_len].copy_from_slice(&c_str.as_bytes()[..copy_len]);
                 }
             }
             body.extend_from_slice(&cookie_bytes);
@@ -57,8 +66,8 @@ pub fn build_ssh_payload(
                     "ssh-ed25519",
                     "chacha20-poly1305@openssh.com",
                     "chacha20-poly1305@openssh.com",
-                    "",
-                    "",
+                    "hmac-sha2-256",
+                    "hmac-sha2-256",
                     "none",
                     "none",
                     "",

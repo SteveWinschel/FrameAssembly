@@ -1,13 +1,13 @@
-//! Command-line interface entry point for the FrameAssembly network packet compiler.
+//! Command-line interface entry point for the FrameAssembly `v3.3.0` network packet compiler.
 //!
 //! Compiling `.frasm` network traffic code to `.pcap` / `.pcapng` is the default root command,
-//! paired with five subcommands across 81 Layer 2 through Layer 7 protocols:
-//! - `frameassembly <input.frasm> [output.pcap]` validates `.frasm` code and writes a
-//!   nanosecond-precision `.pcapng` capture file (defaulting to `<input_stem>.pcap`).
-//! - `frameassembly show <input.frasm>` validates `.frasm` code and prints a relative-timestamp
+//! paired with five subcommands across **146 native Layer 2 through Layer 7 protocols**:
+//! - `frameassembly <input.frasm|-> [output.pcap|-]` validates `.frasm` code (or `stdin`) and
+//!   writes a nanosecond-precision `.pcap` / `PCAPNG` capture file (or streams `PCAPNG` to `stdout`).
+//! - `frameassembly show <input.frasm|capture.pcap|capture.pcapng|->` displays a relative-timestamp
 //!   packet ladder table to standard output without writing a capture file to disk.
-//! - `frameassembly reverse <input.pcap> [output.frasm]` reverses a `.pcap` or `.pcapng` capture
-//!   file into `.frasm` code (defaulting to `<input_stem>.frasm`).
+//! - `frameassembly reverse <input.pcap|-> [output.frasm|-]` reverses a `.pcap` or `.pcapng`
+//!   capture stream into `.frasm` code (defaulting to `<input_stem>.frasm`, or `stdout` for `-`).
 //! - `frameassembly update` checks for a newer release and updates the installed binary.
 //! - `frameassembly version` prints the active `frameassembly` binary version.
 //! - `frameassembly help [subcommand]` displays command usage and subcommand reference text.
@@ -17,15 +17,42 @@ mod updater;
 use clap::builder::PathBufValueParser;
 use clap::builder::styling::{AnsiColor, Effects, Styles};
 use clap::{Arg, ArgAction, Command, ValueHint};
-use frameassembly::backend::compile_program;
+use frameassembly::backend::{CompiledFrame, compile_program_with_metadata};
+use frameassembly::inspect::format_packet_ladder;
 use frameassembly::parser::parse_program;
-use frameassembly::reverse::reverse_pcap_file;
+use frameassembly::pcap::{serialize_pcapng_with_metadata, write_capture_file_with_metadata};
+use frameassembly::reverse::{
+    read_capture_bytes_for_show, reverse_pcap_file, reverse_pcap_reader,
+};
 use miette::{IntoDiagnostic, NamedSource, Result};
 use std::ffi::{OsStr, OsString};
-use std::fmt::Write as _;
 use std::fs;
-use std::net::{Ipv4Addr, Ipv6Addr};
+use std::io::{Read as _, Write as _};
 use std::path::{Path, PathBuf};
+
+/// Returns `true` when `bytes` begins with a recognized `PCAP` or `PCAPNG` 4-byte file magic.
+fn is_capture_magic(bytes: &[u8]) -> bool {
+    matches!(
+        bytes.get(0..4),
+        Some(
+            [0x0A, 0x0D, 0x0D, 0x0A]
+                | [0xA1, 0xB2, 0xC3, 0xD4]
+                | [0xD4, 0xC3, 0xB2, 0xA1]
+                | [0xA1, 0xB2, 0x3C, 0x4D]
+                | [0x4D, 0x3C, 0xB2, 0xA1]
+        )
+    )
+}
+
+/// Reads the entire standard input stream into memory for `-` CLI streaming paths.
+fn read_stdin_bytes() -> Result<Vec<u8>> {
+    let mut buf = Vec::new();
+    std::io::stdin()
+        .lock()
+        .read_to_end(&mut buf)
+        .into_diagnostic()?;
+    Ok(buf)
+}
 
 /// Nine-role `anstyle` terminal color palette used by `clap` help and usage diagnostics.
 const CLI_STYLES: Styles = Styles::styled()
@@ -145,7 +172,7 @@ where
                         .to_string(),
                 );
             }
-            if s.starts_with('-') {
+            if s != "-" && s.starts_with('-') {
                 continue;
             }
         }
@@ -156,7 +183,7 @@ where
         return Ok(());
     };
 
-    if !after_double_dash && arg1 == "compile" && !Path::new("compile").is_file() {
+    if !after_double_dash && arg1.eq_ignore_ascii_case("compile") && !Path::new(arg1).is_file() {
         return Err(
             "Compiling is the default command in FrameAssembly (there is no 'compile' subcommand); run:\n  frameassembly <in.frasm> [out.pcap]"
                 .to_string(),
@@ -245,7 +272,7 @@ fn build_cli() -> Command {
         .arg(
             Arg::new("input")
                 .value_name("INPUT.frasm")
-                .help("Path to the input .frasm file")
+                .help("Path to the input .frasm file (or '-' for stdin)")
                 .required(true)
                 .index(1)
                 .value_hint(ValueHint::FilePath)
@@ -254,19 +281,19 @@ fn build_cli() -> Command {
         .arg(
             Arg::new("output")
                 .value_name("OUTPUT.pcap")
-                .help("Optional output .pcap/.pcapng path (defaults to <input_stem>.pcap)")
+                .help("Optional output .pcap/.pcapng path (defaults to <input_stem>.pcap, or '-' for stdout PCAPNG)")
                 .index(2)
                 .value_hint(ValueHint::FilePath)
                 .value_parser(PathBufValueParser::new()),
         )
         .subcommand(
             Command::new("show")
-                .about("Validate a .frasm file and print a packet ladder table without writing a capture file")
+                .about("Validate a .frasm file or inspect a .pcap/.pcapng capture (or '-' for stdin) without writing a file")
                 .disable_help_flag(true)
                 .arg(
                     Arg::new("input")
                         .value_name("INPUT.frasm")
-                        .help("Path to the input .frasm file")
+                        .help("Path to the input .frasm or .pcap/.pcapng file (or '-' for stdin)")
                         .required(true)
                         .index(1)
                         .value_hint(ValueHint::FilePath)
@@ -280,7 +307,7 @@ fn build_cli() -> Command {
                 .arg(
                     Arg::new("input")
                         .value_name("INPUT.pcap")
-                        .help("Path to the input .pcap or .pcapng capture file")
+                        .help("Path to the input .pcap or .pcapng capture file (or '-' for stdin)")
                         .required(true)
                         .index(1)
                         .value_hint(ValueHint::FilePath)
@@ -289,7 +316,7 @@ fn build_cli() -> Command {
                 .arg(
                     Arg::new("output")
                         .value_name("OUTPUT.frasm")
-                        .help("Optional output .frasm path (defaults to <input_stem>.frasm)")
+                        .help("Optional output .frasm path (defaults to <input_stem>.frasm, or '-' for stdout)")
                         .index(2)
                         .value_hint(ValueHint::FilePath)
                         .value_parser(PathBufValueParser::new()),
@@ -307,392 +334,24 @@ fn build_cli() -> Command {
         )
 }
 
-/// Maps well-known TCP/UDP port numbers to concise L7 protocol display labels for `frameassembly show`.
-fn port_to_l7_name(port: u16, is_tcp: bool) -> Option<&'static str> {
-    match (port, is_tcp) {
-        (21, true) => Some("FTP"),
-        (22, true) => Some("SSH"),
-        (23, true) => Some("TELNET"),
-        (25 | 587, true) => Some("SMTP"),
-        (43, true) => Some("WHOIS"),
-        (49, true) => Some("TACACS"),
-        (53, _) => Some("DNS"),
-        (67 | 68 | 546 | 547, false) => Some("DHCP"),
-        (69, false) => Some("TFTP"),
-        (80, true) => Some("HTTP"),
-        (88, _) => Some("KERBEROS"),
-        (102, true) => Some("S7COMM"),
-        (110, true) => Some("POP3"),
-        (123, false) => Some("NTP"),
-        (143, true) => Some("IMAP"),
-        (161 | 162, false) => Some("SNMP"),
-        (179, true) => Some("BGP"),
-        (319 | 320, false) => Some("PTP"),
-        (389, _) => Some("LDAP"),
-        (443, true) => Some("TLS"),
-        (443, false) => Some("QUIC"),
-        (445, true) => Some("SMB"),
-        (500 | 4500, false) => Some("IKEV2"),
-        (502, _) => Some("MODBUS"),
-        (514 | 6514, _) => Some("SYSLOG"),
-        (520 | 521, false) => Some("RIP"),
-        (554, true) => Some("RTSP"),
-        (1812 | 1813, false) => Some("RADIUS"),
-        (1883, true) => Some("MQTT"),
-        (1900, false) => Some("SSDP"),
-        (1985, false) => Some("HSRP"),
-        (2049, _) => Some("NFS"),
-        (2055, false) => Some("NETFLOW"),
-        (3306, true) => Some("MYSQL"),
-        (3478, false) => Some("STUN"),
-        (3784, false) => Some("BFD"),
-        (4739, false) => Some("IPFIX"),
-        (4789, false) => Some("VXLAN"),
-        (4840, true) => Some("OPCUA"),
-        (5004, false) => Some("RTP"),
-        (5060, _) => Some("SIP"),
-        (5353, false) => Some("MDNS"),
-        (5432, true) => Some("POSTGRES"),
-        (5672, true) => Some("AMQP"),
-        (5683, false) => Some("COAP"),
-        (6081, false) => Some("GENEVE"),
-        (6343, false) => Some("SFLOW"),
-        (6379, true) => Some("REDIS"),
-        (6653, true) => Some("OPENFLOW"),
-        (11211, _) => Some("MEMCACHED"),
-        (20000, _) => Some("DNP3"),
-        (2222, false) | (44818, _) => Some("ETHERNETIP"),
-        (47808, false) => Some("BACNET"),
-        (50051, true) => Some("GRPC"),
-        (51820, false) => Some("WIREGUARD"),
-        _ => None,
-    }
-}
-
-/// Formats a 6-byte Ethernet MAC address slice as lowercase colon-hex (`xx:xx:xx:xx:xx:xx`).
-fn format_mac(bytes: &[u8]) -> String {
-    let Some(&[b0, b1, b2, b3, b4, b5]) = bytes.first_chunk::<6>() else {
-        return "00:00:00:00:00:00".to_string();
-    };
-    format!("{b0:02x}:{b1:02x}:{b2:02x}:{b3:02x}:{b4:02x}:{b5:02x}")
-}
-
-/// Dissects a single raw Ethernet frame into `(src_to_dst, proto_label, summary_text)`.
-fn summarize_frame(data: &[u8]) -> (String, String, String) {
-    if data.len() < 14 {
-        return (
-            "unknown -> unknown".to_string(),
-            "RAW".to_string(),
-            format!("{} bytes", data.len()),
-        );
-    }
-
-    let dst_mac = format_mac(&data[0..6]);
-    let src_mac = format_mac(&data[6..12]);
-    let mut etype = u16::from_be_bytes([data[12], data[13]]);
-    let mut offset = 14usize;
-    let mut l2_tags = Vec::new();
-
-    while matches!(etype, 0x8100 | 0x88A8 | 0x9100) && offset + 4 <= data.len() {
-        let tci = u16::from_be_bytes([data[offset], data[offset + 1]]);
-        let vid = tci & 0x0FFF;
-        let pcp = (tci >> 13) & 0x07;
-        if etype == 0x88A8 || etype == 0x9100 {
-            l2_tags.push(format!("SVLAN={vid}"));
-        } else if l2_tags.iter().any(|t: &String| t.starts_with("SVLAN=")) {
-            l2_tags.push(format!("CVLAN={vid}"));
-        } else if pcp > 0 {
-            l2_tags.push(format!("VLAN={vid}(PCP={pcp})"));
-        } else {
-            l2_tags.push(format!("VLAN={vid}"));
-        }
-        etype = u16::from_be_bytes([data[offset + 2], data[offset + 3]]);
-        offset += 4;
-    }
-
-    if matches!(etype, 0x8847 | 0x8848) && offset + 4 <= data.len() {
-        while let Some(&[b0, b1, b2, b3]) = data[offset..].first_chunk::<4>() {
-            let entry = u32::from_be_bytes([b0, b1, b2, b3]);
-            let label = entry >> 12;
-            let bos = (entry >> 8) & 1;
-            l2_tags.push(format!("MPLS={label}"));
-            offset += 4;
-            if bos == 1 {
-                break;
-            }
-        }
-        if let Some(&first_byte) = data.get(offset) {
-            match first_byte >> 4 {
-                4 => etype = 0x0800,
-                6 => etype = 0x86DD,
-                _ => {}
-            }
-        }
-    }
-
-    let tag_prefix = if l2_tags.is_empty() {
-        String::new()
-    } else {
-        format!("[{}] ", l2_tags.join(" "))
-    };
-
-    match etype {
-        0x0806 if offset + 28 <= data.len() => {
-            let arp = &data[offset..offset + 28];
-            let oper = u16::from_be_bytes([arp[6], arp[7]]);
-            let spa = Ipv4Addr::new(arp[14], arp[15], arp[16], arp[17]);
-            let tpa = Ipv4Addr::new(arp[24], arp[25], arp[26], arp[27]);
-            let detail = if oper == 1 {
-                format!("{tag_prefix}Who has {tpa}? Tell {spa}")
-            } else {
-                format!("{tag_prefix}{spa} is at {src_mac}")
-            };
-            (format!("{spa} -> {tpa}"), "ARP".to_string(), detail)
-        }
-        0x0800 if offset + 20 <= data.len() => {
-            let ip = &data[offset..];
-            let ihl = ((ip[0] & 0x0F) as usize) * 4;
-            let proto = ip[9];
-            let src_ip = Ipv4Addr::new(ip[12], ip[13], ip[14], ip[15]);
-            let dst_ip = Ipv4Addr::new(ip[16], ip[17], ip[18], ip[19]);
-            let l4_slice = if ihl >= 20 && ihl <= ip.len() {
-                &ip[ihl..]
-            } else {
-                &[]
-            };
-            let (p_label, summary) = summarize_l4(proto, l4_slice, &tag_prefix);
-            (format!("{src_ip} -> {dst_ip}"), p_label, summary)
-        }
-        0x86DD if offset + 40 <= data.len() => {
-            let ip6 = &data[offset..];
-            let mut next_hdr = ip6[6];
-            let mut src_bytes = [0u8; 16];
-            src_bytes.copy_from_slice(&ip6[8..24]);
-            let mut dst_bytes = [0u8; 16];
-            dst_bytes.copy_from_slice(&ip6[24..40]);
-            let src_ip = Ipv6Addr::from(src_bytes);
-            let dst_ip = Ipv6Addr::from(dst_bytes);
-            let mut l4_offset = 40usize;
-            if next_hdr == 0 && l4_offset + 8 <= ip6.len() {
-                next_hdr = ip6[l4_offset];
-                let ext_len = (ip6[l4_offset + 1] as usize + 1) * 8;
-                if l4_offset + ext_len <= ip6.len() {
-                    l4_offset += ext_len;
-                }
-            }
-            let l4_slice = ip6.get(l4_offset..).unwrap_or(&[]);
-            let (p_label, summary) = summarize_l4(next_hdr, l4_slice, &tag_prefix);
-            (format!("{src_ip} -> {dst_ip}"), p_label, summary)
-        }
-        0x88CC => (
-            format!("{src_mac} -> {dst_mac}"),
-            "LLDP".to_string(),
-            format!("{tag_prefix}Link Layer Discovery Protocol frame"),
-        ),
-        0x8809 => (
-            format!("{src_mac} -> {dst_mac}"),
-            "LACP".to_string(),
-            format!("{tag_prefix}Link Aggregation Control Protocol PDU"),
-        ),
-        0x888E => (
-            format!("{src_mac} -> {dst_mac}"),
-            "EAPOL".to_string(),
-            format!("{tag_prefix}IEEE 802.1X EAP over LAN frame"),
-        ),
-        _ => {
-            let proto = if dst_mac == "01:80:c2:00:00:00" {
-                "STP"
-            } else if l2_tags.iter().any(|t| t.starts_with("SVLAN=")) {
-                "QINQ"
-            } else if l2_tags.iter().any(|t| t.starts_with("VLAN=")) {
-                "VLAN"
-            } else if l2_tags.iter().any(|t| t.starts_with("MPLS=")) {
-                "MPLS"
-            } else {
-                "L2"
-            };
-            (
-                format!("{src_mac} -> {dst_mac}"),
-                proto.to_string(),
-                format!("{tag_prefix}EtherType 0x{etype:04x}"),
-            )
-        }
-    }
-}
-
-/// Dissects the Layer 4 or Layer 3 control header carried inside an IPv4 or IPv6 packet.
-fn summarize_l4(proto: u8, l4: &[u8], tag_prefix: &str) -> (String, String) {
-    match proto {
-        6 if l4.len() >= 20 => {
-            let sport = u16::from_be_bytes([l4[0], l4[1]]);
-            let dport = u16::from_be_bytes([l4[2], l4[3]]);
-            let seq = u32::from_be_bytes([l4[4], l4[5], l4[6], l4[7]]);
-            let ack = u32::from_be_bytes([l4[8], l4[9], l4[10], l4[11]]);
-            let hdr_len = (((l4[12] >> 4) as usize) * 4).max(20);
-            let flags = l4[13];
-            let payload_len = l4.len().saturating_sub(hdr_len);
-
-            let mut flag_names = Vec::new();
-            for (bit, name) in [
-                (0x02, "SYN"),
-                (0x10, "ACK"),
-                (0x08, "PSH"),
-                (0x04, "RST"),
-                (0x01, "FIN"),
-                (0x20, "URG"),
-                (0x40, "ECE"),
-                (0x80, "CWR"),
-            ] {
-                if flags & bit != 0 {
-                    flag_names.push(name);
-                }
-            }
-            let flags_str = if flag_names.is_empty() {
-                "NONE".to_string()
-            } else {
-                flag_names.join(" ")
-            };
-
-            let l7_proto = if payload_len > 0 {
-                port_to_l7_name(dport, true).or_else(|| port_to_l7_name(sport, true))
-            } else {
-                None
-            };
-            let label = l7_proto.unwrap_or("TCP").to_string();
-            let ack_part = if flags & 0x10 != 0 {
-                format!(" ack={ack}")
-            } else {
-                String::new()
-            };
-            (
-                label,
-                format!(
-                    "{tag_prefix}{sport} -> {dport} [{flags_str}] seq={seq}{ack_part} len={payload_len}"
-                ),
-            )
-        }
-        17 if l4.len() >= 8 => {
-            let sport = u16::from_be_bytes([l4[0], l4[1]]);
-            let dport = u16::from_be_bytes([l4[2], l4[3]]);
-            let payload_len = l4.len().saturating_sub(8);
-            let l7_proto = port_to_l7_name(dport, false).or_else(|| port_to_l7_name(sport, false));
-            let label = l7_proto.unwrap_or("UDP").to_string();
-            (
-                label,
-                format!("{tag_prefix}{sport} -> {dport} len={payload_len}"),
-            )
-        }
-        1 if l4.len() >= 4 => {
-            let icmp_type = l4[0];
-            let icmp_code = l4[1];
-            let desc = match icmp_type {
-                8 => "Echo Request",
-                0 => "Echo Reply",
-                3 => "Destination Unreachable",
-                5 => "Redirect",
-                11 => "Time Exceeded",
-                _ => "Control Message",
-            };
-            (
-                "ICMP".to_string(),
-                format!("{tag_prefix}{desc} (type={icmp_type} code={icmp_code})"),
-            )
-        }
-        58 if l4.len() >= 4 => {
-            let icmp6_type = l4[0];
-            let (label, desc) = match icmp6_type {
-                128 => ("ICMPv6", "Echo Request"),
-                129 => ("ICMPv6", "Echo Reply"),
-                130..=132 | 143 => ("MLD", "Multicast Listener Discovery"),
-                133..=137 => ("NDP", "Neighbor Discovery Protocol"),
-                _ => ("ICMPv6", "Control Message"),
-            };
-            (
-                label.to_string(),
-                format!("{tag_prefix}{desc} (type={icmp6_type})"),
-            )
-        }
-        2 => (
-            "IGMP".to_string(),
-            format!("{tag_prefix}Multicast Membership Message"),
-        ),
-        47 => ("GRE".to_string(), format!("{tag_prefix}GRE Tunnel Packet")),
-        50 => (
-            "ESP".to_string(),
-            format!("{tag_prefix}IPsec Encapsulating Security Payload"),
-        ),
-        51 => (
-            "AH".to_string(),
-            format!("{tag_prefix}IPsec Authentication Header"),
-        ),
-        89 => (
-            "OSPF".to_string(),
-            format!("{tag_prefix}Open Shortest Path First"),
-        ),
-        103 => (
-            "PIM".to_string(),
-            format!("{tag_prefix}Protocol Independent Multicast"),
-        ),
-        112 => (
-            "VRRP".to_string(),
-            format!("{tag_prefix}Virtual Router Redundancy Protocol"),
-        ),
-        132 if l4.len() >= 12 => {
-            let sport = u16::from_be_bytes([l4[0], l4[1]]);
-            let dport = u16::from_be_bytes([l4[2], l4[3]]);
-            (
-                "SCTP".to_string(),
-                format!("{tag_prefix}{sport} -> {dport}"),
-            )
-        }
-        other => (
-            format!("IP({other})"),
-            format!("{tag_prefix}Protocol {other} ({} bytes)", l4.len()),
-        ),
-    }
-}
-
-/// Formats a terminal packet ladder table for `frameassembly show`.
-fn format_packet_ladder(
-    frames: &[(Vec<u8>, u64)],
-    ast_protocols: &[frameassembly::ast::Protocol],
-) -> String {
-    let mut out = String::new();
-    let _ = writeln!(
-        out,
-        "{:<5}  {:<10}  {:<39}  {:<10}  {:<5}  Summary",
-        "#", "Time (ms)", "Source -> Destination", "Protocol", "Bytes"
-    );
-    let _ = writeln!(out, "{}", "-".repeat(110));
-    let base_ts = frames.first().map(|(_, ts)| *ts).unwrap_or(0);
-    for (idx, (data, timestamp_ns)) in frames.iter().enumerate() {
-        let time_ms = timestamp_ns.saturating_sub(base_ts) as f64 / 1_000_000.0;
-        let (endpoints, detected_proto, summary) = summarize_frame(data);
-        let proto = ast_protocols
-            .get(idx)
-            .map(|p| p.display_label().to_string())
-            .unwrap_or(detected_proto);
-        let _ = writeln!(
-            out,
-            "{:<5}  {:<10.3}  {:<39}  {:<10}  {:<5}  {}",
-            idx + 1,
-            time_ms,
-            endpoints,
-            proto,
-            data.len(),
-            summary
-        );
-    }
-    out
-}
-
 /// Executes the parsed CLI invocation for `raw_args`.
 fn run_cli(raw_args: Vec<OsString>) -> Result<()> {
     if let Err(hint) = check_legacy_cli_args(&raw_args) {
         return Err(miette::miette!("{hint}"));
     }
 
-    let mut matches = build_cli().get_matches_from(raw_args);
+    let mut matches = match build_cli().try_get_matches_from(raw_args) {
+        Ok(m) => m,
+        Err(err) => {
+            #[cfg(windows)]
+            if is_standalone_windows_console() {
+                let _ = err.print();
+                pause_windows_console();
+                std::process::exit(err.exit_code());
+            }
+            err.exit();
+        }
+    };
     match matches.remove_subcommand() {
         Some((sub_name, mut sub_matches)) => match sub_name.as_str() {
             "update" => updater::run_update(),
@@ -704,34 +363,104 @@ fn run_cli(raw_args: Vec<OsString>) -> Result<()> {
                 let input_path = sub_matches
                     .remove_one::<PathBuf>("input")
                     .ok_or_else(|| miette::miette!("Missing input .pcap / .pcapng file"))?;
-                let output_path = sub_matches
-                    .remove_one::<PathBuf>("output")
-                    .unwrap_or_else(|| derive_default_output_path(&input_path, "frasm"));
-                let res = reverse_pcap_file(&input_path)
-                    .map_err(|e| miette::miette!("reverse error: {}", e))?;
-                fs::write(&output_path, &res.fasm).into_diagnostic()?;
-                println!(
-                    "Wrote {} ({} host(s), {} packet(s) reversed from {})",
-                    output_path.display(),
-                    res.host_count,
-                    res.packet_count,
-                    input_path.display(),
-                );
+                let input_is_stdin = input_path == Path::new("-");
+                let output_path = sub_matches.remove_one::<PathBuf>("output");
+                let output_is_stdout = match &output_path {
+                    Some(p) => p == Path::new("-"),
+                    None => input_is_stdin,
+                };
+                let res = if input_is_stdin {
+                    let stdin = std::io::stdin();
+                    reverse_pcap_reader(stdin.lock())
+                        .map_err(|e| miette::miette!("reverse error: {}", e))?
+                } else {
+                    reverse_pcap_file(&input_path)
+                        .map_err(|e| miette::miette!("reverse error: {}", e))?
+                };
+                for warning in &res.warnings {
+                    eprintln!("Warning: {warning}");
+                }
+                if output_is_stdout {
+                    {
+                        let mut stdout = std::io::stdout().lock();
+                        stdout.write_all(res.fasm.as_bytes()).into_diagnostic()?;
+                        stdout.flush().into_diagnostic()?;
+                    }
+                    eprintln!(
+                        "Wrote <stdout> ({} host(s), {} packet(s) reversed from {})",
+                        res.host_count,
+                        res.packet_count,
+                        if input_is_stdin {
+                            String::from("<stdin>")
+                        } else {
+                            input_path.display().to_string()
+                        }
+                    );
+                } else {
+                    let out_file = output_path
+                        .unwrap_or_else(|| derive_default_output_path(&input_path, "frasm"));
+                    fs::write(&out_file, &res.fasm).into_diagnostic()?;
+                    println!(
+                        "Wrote {} ({} host(s), {} packet(s) reversed from {})",
+                        out_file.display(),
+                        res.host_count,
+                        res.packet_count,
+                        input_path.display(),
+                    );
+                }
                 Ok(())
             }
             "show" => {
                 let file_path = sub_matches
                     .remove_one::<PathBuf>("input")
-                    .ok_or_else(|| miette::miette!("Missing input .frasm file"))?;
-                let file_display = file_path.display().to_string();
-                let code = fs::read_to_string(&file_path).into_diagnostic()?;
+                    .ok_or_else(|| miette::miette!("Missing input .frasm or capture file"))?;
+                let is_stdin = file_path == Path::new("-");
+                let raw_bytes = if is_stdin {
+                    read_stdin_bytes()?
+                } else {
+                    fs::read(&file_path).into_diagnostic()?
+                };
+                let ext_is_capture = !is_stdin
+                    && file_path
+                        .extension()
+                        .and_then(|e| e.to_str())
+                        .is_some_and(|e| {
+                            e.eq_ignore_ascii_case("pcap") || e.eq_ignore_ascii_case("pcapng")
+                        });
+                if ext_is_capture || is_capture_magic(&raw_bytes) {
+                    let (pkts, warnings) = read_capture_bytes_for_show(&raw_bytes)
+                        .map_err(|e| miette::miette!("show error: {}", e))?;
+                    for warning in &warnings {
+                        eprintln!("Warning: {warning}");
+                    }
+                    if pkts.is_empty() {
+                        eprintln!("Warning: capture contains 0 frames.");
+                    }
+                    let frames: Vec<(Vec<u8>, u64)> = pkts
+                        .into_iter()
+                        .map(|p| (p.raw_eth_frame, p.timestamp_ns))
+                        .collect();
+                    print!("{}", format_packet_ladder(&frames, &[]));
+                    return Ok(());
+                }
+
+                let file_display = if is_stdin {
+                    String::from("<stdin>")
+                } else {
+                    file_path.display().to_string()
+                };
+                let code = String::from_utf8(raw_bytes).into_diagnostic()?;
                 let program = parse_program(&code).map_err(|e| {
                     miette::Report::new(e)
                         .with_source_code(NamedSource::new(file_display, code.clone()))
                 })?;
                 let ast_protocols = program.emitted_protocols();
-                let frames = compile_program(&program)
+                let (compiled, _) = compile_program_with_metadata(&program)
                     .map_err(|e| miette::miette!("compile error: {}", e))?;
+                let frames: Vec<(Vec<u8>, u64)> = compiled
+                    .into_iter()
+                    .map(|f| (f.data, f.timestamp_ns))
+                    .collect();
                 if frames.is_empty() {
                     eprintln!(
                         "Warning: 0 packets emitted — check that 'compile {{ ... }}' invokes a flow or packet statement."
@@ -746,13 +475,22 @@ fn run_cli(raw_args: Vec<OsString>) -> Result<()> {
             let file_path = matches
                 .remove_one::<PathBuf>("input")
                 .ok_or_else(|| miette::miette!("Missing input .frasm file"))?;
-            let output_pcap = matches
-                .remove_one::<PathBuf>("output")
-                .unwrap_or_else(|| derive_default_output_path(&file_path, "pcap"));
-            if output_pcap
-                .extension()
-                .and_then(|e| e.to_str())
-                .is_some_and(|e| e.eq_ignore_ascii_case("frasm") || e.eq_ignore_ascii_case("fasm"))
+            let input_is_stdin = file_path == Path::new("-");
+            let output_pcap = matches.remove_one::<PathBuf>("output").unwrap_or_else(|| {
+                if input_is_stdin {
+                    PathBuf::from("-")
+                } else {
+                    derive_default_output_path(&file_path, "pcap")
+                }
+            });
+            let output_is_stdout = output_pcap == Path::new("-");
+            if !output_is_stdout
+                && output_pcap
+                    .extension()
+                    .and_then(|e| e.to_str())
+                    .is_some_and(|e| {
+                        e.eq_ignore_ascii_case("frasm") || e.eq_ignore_ascii_case("fasm")
+                    })
             {
                 return Err(miette::miette!(
                     "Refusing to write binary PCAP output to source file '{}'; specify a '.pcap' or '.pcapng' output path instead",
@@ -760,47 +498,77 @@ fn run_cli(raw_args: Vec<OsString>) -> Result<()> {
                 ));
             }
 
-            let file_display = file_path.display().to_string();
-            let code = fs::read_to_string(&file_path).into_diagnostic()?;
+            let (file_display, code) = if input_is_stdin {
+                let bytes = read_stdin_bytes()?;
+                (
+                    String::from("<stdin>"),
+                    String::from_utf8(bytes).into_diagnostic()?,
+                )
+            } else {
+                (
+                    file_path.display().to_string(),
+                    fs::read_to_string(&file_path).into_diagnostic()?,
+                )
+            };
             let program = parse_program(&code).map_err(|e| {
                 miette::Report::new(e)
                     .with_source_code(NamedSource::new(file_display, code.clone()))
             })?;
-            let frames =
-                compile_program(&program).map_err(|e| miette::miette!("compile error: {}", e))?;
-
-            if program.flows.is_empty() {
-                println!("Successfully parsed {} hosts", program.hosts.len());
-            } else {
-                println!(
-                    "Successfully parsed {} hosts, {} flows",
-                    program.hosts.len(),
-                    program.flows.len(),
-                );
-            }
-
-            if frames.is_empty() {
-                eprintln!("Warning: 0 packets emitted — capture contains header only.");
-            }
-
-            let output_pcap_str = output_pcap.to_string_lossy();
-            let fmt_label = if output_pcap_str.len() >= 5
-                && output_pcap_str.as_bytes()[output_pcap_str.len() - 5..]
-                    .eq_ignore_ascii_case(b".pcap")
-            {
-                "classic pcap"
-            } else {
-                "pcapng"
-            };
-            frameassembly::pcap::write_capture_file(&frames, &output_pcap_str)
+            let (compiled, hosts) = compile_program_with_metadata(&program)
                 .map_err(|e| miette::miette!("compile error: {}", e))?;
+            let packet_count = compiled.len();
+            let raw_meta: Vec<(Vec<u8>, u64, Option<String>)> = compiled
+                .into_iter()
+                .map(|f: CompiledFrame| (f.data, f.timestamp_ns, f.comment))
+                .collect();
 
-            println!(
-                "Wrote {} ({} packet(s), {})",
-                output_pcap_str,
-                frames.len(),
-                fmt_label
-            );
+            if output_is_stdout {
+                if program.flows.is_empty() {
+                    eprintln!("Successfully parsed {} hosts", program.hosts.len());
+                } else {
+                    eprintln!(
+                        "Successfully parsed {} hosts, {} flows",
+                        program.hosts.len(),
+                        program.flows.len(),
+                    );
+                }
+                if packet_count == 0 {
+                    eprintln!("Warning: 0 packets emitted — capture contains header only.");
+                }
+                let bytes = serialize_pcapng_with_metadata(&raw_meta, &hosts)
+                    .map_err(|e| miette::miette!("compile error: {}", e))?;
+                {
+                    let mut stdout = std::io::stdout().lock();
+                    stdout.write_all(&bytes).into_diagnostic()?;
+                    stdout.flush().into_diagnostic()?;
+                }
+                eprintln!("Wrote <stdout> ({packet_count} packet(s), pcapng)");
+            } else {
+                if program.flows.is_empty() {
+                    println!("Successfully parsed {} hosts", program.hosts.len());
+                } else {
+                    println!(
+                        "Successfully parsed {} hosts, {} flows",
+                        program.hosts.len(),
+                        program.flows.len(),
+                    );
+                }
+                if packet_count == 0 {
+                    eprintln!("Warning: 0 packets emitted — capture contains header only.");
+                }
+                let output_pcap_str = output_pcap.to_string_lossy();
+                let fmt_label = if output_pcap_str.len() >= 5
+                    && output_pcap_str.as_bytes()[output_pcap_str.len() - 5..]
+                        .eq_ignore_ascii_case(b".pcap")
+                {
+                    "classic pcap"
+                } else {
+                    "pcapng"
+                };
+                write_capture_file_with_metadata(&raw_meta, &hosts, &output_pcap_str)
+                    .map_err(|e| miette::miette!("compile error: {}", e))?;
+                println!("Wrote {output_pcap_str} ({packet_count} packet(s), {fmt_label})");
+            }
             Ok(())
         }
     }
@@ -861,7 +629,7 @@ fn main() -> Result<()> {
     run_cli(raw_args)
 }
 
-/// Unit tests for FrameAssembly 3.2 default root compilation and five subcommands
+/// Unit tests for FrameAssembly 3.3 default root compilation and five subcommands
 /// (`show`, `reverse`, `update`, `version`, `help`), hidden script compatibility flags, legacy
 /// migration hints, safety guards, and packet ladder formatting.
 #[cfg(test)]
@@ -911,7 +679,7 @@ mod tests {
     #[test]
     fn test_cli_default_compile_four_subcommands_and_hidden_flags() {
         let mut cmd = build_cli();
-        assert_eq!(cmd.get_version(), Some("3.2.2"));
+        assert_eq!(cmd.get_version(), Some(env!("CARGO_PKG_VERSION")));
         let help_text = cmd.render_help().to_string();
         assert!(
             help_text.contains("<INPUT.frasm>") && help_text.contains("[OUTPUT.pcap]"),
@@ -1093,23 +861,51 @@ mod tests {
             .expect_err(".frasm second positional arg should be rejected to protect source file");
         assert!(frasm_as_output.contains("b.frasm"));
 
+        let old_compile_upper = check_legacy_cli_args(["frameassembly", "COMPILE", "demo.frasm"])
+            .expect_err("uppercase COMPILE subcommand should trigger safety guard");
+        assert!(old_compile_upper.contains("there is no 'compile' subcommand"));
+
+        let stdin_bad_out = check_legacy_cli_args(["frameassembly", "-", "b.frasm"])
+            .expect_err("- input with .frasm output should be rejected");
+        assert!(stdin_bad_out.contains("b.frasm"));
+
         assert!(check_legacy_cli_args(["frameassembly", "demo.frasm"]).is_ok());
         assert!(check_legacy_cli_args(["frameassembly", "demo.frasm", "out.pcap"]).is_ok());
         assert!(check_legacy_cli_args(["frameassembly", "reverse", "a.pcap", "a.frasm"]).is_ok());
         assert!(check_legacy_cli_args(["frameassembly", "--version"]).is_ok());
+        assert!(check_legacy_cli_args(["frameassembly", "-"]).is_ok());
+        assert!(check_legacy_cli_args(["frameassembly", "-", "-"]).is_ok());
+        assert!(check_legacy_cli_args(["frameassembly", "show", "-"]).is_ok());
+        assert!(check_legacy_cli_args(["frameassembly", "reverse", "-", "-"]).is_ok());
     }
 
-    /// Verifies packet ladder rendering on strict-lowercase FrameAssembly 3.1 `.frasm` code.
+    /// Verifies packet ladder rendering and binary capture `show` ladder inspection.
     #[test]
     fn test_packet_ladder_strict_lowercase_frasm() {
         let sample = "host a { ip 10.0.0.1 }\nhost b { ip 10.0.0.2 }\nflow f(c, s) {\n    c -> s tcp srcport 50000 dstport 443 syn wait 5ms\n    c <- s tcp syn ack wait 5ms\n}\ncompile { f(a, b) }";
         let program = parse_program(sample).expect("sample should parse");
-        let frames = compile_program(&program).expect("sample should compile");
+        let (compiled, _) = compile_program_with_metadata(&program).expect("sample should compile");
+        let frames: Vec<(Vec<u8>, u64)> = compiled
+            .into_iter()
+            .map(|f| (f.data, f.timestamp_ns))
+            .collect();
         let ladder = format_packet_ladder(&frames, &program.emitted_protocols());
         assert!(ladder.contains("Source -> Destination"));
         assert!(ladder.contains("Protocol"));
         assert!(ladder.contains("TCP"));
         assert!(ladder.contains("0.000"));
         assert!(ladder.contains("5.000"));
+
+        let pcapng = frameassembly::pcap::serialize_pcapng(&frames).expect("serialize pcapng");
+        let (show_pkts, warnings) =
+            read_capture_bytes_for_show(&pcapng).expect("show capture decode");
+        assert!(warnings.is_empty());
+        assert_eq!(show_pkts.len(), 2);
+        let raw_frames: Vec<(Vec<u8>, u64)> = show_pkts
+            .into_iter()
+            .map(|p| (p.raw_eth_frame, p.timestamp_ns))
+            .collect();
+        let cap_ladder = format_packet_ladder(&raw_frames, &[]);
+        assert!(cap_ladder.contains("10.0.0.1 -> 10.0.0.2"));
     }
 }

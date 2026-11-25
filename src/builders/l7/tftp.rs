@@ -57,7 +57,7 @@ pub fn build_tftp_payload(
         pkt.push(0);
     }
 
-    if (spec.is_rrq || (!spec.is_wrq && !spec.is_data && !spec.is_ack && !spec.is_error))
+    if (spec.is_rrq || spec.is_wrq || (!spec.is_data && !spec.is_ack && !spec.is_error))
         && !payload_bytes.is_empty()
     {
         pkt.extend_from_slice(payload_bytes);

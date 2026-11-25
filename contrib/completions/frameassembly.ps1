@@ -1,12 +1,12 @@
-# PowerShell tab completion for frameassembly
+# PowerShell tab completion for frameassembly (FrameAssembly v3.3.0)
 # https://github.com/SteveWinschel/FrameAssembly
 
 Register-ArgumentCompleter -Native -CommandName frameassembly -ScriptBlock {
     param($wordToComplete, $commandAst, $cursorPosition)
 
     $subcommands = @(
-        @{ Name = 'show';    Description = 'Validate a .frasm file and print its packet ladder table' }
-        @{ Name = 'reverse'; Description = 'Reverse a .pcap or .pcapng capture into .frasm code' }
+        @{ Name = 'show';    Description = 'Inspect a .frasm file or .pcap/.pcapng capture (or - for stdin) as a packet ladder' }
+        @{ Name = 'reverse'; Description = 'Reverse a .pcap or .pcapng capture (or - for stdin) into .frasm code' }
         @{ Name = 'update';  Description = 'Update frameassembly to the newest release' }
         @{ Name = 'version'; Description = 'Print the FrameAssembly version' }
         @{ Name = 'help';    Description = 'Print help for FrameAssembly or a subcommand' }
@@ -50,6 +50,12 @@ Register-ArgumentCompleter -Native -CommandName frameassembly -ScriptBlock {
         }
     }
 
+    function Complete-StdioDash([string]$Prefix, [string]$Description) {
+        if ($Prefix -eq '-') {
+            [System.Management.Automation.CompletionResult]::new('-', '-', 'ParameterValue', $Description)
+        }
+    }
+
     if ($argIndex -eq 1) {
         foreach ($sc in $subcommands) {
             if ($sc.Name -like "${wordToComplete}*") {
@@ -61,6 +67,7 @@ Register-ArgumentCompleter -Native -CommandName frameassembly -ScriptBlock {
                 )
             }
         }
+        Complete-StdioDash $wordToComplete 'Read .frasm code from stdin'
         Complete-FilteredPaths $wordToComplete @('.frasm')
         return
     }
@@ -68,11 +75,19 @@ Register-ArgumentCompleter -Native -CommandName frameassembly -ScriptBlock {
     $sub = $elements[1].Extent.Text
     switch ($sub) {
         'show' {
-            if ($argIndex -eq 2) { Complete-FilteredPaths $wordToComplete @('.frasm') }
+            if ($argIndex -eq 2) {
+                Complete-StdioDash $wordToComplete 'Read .frasm or capture from stdin'
+                Complete-FilteredPaths $wordToComplete @('.frasm', '.pcap', '.pcapng')
+            }
         }
         'reverse' {
-            if ($argIndex -eq 2) { Complete-FilteredPaths $wordToComplete @('.pcap', '.pcapng') }
-            elseif ($argIndex -eq 3) { Complete-FilteredPaths $wordToComplete @('.frasm') }
+            if ($argIndex -eq 2) {
+                Complete-StdioDash $wordToComplete 'Read capture from stdin'
+                Complete-FilteredPaths $wordToComplete @('.pcap', '.pcapng')
+            } elseif ($argIndex -eq 3) {
+                Complete-StdioDash $wordToComplete 'Write .frasm code to stdout'
+                Complete-FilteredPaths $wordToComplete @('.frasm')
+            }
         }
         'help' {
             if ($argIndex -eq 2) {
@@ -93,7 +108,8 @@ Register-ArgumentCompleter -Native -CommandName frameassembly -ScriptBlock {
         'version' {
         }
         default {
-            if (-not $sub.StartsWith('-') -and $argIndex -eq 2) {
+            if (($sub -eq '-' -or -not $sub.StartsWith('-')) -and $argIndex -eq 2) {
+                Complete-StdioDash $wordToComplete 'Write PCAPNG capture to stdout'
                 Complete-FilteredPaths $wordToComplete @('.pcap', '.pcapng')
             }
         }

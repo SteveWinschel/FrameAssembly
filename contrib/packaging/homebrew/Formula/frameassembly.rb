@@ -1,26 +1,26 @@
 class Frameassembly < Formula
   desc "Compile .frasm network traffic code to .pcap/.pcapng and reverse captures"
   homepage "https://github.com/SteveWinschel/FrameAssembly"
-  version "3.2.2"
+  version "3.3.0"
   license "MIT"
 
   on_macos do
     if Hardware::CPU.arm?
-      url "https://github.com/SteveWinschel/FrameAssembly/releases/download/v3.2.2/frameassembly-macos-arm64.tar.gz"
-      sha256 "ae3732c064fcf5cb2b579fb8a03569b9f7fcbcc8cf5738e956b7009bc92d4b79"
+      url "https://github.com/SteveWinschel/FrameAssembly/releases/download/v3.3.0/frameassembly-macos-arm64.tar.gz"
+      sha256 "72cf54e24178d3616396a2244265e1e1edc049b95854ef0767a71a6168c7bf0d"
     else
-      url "https://github.com/SteveWinschel/FrameAssembly/releases/download/v3.2.2/frameassembly-macos-x64.tar.gz"
-      sha256 "042b53981c661c9657d410bac338e390b9b7425a4dbf183362b1e90e9a43d4e9"
+      url "https://github.com/SteveWinschel/FrameAssembly/releases/download/v3.3.0/frameassembly-macos-x64.tar.gz"
+      sha256 "c808a232819f629419734ef4aa48c3b7c21b5af4cdf0c483b116bc2a8ab1f965"
     end
   end
 
   on_linux do
     if Hardware::CPU.arm?
-      url "https://github.com/SteveWinschel/FrameAssembly/releases/download/v3.2.2/frameassembly-linux-arm64.tar.gz"
-      sha256 "bc4ef6ae35f1f03965dc518b4436ed7121fa3c38ce3b93d01f1887b9a305c758"
+      url "https://github.com/SteveWinschel/FrameAssembly/releases/download/v3.3.0/frameassembly-linux-arm64.tar.gz"
+      sha256 "a6e7f0f949167e2f1a64e74a5a088b32c177d0e2018a56a825d59d26dd3076e8"
     else
-      url "https://github.com/SteveWinschel/FrameAssembly/releases/download/v3.2.2/frameassembly-linux-x64.tar.gz"
-      sha256 "7ba5d0277083db5c5b766a64f69deda4a49477e991b5e5a3e9ef77306a4ee081"
+      url "https://github.com/SteveWinschel/FrameAssembly/releases/download/v3.3.0/frameassembly-linux-x64.tar.gz"
+      sha256 "a49d894a4ed422916888e5623d7fa592a6d33dc48ffa96cd264e64f8004f2500"
     end
   end
 
@@ -36,6 +36,6 @@ class Frameassembly < Formula
   end
 
   test do
-    assert_match "frameassembly 3.2.2", shell_output("#{bin}/frameassembly version")
+    assert_match "frameassembly 3.3.0", shell_output("#{bin}/frameassembly version")
   end
 end

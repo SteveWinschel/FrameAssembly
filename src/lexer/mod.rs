@@ -1,15 +1,14 @@
-//! Zero-copy lexical analyzer and token specification for the FrameAssembly v3.0 language.
+//! Zero-copy lexical analyzer and token specification for the FrameAssembly language.
 //!
 //! Built on the [`logos`] deterministic finite-automaton generator, this module defines the
 //! [`Token`] enumeration and [`lex`] entry point for scanning `.frasm` source files into
 //! byte-spanned token streams. Every built-in structural keyword (`host`, `flow`, `compile`),
-//! all 81 Layer 2 through Layer 7 protocol identifiers, header and payload modifiers, and time
+//! all 146 Layer 2 through Layer 7 protocol identifiers, header and payload modifiers, and time
 //! units (`ns`, `us`, `ms`, `s`, `m`) are strictly lowercase alphanumeric (`[a-z0-9]+` without
 //! `_` or `-`), while user-defined endpoint and flow identifiers permit flexible casing, `_`, and
 //! internal `-` (`fw-dmz-01`, `core_sw`).
 
 use logos::Logos;
-
 
 /// Represents all lexical tokens recognized by the FrameAssembly DSL.
 ///
@@ -27,1358 +26,3475 @@ use logos::Logos;
 #[logos(skip r"[ \t\r\n\f\u{feff}]+")]
 #[logos(skip r"//[^\r\n]*")]
 pub enum Token<'a> {
-  /// `host`
-  #[token("host")] Host,
-  /// `flow`
-  #[token("flow")] Flow,
-  /// `ip`
-  #[token("ip")] Ip,
-  /// `mac`
-  #[token("mac")] Mac,
-  /// `compile`
-  #[token("compile")] Compile,
-  /// `tcp`
-  #[token("tcp")] Tcp,
-  /// `udp`
-  #[token("udp")] Udp,
-  /// `syn`
-  #[token("syn")] Syn,
-  /// `ack`
-  #[token("ack")] Ack,
-  /// `fin`
-  #[token("fin")] Fin,
-  /// `rst`
-  #[token("rst")] Rst,
-  /// `psh`
-  #[token("psh")] Psh,
-  /// `urg`
-  #[token("urg")] Urg,
-  /// `ece`
-  #[token("ece")] Ece,
-  /// `cwr`
-  #[token("cwr")] Cwr,
-  /// `srcport`
-  #[token("srcport")] SrcPort,
-  /// `dstport`
-  #[token("dstport")] DstPort,
-  /// `seq`
-  #[token("seq")] Seq,
-  /// `acknum`
-  #[token("acknum")] AckNum,
-  /// `win`
-  #[token("win")] Win,
-  /// `payload`
-  #[token("payload")] Payload,
-  /// `hexpayload`
-  #[token("hexpayload")] HexPayload,
-  /// `wait`
-  #[token("wait")] Wait,
-  /// `vlan`
-  #[token("vlan")] Vlan,
-  /// `dscp`
-  #[token("dscp")] Dscp,
-  /// `ecn`
-  #[token("ecn")] Ecn,
-  /// `ttl`
-  #[token("ttl")] Ttl,
-  /// `flowlabel`
-  #[token("flowlabel")] FlowLabel,
-  /// `snmp1`
-  #[token("snmp1")] Snmp1,
-  /// `snmp2`
-  #[token("snmp2")] Snmp2,
-  /// `snmp3`
-  #[token("snmp3")] Snmp3,
-  /// `trap`
-  #[token("trap")] Trap,
-  /// `get`
-  #[token("get")] Get,
-  /// `set`
-  #[token("set")] Set,
-  /// `response`
-  #[token("response")] Response,
-  /// `inform`
-  #[token("inform")] Inform,
-  /// `getnext`
-  #[token("getnext")] GetNext,
-  /// `getbulk`
-  #[token("getbulk")] GetBulk,
-  /// `community`
-  #[token("community")] Community,
-  /// `user`
-  #[token("user")] User,
-  /// `oid`
-  #[token("oid")] Oid,
-  /// `sysuptime`
-  #[token("sysuptime")] SysUpTime,
-  /// `varbind`
-  #[token("varbind")] VarBind,
-  /// `nullval` or `null`
-  #[token("nullval")]
-  #[token("null")] NullVal,
-  /// `string`
-  #[token("string")] StringVal,
-  /// `int`
-  #[token("int")] IntVal,
-  /// `timeticks`
-  #[token("timeticks")] TimeTicksVal,
-  /// `ipval`
-  #[token("ipval")] IpVal,
-  /// `oidval`
-  #[token("oidval")] OidVal,
-  /// `counter32`
-  #[token("counter32")] Counter32Val,
-  /// `gauge32`
-  #[token("gauge32")] Gauge32Val,
-  /// `counter64`
-  #[token("counter64")] Counter64Val,
-  /// `enterprise`
-  #[token("enterprise")] Enterprise,
-  /// `agentip`
-  #[token("agentip")] AgentIp,
-  /// `gentrap`
-  #[token("gentrap")] GenTrap,
-  /// `spectrap`
-  #[token("spectrap")] SpecTrap,
-  /// `engineid`
-  #[token("engineid")] EngineId,
-  /// `engineboots`
-  #[token("engineboots")] EngineBoots,
-  /// `enginetime`
-  #[token("enginetime")] EngineTime,
-  /// `contextname`
-  #[token("contextname")] ContextName,
-  /// `auth`
-  #[token("auth")] Auth,
-  /// `priv`
-  #[token("priv")] Priv,
-  /// `md5`
-  #[token("md5")] Md5,
-  /// `sha`
-  #[token("sha")] Sha,
-  /// `sha256`
-  #[token("sha256")] Sha256,
-  /// `sha384`
-  #[token("sha384")] Sha384,
-  /// `sha512`
-  #[token("sha512")] Sha512,
-  /// `des`
-  #[token("des")] Des,
-  /// `aes`
-  #[token("aes")] Aes,
-  /// `nonrepeaters`
-  #[token("nonrepeaters")] NonRepeaters,
-  /// `maxrepetitions`
-  #[token("maxrepetitions")] MaxRepetitions,
-  /// `reqid`
-  #[token("reqid")] ReqId,
-  // Layer 2 modifiers
-  /// `pcp`
-  #[token("pcp")] Pcp,
-  /// `dei`
-  #[token("dei")] Dei,
-  /// `qinq`
-  #[token("qinq")] Qinq,
-  /// `innervlan`
-  #[token("innervlan")] InnerVlan,
-  /// `mpls`
-  #[token("mpls")] Mpls,
-  /// `exp` or `tc`
-  #[token("exp")]
-  #[token("tc")] Exp,
-  /// `bos`
-  #[token("bos")] Bos,
-  /// `mplsttl`
-  #[token("mplsttl")] MplsTtl,
-  /// `srcmac`
-  #[token("srcmac")] SrcMac,
-  /// `dstmac`
-  #[token("dstmac")] DstMac,
-  /// `ethertype`
-  #[token("ethertype")] EtherType,
-  // Layer 3 modifiers
-  /// `ipid`
-  #[token("ipid")] IpId,
-  /// `df`
-  #[token("df")] Df,
-  /// `mf`
-  #[token("mf")] Mf,
-  /// `fragoffset`
-  #[token("fragoffset")] FragOffset,
-  // Layer 4 modifiers
-  /// `transport`
-  #[token("transport")] Transport,
-  /// `window`
-  #[token("window")] Window,
-  /// `urgent`
-  #[token("urgent")] Urgent,
-  /// `mss`
-  #[token("mss")] Mss,
-  /// `wscale`
-  #[token("wscale")] Wscale,
-  /// `sackperm`
-  #[token("sackperm")] SackPerm,
-  /// `tsval`
-  #[token("tsval")] Tsval,
-  /// `tsecr`
-  #[token("tsecr")] Tsecr,
-  // SCTP overrides
-  /// `vtag`
-  #[token("vtag")] Vtag,
-  /// `stream`
-  #[token("stream")] Stream,
-  /// `ssn`
-  #[token("ssn")] Ssn,
-  /// `ppid`
-  #[token("ppid")] Ppid,
-  /// `chunk`
-  #[token("chunk")] Chunk,
-  // Category 1: Layer 2 & DC Protocols
-  /// `arp`
-  #[token("arp")] Arp,
-  /// `lldp`
-  #[token("lldp")] Lldp,
-  /// `stp`
-  #[token("stp")] Stp,
-  /// `lacp`
-  #[token("lacp")] Lacp,
-  /// `eapol`
-  #[token("eapol")] Eapol,
-  // Category 2: Layer 3, Tunneling, Security & Routing Protocols
-  /// `icmp`
-  #[token("icmp")] Icmp,
-  /// `ndp`
-  #[token("ndp")] Ndp,
-  /// `igmp`
-  #[token("igmp")] Igmp,
-  /// `mld`
-  #[token("mld")] Mld,
-  /// `gre`
-  #[token("gre")] Gre,
-  /// `vxlan`
-  #[token("vxlan")] Vxlan,
-  /// `geneve`
-  #[token("geneve")] Geneve,
-  /// `ipsec`
-  #[token("ipsec")] Ipsec,
-  /// `esp`
-  #[token("esp")] Esp,
-  /// `ah`
-  #[token("ah")] Ah,
-  /// `ikev2`
-  #[token("ikev2")] Ikev2,
-  /// `wireguard`
-  #[token("wireguard")] Wireguard,
-  /// `ospf`
-  #[token("ospf")] Ospf,
-  /// `bgp`
-  #[token("bgp")] Bgp,
-  /// `rip`
-  #[token("rip")] Rip,
-  /// `vrrp`
-  #[token("vrrp")] Vrrp,
-  /// `hsrp`
-  #[token("hsrp")] Hsrp,
-  /// `pim`
-  #[token("pim")] Pim,
-  /// `bfd`
-  #[token("bfd")] Bfd,
-  /// `openflow`
-  #[token("openflow")] Openflow,
-  // Category 3: Layer 4 Transports
-  /// `sctp`
-  #[token("sctp")] Sctp,
-  // Protocol Sub-keywords
-  /// `request`
-  #[token("request")] Request,
-  /// `reply`
-  #[token("reply")] Reply,
-  /// `gratuitous`
-  #[token("gratuitous")] Gratuitous,
-  /// `garp`
-  #[token("garp")] Garp,
-  /// `spa`
-  #[token("spa")] Spa,
-  /// `tha`
-  #[token("tha")] Tha,
-  /// `tpa`
-  #[token("tpa")] Tpa,
-  /// `sendermac`
-  #[token("sendermac")] SenderMac,
-  /// `targetmac`
-  #[token("targetmac")] TargetMac,
-  /// `senderip`
-  #[token("senderip")] SenderIp,
-  /// `targetip`
-  #[token("targetip")] TargetIp,
-  /// `chassisid`
-  #[token("chassisid")] ChassisId,
-  /// `portid`
-  #[token("portid")] PortId,
-  /// `sysname`
-  #[token("sysname")] SysName,
-  /// `sysdesc`
-  #[token("sysdesc")] SysDesc,
-  /// `rootid`
-  #[token("rootid")] RootId,
-  /// `bridgeid`
-  #[token("bridgeid")] BridgeId,
-  /// `cost`
-  #[token("cost")] Cost,
-  /// `maxage`
-  #[token("maxage")] MaxAge,
-  /// `hellotime`
-  #[token("hellotime")] HelloTime,
-  /// `forwarddelay`
-  #[token("forwarddelay")] ForwardDelay,
-  /// `rstp`
-  #[token("rstp")] Rstp,
-  /// `flags`
-  #[token("flags")] Flags,
-  /// `actorsys`
-  #[token("actorsys")] ActorSys,
-  /// `actorkey`
-  #[token("actorkey")] ActorKey,
-  /// `actorport`
-  #[token("actorport")] ActorPort,
-  /// `partnersys`
-  #[token("partnersys")] PartnerSys,
-  /// `partnerkey`
-  #[token("partnerkey")] PartnerKey,
-  /// `partnerport`
-  #[token("partnerport")] PartnerPort,
-  /// `actorstate`
-  #[token("actorstate")] ActorState,
-  /// `partnerstate`
-  #[token("partnerstate")] PartnerState,
-  /// `version`
-  #[token("version")] Version,
-  /// `type`
-  #[token("type")] Type,
-  /// `eappacket`
-  #[token("eappacket")] EapPacket,
-  /// `start`
-  #[token("start")] Start,
-  /// `logoff`
-  #[token("logoff")] Logoff,
-  /// `key`
-  #[token("key")] Key,
-  /// `eapcode`
-  #[token("eapcode")] EapCode,
-  /// `eapid`
-  #[token("eapid")] EapId,
-  /// `eapmethod`
-  #[token("eapmethod")] EapMethod,
-  /// `identity`
-  #[token("identity")] Identity,
-  /// `label`
-  #[token("label")] Label,
-  /// `echorequest`
-  #[token("echorequest")] EchoRequest,
-  /// `echoreply`
-  #[token("echoreply")] EchoReply,
-  /// `destunreach`
-  #[token("destunreach")] DestUnreach,
-  /// `timeexceeded`
-  #[token("timeexceeded")] TimeExceeded,
-  /// `redirect`
-  #[token("redirect")] Redirect,
-  /// `code`
-  #[token("code")] Code,
-  /// `id`
-  #[token("id")] Id,
-  /// `gateway`
-  #[token("gateway")] Gateway,
-  /// `routersolicit`
-  #[token("routersolicit")] RouterSolicit,
-  /// `routeradvert`
-  #[token("routeradvert")] RouterAdvert,
-  /// `neighborsolicit`
-  #[token("neighborsolicit")] NeighborSolicit,
-  /// `neighboradvert`
-  #[token("neighboradvert")] NeighborAdvert,
-  /// `target`
-  #[token("target")] Target,
-  /// `slla`
-  #[token("slla")] Slla,
-  /// `tlla`
-  #[token("tlla")] Tlla,
-  /// `routerlifetime`
-  #[token("routerlifetime")] RouterLifetime,
-  /// `query`
-  #[token("query")] Query,
-  /// `report`
-  #[token("report")] Report,
-  /// `leave`
-  #[token("leave")] Leave,
-  /// `group`
-  #[token("group")] Group,
-  /// `maxresp`
-  #[token("maxresp")] MaxResp,
-  /// `v1`
-  #[token("v1")] V1,
-  /// `v2`
-  #[token("v2")] V2,
-  /// `v3`
-  #[token("v3")] V3,
-  /// `done`
-  #[token("done")] Done,
-  /// `multicastaddr`
-  #[token("multicastaddr")] MulticastAddr,
-  /// `maxrespdelay`
-  #[token("maxrespdelay")] MaxRespDelay,
-  /// `grekey`
-  #[token("grekey")] GreKey,
-  /// `greseq`
-  #[token("greseq")] GreSeq,
-  /// `greproto`
-  #[token("greproto")] GreProto,
-  /// `checksum`
-  #[token("checksum")] Checksum,
-  /// `vni`
-  #[token("vni")] Vni,
-  /// `vnid`
-  #[token("vnid")] Vnid,
-  /// `optclass`
-  #[token("optclass")] OptClass,
-  /// `opttype`
-  #[token("opttype")] OptType,
-  /// `protocoltype`
-  #[token("protocoltype")] ProtocolType,
-  /// `spi`
-  #[token("spi")] Spi,
-  /// `iv`
-  #[token("iv")] Iv,
-  /// `icv`
-  #[token("icv")] Icv,
-  /// `nextheader`
-  #[token("nextheader")] NextHeader,
-  /// `initiatorspi`
-  #[token("initiatorspi")] InitiatorSpi,
-  /// `responderspi`
-  #[token("responderspi")] ResponderSpi,
-  /// `exchange`
-  #[token("exchange")] Exchange,
-  /// `sainit`
-  #[token("sainit")] SaInit,
-  /// `createchildsa`
-  #[token("createchildsa")] CreateChildSa,
-  /// `informational`
-  #[token("informational")] Informational,
-  /// `msgid`
-  #[token("msgid")] MsgId,
-  /// `nextpayload`
-  #[token("nextpayload")] NextPayload,
-  /// `initiation`
-  #[token("initiation")] Initiation,
-  /// `cookie`
-  #[token("cookie")] Cookie,
-  /// `data`
-  #[token("data")] Data,
-  /// `sender`
-  #[token("sender")] Sender,
-  /// `receiver`
-  #[token("receiver")] Receiver,
-  /// `counter`
-  #[token("counter")] Counter,
-  /// `hello`
-  #[token("hello")] Hello,
-  /// `dbd`
-  #[token("dbd")] Dbd,
-  /// `lsr`
-  #[token("lsr")] Lsr,
-  /// `lsu`
-  #[token("lsu")] Lsu,
-  /// `lsack`
-  #[token("lsack")] LsAck,
-  /// `routerid`
-  #[token("routerid")] RouterId,
-  /// `areaid`
-  #[token("areaid")] AreaId,
-  /// `hellointerval`
-  #[token("hellointerval")] HelloInterval,
-  /// `deadinterval`
-  #[token("deadinterval")] DeadInterval,
-  /// `priority`
-  #[token("priority")] Priority,
-  /// `open`
-  #[token("open")] Open,
-  /// `update`
-  #[token("update")] Update,
-  /// `notification`
-  #[token("notification")] Notification,
-  /// `keepalive`
-  #[token("keepalive")] Keepalive,
-  /// `asn`
-  #[token("asn")] Asn,
-  /// `holdtime`
-  #[token("holdtime")] HoldTime,
-  /// `bgpid`
-  #[token("bgpid")] BgpId,
-  /// `prefix`
-  #[token("prefix")] Prefix,
-  /// `nlri`
-  #[token("nlri")] Nlri,
-  /// `nexthop`
-  #[token("nexthop")] NextHop,
-  /// `metric`
-  #[token("metric")] Metric,
-  /// `tag`
-  #[token("tag")] Tag,
-  /// `vrid`
-  #[token("vrid")] Vrid,
-  /// `advint`
-  #[token("advint")] AdvInt,
-  /// `vip`
-  #[token("vip")] Vip,
-  /// `state`
-  #[token("state")] State,
-  /// `joinprune`
-  #[token("joinprune")] JoinPrune,
-  /// `register`
-  #[token("register")] Register,
-  /// `source`
-  #[token("source")] Source,
-  /// `rp`
-  #[token("rp")] Rp,
-  /// `drpriority`
-  #[token("drpriority")] DrPriority,
-  /// `diag`
-  #[token("diag")] Diag,
-  /// `mydisc`
-  #[token("mydisc")] MyDisc,
-  /// `yourdisc`
-  #[token("yourdisc")] YourDisc,
-  /// `mintx`
-  #[token("mintx")] MinTx,
-  /// `minrx`
-  #[token("minrx")] MinRx,
-  /// `mult`
-  #[token("mult")] Mult,
-  /// `featuresreq`
-  #[token("featuresreq")] FeaturesReq,
-  /// `featuresreply`
-  #[token("featuresreply")] FeaturesReply,
-  /// `packetin`
-  #[token("packetin")] PacketIn,
-  /// `packetout`
-  #[token("packetout")] PacketOut,
-  /// `flowmod`
-  #[token("flowmod")] FlowMod,
-  /// `echoreq`
-  #[token("echoreq")] EchoReq,
-  /// `xid`
-  #[token("xid")] Xid,
-  /// `dpid`
-  #[token("dpid")] Dpid,
-  /// `tableid`
-  #[token("tableid")] TableId,
-  /// `init`
-  #[token("init")] Init,
-  /// `initack`
-  #[token("initack")] InitAck,
-  /// `sack`
-  #[token("sack")] Sack,
-  /// `heartbeat`
-  #[token("heartbeat")] Heartbeat,
-  /// `heartbeatack`
-  #[token("heartbeatack")] HeartbeatAck,
-  /// `abort`
-  #[token("abort")] Abort,
-  /// `shutdown`
-  #[token("shutdown")] Shutdown,
-  /// `shutdownack`
-  #[token("shutdownack")] ShutdownAck,
-  /// `cookieecho`
-  #[token("cookieecho")] CookieEcho,
-  /// `cookieack`
-  #[token("cookieack")] CookieAck,
-  /// `tsn`
-  #[token("tsn")] Tsn,
-  // Category 4: Layer 7 Network Infrastructure, Management & Telemetry
-  /// `dns`
-  #[token("dns")] Dns,
-  /// `mdns`
-  #[token("mdns")] Mdns,
-  /// `dhcp`
-  #[token("dhcp")] Dhcp,
-  /// `ntp`
-  #[token("ntp")] Ntp,
-  /// `ptp`
-  #[token("ptp")] Ptp,
-  /// `radius`
-  #[token("radius")] Radius,
-  /// `tacacs`
-  #[token("tacacs")] Tacacs,
-  /// `syslog`
-  #[token("syslog")] Syslog,
-  /// `netflow`
-  #[token("netflow")] Netflow,
-  /// `ipfix`
-  #[token("ipfix")] Ipfix,
-  /// `sflow`
-  #[token("sflow")] Sflow,
-  // Category 5: Layer 7 Web, App, Directory, Mail, Storage & Messaging
-  /// `tftp`
-  #[token("tftp")] Tftp,
-  /// `ftp`
-  #[token("ftp")] Ftp,
-  /// `ssh`
-  #[token("ssh")] Ssh,
-  /// `telnet`
-  #[token("telnet")] Telnet,
-  /// `http`
-  #[token("http")] Http,
-  /// `http2`
-  #[token("http2")] Http2,
-  /// `grpc`
-  #[token("grpc")] Grpc,
-  /// `websocket`
-  #[token("websocket")] Websocket,
-  /// `tls`
-  #[token("tls")] Tls,
-  /// `quic`
-  #[token("quic")] Quic,
-  /// `stun`
-  #[token("stun")] Stun,
-  /// `sip`
-  #[token("sip")] Sip,
-  /// `rtp`
-  #[token("rtp")] Rtp,
-  /// `rtsp`
-  #[token("rtsp")] Rtsp,
-  /// `smtp`
-  #[token("smtp")] Smtp,
-  /// `imap`
-  #[token("imap")] Imap,
-  /// `pop3`
-  #[token("pop3")] Pop3,
-  /// `kerberos`
-  #[token("kerberos")] Kerberos,
-  /// `ldap`
-  #[token("ldap")] Ldap,
-  /// `smb`
-  #[token("smb")] Smb,
-  /// `nfs`
-  #[token("nfs")] Nfs,
-  /// `redis`
-  #[token("redis")] Redis,
-  /// `memcached`
-  #[token("memcached")] Memcached,
-  /// `mysql`
-  #[token("mysql")] Mysql,
-  /// `postgres`
-  #[token("postgres")] Postgres,
-  /// `mqtt`
-  #[token("mqtt")] Mqtt,
-  /// `coap`
-  #[token("coap")] Coap,
-  /// `amqp`
-  #[token("amqp")] Amqp,
-  /// `ssdp`
-  #[token("ssdp")] Ssdp,
-  /// `whois`
-  #[token("whois")] Whois,
-  // Category 6: Layer 7 Industrial / OT Protocols
-  /// `modbus`
-  #[token("modbus")] Modbus,
-  /// `bacnet`
-  #[token("bacnet")] Bacnet,
-  /// `dnp3`
-  #[token("dnp3")] Dnp3,
-  /// `s7comm`
-  #[token("s7comm")] S7comm,
-  /// `ethernetip`
-  #[token("ethernetip")] Ethernetip,
-  /// `opcua`
-  #[token("opcua")] Opcua,
-  // Category 4 Sub-keywords
-  /// `txid`
-  #[token("txid")] Txid,
-  /// `qname`
-  #[token("qname")] Qname,
-  /// `qtype`
-  #[token("qtype")] Qtype,
-  /// `rdata`
-  #[token("rdata")] Rdata,
-  /// `rcode`
-  #[token("rcode")] Rcode,
-  /// `ansttl`
-  #[token("ansttl")] AnsTtl,
-  /// `discover`
-  #[token("discover")] Discover,
-  /// `solicit`
-  #[token("solicit")] Solicit,
-  /// `offer`
-  #[token("offer")] Offer,
-  /// `advertise`
-  #[token("advertise")] Advertise,
-  /// `release`
-  #[token("release")] Release,
-  /// `ciaddr`
-  #[token("ciaddr")] Ciaddr,
-  /// `yiaddr`
-  #[token("yiaddr")] Yiaddr,
-  /// `siaddr`
-  #[token("siaddr")] Siaddr,
-  /// `chaddr`
-  #[token("chaddr")] Chaddr,
-  /// `hostname`
-  #[token("hostname")] Hostname,
-  /// `dnsserver`
-  #[token("dnsserver")] DnsServer,
-  /// `router`
-  #[token("router")] Router,
-  /// `subnetmask`
-  #[token("subnetmask")] SubnetMask,
-  /// `leasetime`
-  #[token("leasetime")] LeaseTime,
-  /// `li`
-  #[token("li")] Li,
-  /// `vn`
-  #[token("vn")] Vn,
-  /// `mode`
-  #[token("mode")] Mode,
-  /// `stratum`
-  #[token("stratum")] Stratum,
-  /// `poll`
-  #[token("poll")] Poll,
-  /// `precision`
-  #[token("precision")] Precision,
-  /// `refid`
-  #[token("refid")] RefId,
-  /// `txtimestamp`
-  #[token("txtimestamp")] TxTimestamp,
-  /// `msgtype`
-  #[token("msgtype")] MsgType,
-  /// `sync`
-  #[token("sync")] Sync,
-  /// `delayreq`
-  #[token("delayreq")] DelayReq,
-  /// `followup`
-  #[token("followup")] FollowUp,
-  /// `delayresp`
-  #[token("delayresp")] DelayResp,
-  /// `announce`
-  #[token("announce")] Announce,
-  /// `domain`
-  #[token("domain")] Domain,
-  /// `seqid`
-  #[token("seqid")] SeqId,
-  /// `clockid`
-  #[token("clockid")] ClockId,
-  /// `accessrequest`
-  #[token("accessrequest")] AccessRequest,
-  /// `accessaccept`
-  #[token("accessaccept")] AccessAccept,
-  /// `accessreject`
-  #[token("accessreject")] AccessReject,
-  /// `accesschallenge`
-  #[token("accesschallenge")] AccessChallenge,
-  /// `accountingrequest`
-  #[token("accountingrequest")] AccountingRequest,
-  /// `accountingresponse`
-  #[token("accountingresponse")] AccountingResponse,
-  /// `nasip`
-  #[token("nasip")] NasIp,
-  /// `servicetype`
-  #[token("servicetype")] ServiceType,
-  /// `framedip`
-  #[token("framedip")] FramedIp,
-  /// `authen`
-  #[token("authen")] Authen,
-  /// `author`
-  #[token("author")] Author,
-  /// `acct`
-  #[token("acct")] Acct,
-  /// `sessionid`
-  #[token("sessionid")] SessionId,
-  /// `facility`
-  #[token("facility")] Facility,
-  /// `severity`
-  #[token("severity")] Severity,
-  /// `pri`
-  #[token("pri")] Pri,
-  /// `app`
-  #[token("app")] App,
-  /// `procid`
-  #[token("procid")] Procid,
-  /// `msg`
-  #[token("msg")] Msg,
-  /// `srcip`
-  #[token("srcip")] SrcIp,
-  /// `dstip`
-  #[token("dstip")] DstIp,
-  /// `proto`
-  #[token("proto")] Proto,
-  /// `packets`
-  #[token("packets")] Packets,
-  /// `octets`
-  #[token("octets")] Octets,
-  /// `domainid`
-  #[token("domainid")] DomainId,
-  /// `subagentid`
-  #[token("subagentid")] SubAgentId,
-  /// `uptime`
-  #[token("uptime")] Uptime,
-  /// `samples`
-  #[token("samples")] Samples,
-  // Category 5 Sub-keywords
-  /// `rrq`
-  #[token("rrq")] Rrq,
-  /// `wrq`
-  #[token("wrq")] Wrq,
-  /// `filename`
-  #[token("filename")] Filename,
-  /// `block`
-  #[token("block")] Block,
-  /// `errcode`
-  #[token("errcode")] ErrCode,
-  /// `errmsg`
-  #[token("errmsg")] ErrMsg,
-  /// `cmd`
-  #[token("cmd")] Cmd,
-  /// `arg`
-  #[token("arg")] Arg,
-  /// `banner`
-  #[token("banner")] Banner,
-  /// `kexinit`
-  #[token("kexinit")] KexInit,
-  /// `newkeys`
-  #[token("newkeys")] NewKeys,
-  /// `msgcode`
-  #[token("msgcode")] MsgCode,
-  /// `will`
-  #[token("will")] Will,
-  /// `wont`
-  #[token("wont")] Wont,
-  /// `do`
-  #[token("do")] DoCmd,
-  /// `dont`
-  #[token("dont")] Dont,
-  /// `option`
-  #[token("option")] Option,
-  /// `post`
-  #[token("post")] Post,
-  /// `put`
-  #[token("put")] Put,
-  /// `delete`
-  #[token("delete")] Delete,
-  /// `head`
-  #[token("head")] Head,
-  /// `options`
-  #[token("options")] Options,
-  /// `patch`
-  #[token("patch")] Patch,
-  /// `uri`
-  #[token("uri")] Uri,
-  /// `hosthdr`
-  #[token("hosthdr")] HostHdr,
-  /// `useragent`
-  #[token("useragent")] UserAgent,
-  /// `contenttype`
-  #[token("contenttype")] ContentType,
-  /// `status`
-  #[token("status")] Status,
-  /// `reason`
-  #[token("reason")] Reason,
-  /// `header`
-  #[token("header")] Header,
-  /// `body`
-  #[token("body")] Body,
-  /// `preface`
-  #[token("preface")] Preface,
-  /// `settings`
-  #[token("settings")] Settings,
-  /// `headers`
-  #[token("headers")] Headers,
-  /// `windowupdate`
-  #[token("windowupdate")] WindowUpdate,
-  /// `ping`
-  #[token("ping")] Ping,
-  /// `goaway`
-  #[token("goaway")] Goaway,
-  /// `streamid`
-  #[token("streamid")] StreamId,
-  /// `service`
-  #[token("service")] Service,
-  /// `method`
-  #[token("method")] Method,
-  /// `grpcstatus`
-  #[token("grpcstatus")] GrpcStatus,
-  /// `opcode`
-  #[token("opcode")] Opcode,
-  /// `text`
-  #[token("text")] Text,
-  /// `binary`
-  #[token("binary")] Binary,
-  /// `pong`
-  #[token("pong")] Pong,
-  /// `close`
-  #[token("close")] Close,
-  /// `finbit`
-  #[token("finbit")] FinBit,
-  /// `maskkey`
-  #[token("maskkey")] MaskKey,
-  /// `clienthello`
-  #[token("clienthello")] ClientHello,
-  /// `serverhello`
-  #[token("serverhello")] ServerHello,
-  /// `certificate`
-  #[token("certificate")] Certificate,
-  /// `finished`
-  #[token("finished")] Finished,
-  /// `appdata`
-  #[token("appdata")] AppData,
-  /// `alert`
-  #[token("alert")] Alert,
-  /// `recordversion`
-  #[token("recordversion")] RecordVersion,
-  /// `handshakeversion`
-  #[token("handshakeversion")] HandshakeVersion,
-  /// `sni`
-  #[token("sni")] Sni,
-  /// `ciphersuite`
-  #[token("ciphersuite")] Ciphersuite,
-  /// `alpn`
-  #[token("alpn")] Alpn,
-  /// `initial`
-  #[token("initial")] Initial,
-  /// `zerortt`
-  #[token("zerortt")] ZeroRtt,
-  /// `handshake`
-  #[token("handshake")] Handshake,
-  /// `retry`
-  #[token("retry")] Retry,
-  /// `short`
-  #[token("short")] Short,
-  /// `dcid`
-  #[token("dcid")] Dcid,
-  /// `scid`
-  #[token("scid")] Scid,
-  /// `token`
-  #[token("token")] Token,
-  /// `pktnum`
-  #[token("pktnum")] PktNum,
-  /// `bindingrequest`
-  #[token("bindingrequest")] BindingRequest,
-  /// `bindingresponse`
-  #[token("bindingresponse")] BindingResponse,
-  /// `bindingerror`
-  #[token("bindingerror")] BindingError,
-  /// `xormappedaddr`
-  #[token("xormappedaddr")] XorMappedAddr,
-  /// `software`
-  #[token("software")] Software,
-  /// `invite`
-  #[token("invite")] Invite,
-  /// `bye`
-  #[token("bye")] Bye,
-  /// `cancel`
-  #[token("cancel")] Cancel,
-  /// `from`
-  #[token("from")] From,
-  /// `to`
-  #[token("to")] To,
-  /// `callid`
-  #[token("callid")] CallId,
-  /// `cseq`
-  #[token("cseq")] Cseq,
-  /// `via`
-  #[token("via")] Via,
-  /// `contact`
-  #[token("contact")] Contact,
-  /// `pt`
-  #[token("pt")] Pt,
-  /// `timestamp`
-  #[token("timestamp")] Timestamp,
-  /// `ssrc`
-  #[token("ssrc")] Ssrc,
-  /// `marker`
-  #[token("marker")] Marker,
-  /// `describe`
-  #[token("describe")] Describe,
-  /// `setup`
-  #[token("setup")] Setup,
-  /// `play`
-  #[token("play")] Play,
-  /// `teardown`
-  #[token("teardown")] Teardown,
-  /// `transporthdr`
-  #[token("transporthdr")] TransportHdr,
-  /// `session`
-  #[token("session")] Session,
-  /// `ehlo`
-  #[token("ehlo")] Ehlo,
-  /// `helo`
-  #[token("helo")] Helo,
-  /// `mailfrom`
-  #[token("mailfrom")] MailFrom,
-  /// `rcptto`
-  #[token("rcptto")] RcptTo,
-  /// `quit`
-  #[token("quit")] Quit,
-  /// `param`
-  #[token("param")] Param,
-  /// `ok`
-  #[token("ok")] Ok,
-  /// `err`
-  #[token("err")] Err,
-  /// `error`
-  #[token("error")] ErrorKw,
-  /// `asreq`
-  #[token("asreq")] AsReq,
-  /// `asrep`
-  #[token("asrep")] AsRep,
-  /// `tgsreq`
-  #[token("tgsreq")] TgsReq,
-  /// `tgsrep`
-  #[token("tgsrep")] TgsRep,
-  /// `krberror`
-  #[token("krberror")] KrbError,
-  /// `realm`
-  #[token("realm")] Realm,
-  /// `cname`
-  #[token("cname")] Cname,
-  /// `sname`
-  #[token("sname")] Sname,
-  /// `etype`
-  #[token("etype")] Etype,
-  /// `bindreq`
-  #[token("bindreq")] BindReq,
-  /// `bindres`
-  #[token("bindres")] BindRes,
-  /// `searchreq`
-  #[token("searchreq")] SearchReq,
-  /// `searchentry`
-  #[token("searchentry")] SearchEntry,
-  /// `searchdone`
-  #[token("searchdone")] SearchDone,
-  /// `unbindreq`
-  #[token("unbindreq")] UnbindReq,
-  /// `basedn`
-  #[token("basedn")] BaseDn,
-  /// `filter`
-  #[token("filter")] Filter,
-  /// `resultcode`
-  #[token("resultcode")] ResultCode,
-  /// `command`
-  #[token("command")] Command,
-  /// `negotiate`
-  #[token("negotiate")] Negotiate,
-  /// `sessionsetup`
-  #[token("sessionsetup")] SessionSetup,
-  /// `treeconnect`
-  #[token("treeconnect")] TreeConnect,
-  /// `create`
-  #[token("create")] Create,
-  /// `treedisconnect`
-  #[token("treedisconnect")] TreeDisconnect,
-  /// `treeid`
-  #[token("treeid")] TreeId,
-  /// `share`
-  #[token("share")] Share,
-  /// `vers`
-  #[token("vers")] Vers,
-  /// `proc`
-  #[token("proc")] Proc,
-  /// `path`
-  #[token("path")] Path,
-  /// `compound`
-  #[token("compound")] Compound,
-  /// `args`
-  #[token("args")] Args,
-  /// `replytype`
-  #[token("replytype")] ReplyType,
-  /// `value`
-  #[token("value")] Value,
-  /// `exptime`
-  #[token("exptime")] Exptime,
-  /// `opaque`
-  #[token("opaque")] Opaque,
-  /// `cas`
-  #[token("cas")] Cas,
-  /// `greeting`
-  #[token("greeting")] Greeting,
-  /// `login`
-  #[token("login")] Login,
-  /// `sql`
-  #[token("sql")] Sql,
-  /// `eof`
-  #[token("eof")] Eof,
-  /// `serverversion`
-  #[token("serverversion")] ServerVersion,
-  /// `db`
-  #[token("db")] Db,
-  /// `startup`
-  #[token("startup")] Startup,
-  /// `readyforquery`
-  #[token("readyforquery")] ReadyForQuery,
-  /// `commandcomplete`
-  #[token("commandcomplete")] CommandComplete,
-  /// `errorresponse`
-  #[token("errorresponse")] ErrorResponse,
-  /// `authok`
-  #[token("authok")] AuthOk,
-  /// `connect`
-  #[token("connect")] Connect,
-  /// `connack`
-  #[token("connack")] Connack,
-  /// `publish`
-  #[token("publish")] Publish,
-  /// `puback`
-  #[token("puback")] Puback,
-  /// `subscribe`
-  #[token("subscribe")] Subscribe,
-  /// `suback`
-  #[token("suback")] Suback,
-  /// `pingreq`
-  #[token("pingreq")] Pingreq,
-  /// `pingresp`
-  #[token("pingresp")] Pingresp,
-  /// `disconnect`
-  #[token("disconnect")] Disconnect,
-  /// `clientid`
-  #[token("clientid")] ClientId,
-  /// `topic`
-  #[token("topic")] Topic,
-  /// `qos`
-  #[token("qos")] Qos,
-  /// `retain`
-  #[token("retain")] Retain,
-  /// `pkttype`
-  #[token("pkttype")] PktType,
-  /// `pktid`
-  #[token("pktid")] PktId,
-  /// `returncode`
-  #[token("returncode")] ReturnCode,
-  /// `con`
-  #[token("con")] Con,
-  /// `non`
-  #[token("non")] Non,
-  /// `changed`
-  #[token("changed")] Changed,
-  /// `created`
-  #[token("created")] Created,
-  /// `notfound`
-  #[token("notfound")] NotFound,
-  /// `uripath`
-  #[token("uripath")] UriPath,
-  /// `contentformat`
-  #[token("contentformat")] ContentFormat,
-  /// `protocolheader`
-  #[token("protocolheader")] ProtocolHeader,
-  /// `connectionstart`
-  #[token("connectionstart")] ConnectionStart,
-  /// `channelopen`
-  #[token("channelopen")] ChannelOpen,
-  /// `basicpublish`
-  #[token("basicpublish")] BasicPublish,
-  /// `basicdeliver`
-  #[token("basicdeliver")] BasicDeliver,
-  /// `channel`
-  #[token("channel")] Channel,
-  /// `routingkey`
-  #[token("routingkey")] RoutingKey,
-  /// `msearch`
-  #[token("msearch")] Msearch,
-  /// `notify`
-  #[token("notify")] Notify,
-  /// `man`
-  #[token("man")] Man,
-  /// `mx`
-  #[token("mx")] Mx,
-  /// `st`
-  #[token("st")] St,
-  /// `nt`
-  #[token("nt")] Nt,
-  /// `nts`
-  #[token("nts")] Nts,
-  /// `usn`
-  #[token("usn")] Usn,
-  /// `location`
-  #[token("location")] Location,
-  /// `registrar`
-  #[token("registrar")] Registrar,
-  // Category 6 Sub-keywords
-  /// `protoid`
-  #[token("protoid")] ProtoId,
-  /// `unitid`
-  #[token("unitid")] UnitId,
-  /// `func`
-  #[token("func")] Func,
-  /// `readcoils`
-  #[token("readcoils")] ReadCoils,
-  /// `readdiscreteinputs`
-  #[token("readdiscreteinputs")] ReadDiscreteInputs,
-  /// `readholdingregisters`
-  #[token("readholdingregisters")] ReadHoldingRegisters,
-  /// `readinputregisters`
-  #[token("readinputregisters")] ReadInputRegisters,
-  /// `writesinglecoil`
-  #[token("writesinglecoil")] WriteSingleCoil,
-  /// `writesingleregister`
-  #[token("writesingleregister")] WriteSingleRegister,
-  /// `writemultipleregisters`
-  #[token("writemultipleregisters")] WriteMultipleRegisters,
-  /// `addr`
-  #[token("addr")] Addr,
-  /// `count`
-  #[token("count")] Count,
-  /// `isresponse`
-  #[token("isresponse")] IsResponse,
-  /// `iam`
-  #[token("iam")] IAm,
-  /// `readproperty`
-  #[token("readproperty")] ReadProperty,
-  /// `writeproperty`
-  #[token("writeproperty")] WriteProperty,
-  /// `invokeid`
-  #[token("invokeid")] InvokeId,
-  /// `objecttype`
-  #[token("objecttype")] ObjectType,
-  /// `objectinstance`
-  #[token("objectinstance")] ObjectInstance,
-  /// `propertyid`
-  #[token("propertyid")] PropertyId,
-  /// `confirm`
-  #[token("confirm")] Confirm,
-  /// `read`
-  #[token("read")] Read,
-  /// `write`
-  #[token("write")] Write,
-  /// `select`
-  #[token("select")] Select,
-  /// `operate`
-  #[token("operate")] Operate,
-  /// `directoperate`
-  #[token("directoperate")] DirectOperate,
-  /// `unsolicitedresponse`
-  #[token("unsolicitedresponse")] UnsolicitedResponse,
-  /// `variation`
-  #[token("variation")] Variation,
-  /// `crc`
-  #[token("crc")] Crc,
-  /// `src`
-  #[token("src")] Src,
-  /// `dst`
-  #[token("dst")] Dst,
-  /// `rosctr`
-  #[token("rosctr")] Rosctr,
-  /// `pduref`
-  #[token("pduref")] PduRef,
-  /// `setupcomm`
-  #[token("setupcomm")] SetupComm,
-  /// `readvar`
-  #[token("readvar")] ReadVar,
-  /// `writevar`
-  #[token("writevar")] WriteVar,
-  /// `plccontrol`
-  #[token("plccontrol")] PlcControl,
-  /// `area`
-  #[token("area")] Area,
-  /// `dbnum`
-  #[token("dbnum")] DbNum,
-  /// `offset`
-  #[token("offset")] Offset,
-  /// `nop`
-  #[token("nop")] Nop,
-  /// `listservices`
-  #[token("listservices")] ListServices,
-  /// `listidentity`
-  #[token("listidentity")] ListIdentity,
-  /// `listinterfaces`
-  #[token("listinterfaces")] ListInterfaces,
-  /// `registersession`
-  #[token("registersession")] RegisterSession,
-  /// `unregistersession`
-  #[token("unregistersession")] UnregisterSession,
-  /// `sendrrdata`
-  #[token("sendrrdata")] SendRrData,
-  /// `sendunitdata`
-  #[token("sendunitdata")] SendUnitData,
-  /// `sessionhandle`
-  #[token("sessionhandle")] SessionHandle,
-  /// `context`
-  #[token("context")] ContextVal,
-  /// `cipservice`
-  #[token("cipservice")] CipService,
-  /// `cipclass`
-  #[token("cipclass")] CipClass,
-  /// `cipinstance`
-  #[token("cipinstance")] CipInstance,
-  /// `cipattr`
-  #[token("cipattr")] CipAttr,
-  /// `chunktype`
-  #[token("chunktype")] ChunkType,
-  /// `securechannelid`
-  #[token("securechannelid")] SecureChannelId,
-  /// `tokenid`
-  #[token("tokenid")] TokenId,
-  /// `seqnum`
-  #[token("seqnum")] SeqNum,
-  /// `endpointurl`
-  #[token("endpointurl")] EndpointUrl,
-  /// `nodeid`
-  #[token("nodeid")] NodeId,
-  /// `->`
-  #[token("->")] RightArrow,
-  /// `<-`
-  #[token("<-")] LeftArrow,
-  /// `{`
-  #[token("{")] LBrace,
-  /// `}`
-  #[token("}")] RBrace,
-  /// `(`
-  #[token("(")] LParen,
-  /// `)`
-  #[token(")")] RParen,
-  /// `,`
-  #[token(",")] Comma,
-  // Time suffixes
-  /// `ns`
-  #[token("ns", priority = 2)] Ns,
-  /// `us`
-  #[token("us", priority = 2)] Us,
-  /// `ms`
-  #[token("ms", priority = 2)] Ms,
-  /// `s`
-  #[token("s", priority = 2)] Sec,
-  /// `m`
-  #[token("m", priority = 2)] Min,
-  /// User-defined identifier (allows uppercase, `_`, and internal `-`, stopping before `->`).
-  #[regex(r"[a-zA-Z_][a-zA-Z0-9_]*(-[a-zA-Z0-9_]+)*", priority = 1)]
-  Ident(&'a str),
-  /// String literal
-  #[regex(r#""([^"\\]|\\.)*""#)]
-  StringLit(&'a str),
-  // Match IPv4 and IPv6-like strings loosely, parser will validate
-  /// IPv4/IPv6 address
-  #[regex(r"[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+", priority = 5)]
-  #[regex(r"::[0-9a-fA-F:.]*|[0-9a-fA-F]{1,4}(:[0-9a-fA-F:.]*)+", priority = 2)]
-  IpAddress(&'a str),
-  // Match MAC addresses in colon (00:1a:2b:3c:4d:5e), hyphen (00-1A-2B-3C-4D-5E), or Cisco dotted-quad (001a.2b3c.4d5e) notation
-  /// MAC address
-  #[regex(r"([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}", priority = 6)]
-  #[regex(r"([0-9a-fA-F]{2}-){5}[0-9a-fA-F]{2}", priority = 6)]
-  #[regex(r"[0-9a-fA-F]{4}\.[0-9a-fA-F]{4}\.[0-9a-fA-F]{4}", priority = 6)]
-  MacAddress(&'a str),
-  // Match OIDs loosely
-  /// SNMP OID
-  #[regex(r"\.?[0-9]+(\.[0-9]+)*", priority = 3)]
-  OidStr(&'a str),
-  /// Numeric literal (supports decimal and hex integers)
-  #[regex(r"-?[0-9]+|0[xX][0-9a-fA-F]+", priority = 4)]
-  Number(&'a str),
+    /// `host`
+    #[token("host")]
+    Host,
+    /// `flow`
+    #[token("flow")]
+    Flow,
+    /// `repeat`
+    #[token("repeat")]
+    Repeat,
+    /// `ip`
+    #[token("ip")]
+    Ip,
+    /// `mac`
+    #[token("mac")]
+    Mac,
+    /// `compile`
+    #[token("compile")]
+    Compile,
+    /// `tcp`
+    #[token("tcp")]
+    Tcp,
+    /// `udp`
+    #[token("udp")]
+    Udp,
+    /// `syn`
+    #[token("syn")]
+    Syn,
+    /// `ack`
+    #[token("ack")]
+    Ack,
+    /// `fin`
+    #[token("fin")]
+    Fin,
+    /// `rst`
+    #[token("rst")]
+    Rst,
+    /// `psh`
+    #[token("psh")]
+    Psh,
+    /// `urg`
+    #[token("urg")]
+    Urg,
+    /// `ece`
+    #[token("ece")]
+    Ece,
+    /// `cwr`
+    #[token("cwr")]
+    Cwr,
+    /// `srcport`
+    #[token("srcport")]
+    SrcPort,
+    /// `dstport`
+    #[token("dstport")]
+    DstPort,
+    /// `seq`
+    #[token("seq")]
+    Seq,
+    /// `acknum`
+    #[token("acknum")]
+    AckNum,
+    /// `win`
+    #[token("win")]
+    Win,
+    /// `payload`
+    #[token("payload")]
+    Payload,
+    /// `hexpayload`
+    #[token("hexpayload")]
+    HexPayload,
+    /// `comment`
+    #[token("comment")]
+    Comment,
+    /// `wait`
+    #[token("wait")]
+    Wait,
+    /// `vlan`
+    #[token("vlan")]
+    Vlan,
+    /// `dscp`
+    #[token("dscp")]
+    Dscp,
+    /// `ecn`
+    #[token("ecn")]
+    Ecn,
+    /// `ttl`
+    #[token("ttl")]
+    Ttl,
+    /// `flowlabel`
+    #[token("flowlabel")]
+    FlowLabel,
+    /// `snmp1`
+    #[token("snmp1")]
+    Snmp1,
+    /// `snmp2`
+    #[token("snmp2")]
+    Snmp2,
+    /// `snmp3`
+    #[token("snmp3")]
+    Snmp3,
+    /// `trap`
+    #[token("trap")]
+    Trap,
+    /// `get`
+    #[token("get")]
+    Get,
+    /// `set`
+    #[token("set")]
+    Set,
+    /// `response`
+    #[token("response")]
+    Response,
+    /// `inform`
+    #[token("inform")]
+    Inform,
+    /// `getnext`
+    #[token("getnext")]
+    GetNext,
+    /// `getbulk`
+    #[token("getbulk")]
+    GetBulk,
+    /// `community`
+    #[token("community")]
+    Community,
+    /// `user`
+    #[token("user")]
+    User,
+    /// `oid`
+    #[token("oid")]
+    Oid,
+    /// `sysuptime`
+    #[token("sysuptime")]
+    SysUpTime,
+    /// `varbind`
+    #[token("varbind")]
+    VarBind,
+    /// `nullval` or `null`
+    #[token("nullval")]
+    #[token("null")]
+    NullVal,
+    /// `string`
+    #[token("string")]
+    StringVal,
+    /// `int`
+    #[token("int")]
+    IntVal,
+    /// `timeticks`
+    #[token("timeticks")]
+    TimeTicksVal,
+    /// `ipval`
+    #[token("ipval")]
+    IpVal,
+    /// `oidval`
+    #[token("oidval")]
+    OidVal,
+    /// `counter32`
+    #[token("counter32")]
+    Counter32Val,
+    /// `gauge32`
+    #[token("gauge32")]
+    Gauge32Val,
+    /// `counter64`
+    #[token("counter64")]
+    Counter64Val,
+    /// `enterprise`
+    #[token("enterprise")]
+    Enterprise,
+    /// `agentip`
+    #[token("agentip")]
+    AgentIp,
+    /// `gentrap`
+    #[token("gentrap")]
+    GenTrap,
+    /// `spectrap`
+    #[token("spectrap")]
+    SpecTrap,
+    /// `engineid`
+    #[token("engineid")]
+    EngineId,
+    /// `engineboots`
+    #[token("engineboots")]
+    EngineBoots,
+    /// `enginetime`
+    #[token("enginetime")]
+    EngineTime,
+    /// `contextname`
+    #[token("contextname")]
+    ContextName,
+    /// `auth`
+    #[token("auth")]
+    Auth,
+    /// `priv`
+    #[token("priv")]
+    Priv,
+    /// `md5`
+    #[token("md5")]
+    Md5,
+    /// `sha`
+    #[token("sha")]
+    Sha,
+    /// `sha256`
+    #[token("sha256")]
+    Sha256,
+    /// `sha384`
+    #[token("sha384")]
+    Sha384,
+    /// `sha512`
+    #[token("sha512")]
+    Sha512,
+    /// `des`
+    #[token("des")]
+    Des,
+    /// `aes`
+    #[token("aes")]
+    Aes,
+    /// `nonrepeaters`
+    #[token("nonrepeaters")]
+    NonRepeaters,
+    /// `maxrepetitions`
+    #[token("maxrepetitions")]
+    MaxRepetitions,
+    /// `reqid`
+    #[token("reqid")]
+    ReqId,
+    // Layer 2 modifiers
+    /// `pcp`
+    #[token("pcp")]
+    Pcp,
+    /// `dei`
+    #[token("dei")]
+    Dei,
+    /// `qinq`
+    #[token("qinq")]
+    Qinq,
+    /// `innervlan`
+    #[token("innervlan")]
+    InnerVlan,
+    /// `mpls`
+    #[token("mpls")]
+    Mpls,
+    /// `exp` or `tc`
+    #[token("exp")]
+    #[token("tc")]
+    Exp,
+    /// `bos`
+    #[token("bos")]
+    Bos,
+    /// `mplsttl`
+    #[token("mplsttl")]
+    MplsTtl,
+    /// `srcmac`
+    #[token("srcmac")]
+    SrcMac,
+    /// `dstmac`
+    #[token("dstmac")]
+    DstMac,
+    /// `ethertype`
+    #[token("ethertype")]
+    EtherType,
+    /// `fcs`
+    #[token("fcs")]
+    Fcs,
+    /// `badfcs`
+    #[token("badfcs")]
+    BadFcs,
+    // Layer 3 modifiers
+    /// `ipid`
+    #[token("ipid")]
+    IpId,
+    /// `df`
+    #[token("df")]
+    Df,
+    /// `mf`
+    #[token("mf")]
+    Mf,
+    /// `fragoffset`
+    #[token("fragoffset")]
+    FragOffset,
+    /// `routeralert`
+    #[token("routeralert")]
+    RouterAlert,
+    /// `badipchecksum`
+    #[token("badipchecksum")]
+    BadIpChecksum,
+    // Layer 4 modifiers
+    /// `transport`
+    #[token("transport")]
+    Transport,
+    /// `window`
+    #[token("window")]
+    Window,
+    /// `urgent`
+    #[token("urgent")]
+    Urgent,
+    /// `mss`
+    #[token("mss")]
+    Mss,
+    /// `wscale`
+    #[token("wscale")]
+    Wscale,
+    /// `sackperm`
+    #[token("sackperm")]
+    SackPerm,
+    /// `sackblock`
+    #[token("sackblock")]
+    SackBlock,
+    /// `tsval`
+    #[token("tsval")]
+    Tsval,
+    /// `tsecr`
+    #[token("tsecr")]
+    Tsecr,
+    /// `badchecksum`
+    #[token("badchecksum")]
+    BadChecksum,
+    /// `nochecksum`
+    #[token("nochecksum")]
+    NoChecksum,
+    /// `tcpmd5`
+    #[token("tcpmd5")]
+    TcpMd5,
+    /// `tfo`
+    #[token("tfo")]
+    Tfo,
+    // SCTP overrides
+    /// `vtag`
+    #[token("vtag")]
+    Vtag,
+    /// `stream`
+    #[token("stream")]
+    Stream,
+    /// `ssn`
+    #[token("ssn")]
+    Ssn,
+    /// `ppid`
+    #[token("ppid")]
+    Ppid,
+    /// `chunk`
+    #[token("chunk")]
+    Chunk,
+    // Category 1: Layer 2 & DC Protocols
+    /// `arp`
+    #[token("arp")]
+    Arp,
+    /// `lldp`
+    #[token("lldp")]
+    Lldp,
+    /// `stp`
+    #[token("stp")]
+    Stp,
+    /// `lacp`
+    #[token("lacp")]
+    Lacp,
+    /// `eapol`
+    #[token("eapol")]
+    Eapol,
+    // Category 2: Layer 3, Tunneling, Security & Routing Protocols
+    /// `icmp`
+    #[token("icmp")]
+    Icmp,
+    /// `ndp`
+    #[token("ndp")]
+    Ndp,
+    /// `igmp`
+    #[token("igmp")]
+    Igmp,
+    /// `mld`
+    #[token("mld")]
+    Mld,
+    /// `gre`
+    #[token("gre")]
+    Gre,
+    /// `vxlan`
+    #[token("vxlan")]
+    Vxlan,
+    /// `geneve`
+    #[token("geneve")]
+    Geneve,
+    /// `ipsec`
+    #[token("ipsec")]
+    Ipsec,
+    /// `esp`
+    #[token("esp")]
+    Esp,
+    /// `ah`
+    #[token("ah")]
+    Ah,
+    /// `ikev2`
+    #[token("ikev2")]
+    Ikev2,
+    /// `wireguard`
+    #[token("wireguard")]
+    Wireguard,
+    /// `ospf`
+    #[token("ospf")]
+    Ospf,
+    /// `bgp`
+    #[token("bgp")]
+    Bgp,
+    /// `rip`
+    #[token("rip")]
+    Rip,
+    /// `vrrp`
+    #[token("vrrp")]
+    Vrrp,
+    /// `hsrp`
+    #[token("hsrp")]
+    Hsrp,
+    /// `pim`
+    #[token("pim")]
+    Pim,
+    /// `bfd`
+    #[token("bfd")]
+    Bfd,
+    /// `openflow`
+    #[token("openflow")]
+    Openflow,
+    // Category 3: Layer 4 Transports
+    /// `sctp`
+    #[token("sctp")]
+    Sctp,
+    // Protocol Sub-keywords
+    /// `request`
+    #[token("request")]
+    Request,
+    /// `reply`
+    #[token("reply")]
+    Reply,
+    /// `gratuitous`
+    #[token("gratuitous")]
+    Gratuitous,
+    /// `garp`
+    #[token("garp")]
+    Garp,
+    /// `spa`
+    #[token("spa")]
+    Spa,
+    /// `tha`
+    #[token("tha")]
+    Tha,
+    /// `tpa`
+    #[token("tpa")]
+    Tpa,
+    /// `sendermac`
+    #[token("sendermac")]
+    SenderMac,
+    /// `targetmac`
+    #[token("targetmac")]
+    TargetMac,
+    /// `senderip`
+    #[token("senderip")]
+    SenderIp,
+    /// `targetip`
+    #[token("targetip")]
+    TargetIp,
+    /// `chassisid`
+    #[token("chassisid")]
+    ChassisId,
+    /// `portid`
+    #[token("portid")]
+    PortId,
+    /// `sysname`
+    #[token("sysname")]
+    SysName,
+    /// `sysdesc`
+    #[token("sysdesc")]
+    SysDesc,
+    /// `rootid`
+    #[token("rootid")]
+    RootId,
+    /// `bridgeid`
+    #[token("bridgeid")]
+    BridgeId,
+    /// `cost`
+    #[token("cost")]
+    Cost,
+    /// `maxage`
+    #[token("maxage")]
+    MaxAge,
+    /// `hellotime`
+    #[token("hellotime")]
+    HelloTime,
+    /// `forwarddelay`
+    #[token("forwarddelay")]
+    ForwardDelay,
+    /// `rstp`
+    #[token("rstp")]
+    Rstp,
+    /// `flags`
+    #[token("flags")]
+    Flags,
+    /// `actorsys`
+    #[token("actorsys")]
+    ActorSys,
+    /// `actorkey`
+    #[token("actorkey")]
+    ActorKey,
+    /// `actorport`
+    #[token("actorport")]
+    ActorPort,
+    /// `partnersys`
+    #[token("partnersys")]
+    PartnerSys,
+    /// `partnerkey`
+    #[token("partnerkey")]
+    PartnerKey,
+    /// `partnerport`
+    #[token("partnerport")]
+    PartnerPort,
+    /// `actorstate`
+    #[token("actorstate")]
+    ActorState,
+    /// `partnerstate`
+    #[token("partnerstate")]
+    PartnerState,
+    /// `version`
+    #[token("version")]
+    Version,
+    /// `type`
+    #[token("type")]
+    Type,
+    /// `eappacket`
+    #[token("eappacket")]
+    EapPacket,
+    /// `start`
+    #[token("start")]
+    Start,
+    /// `logoff`
+    #[token("logoff")]
+    Logoff,
+    /// `key`
+    #[token("key")]
+    Key,
+    /// `eapcode`
+    #[token("eapcode")]
+    EapCode,
+    /// `eapid`
+    #[token("eapid")]
+    EapId,
+    /// `eapmethod`
+    #[token("eapmethod")]
+    EapMethod,
+    /// `identity`
+    #[token("identity")]
+    Identity,
+    /// `label`
+    #[token("label")]
+    Label,
+    /// `echorequest`
+    #[token("echorequest")]
+    EchoRequest,
+    /// `echoreply`
+    #[token("echoreply")]
+    EchoReply,
+    /// `destunreach`
+    #[token("destunreach")]
+    DestUnreach,
+    /// `timeexceeded`
+    #[token("timeexceeded")]
+    TimeExceeded,
+    /// `redirect`
+    #[token("redirect")]
+    Redirect,
+    /// `code`
+    #[token("code")]
+    Code,
+    /// `id`
+    #[token("id")]
+    Id,
+    /// `gateway`
+    #[token("gateway")]
+    Gateway,
+    /// `routersolicit`
+    #[token("routersolicit")]
+    RouterSolicit,
+    /// `routeradvert`
+    #[token("routeradvert")]
+    RouterAdvert,
+    /// `neighborsolicit`
+    #[token("neighborsolicit")]
+    NeighborSolicit,
+    /// `neighboradvert`
+    #[token("neighboradvert")]
+    NeighborAdvert,
+    /// `target`
+    #[token("target")]
+    Target,
+    /// `slla`
+    #[token("slla")]
+    Slla,
+    /// `tlla`
+    #[token("tlla")]
+    Tlla,
+    /// `routerlifetime`
+    #[token("routerlifetime")]
+    RouterLifetime,
+    /// `query`
+    #[token("query")]
+    Query,
+    /// `report`
+    #[token("report")]
+    Report,
+    /// `leave`
+    #[token("leave")]
+    Leave,
+    /// `group`
+    #[token("group")]
+    Group,
+    /// `maxresp`
+    #[token("maxresp")]
+    MaxResp,
+    /// `v1`
+    #[token("v1")]
+    V1,
+    /// `v2`
+    #[token("v2")]
+    V2,
+    /// `v3`
+    #[token("v3")]
+    V3,
+    /// `done`
+    #[token("done")]
+    Done,
+    /// `multicastaddr`
+    #[token("multicastaddr")]
+    MulticastAddr,
+    /// `maxrespdelay`
+    #[token("maxrespdelay")]
+    MaxRespDelay,
+    /// `grekey`
+    #[token("grekey")]
+    GreKey,
+    /// `greseq`
+    #[token("greseq")]
+    GreSeq,
+    /// `greproto`
+    #[token("greproto")]
+    GreProto,
+    /// `checksum`
+    #[token("checksum")]
+    Checksum,
+    /// `vni`
+    #[token("vni")]
+    Vni,
+    /// `vnid`
+    #[token("vnid")]
+    Vnid,
+    /// `optclass`
+    #[token("optclass")]
+    OptClass,
+    /// `opttype`
+    #[token("opttype")]
+    OptType,
+    /// `protocoltype`
+    #[token("protocoltype")]
+    ProtocolType,
+    /// `spi`
+    #[token("spi")]
+    Spi,
+    /// `iv`
+    #[token("iv")]
+    Iv,
+    /// `icv`
+    #[token("icv")]
+    Icv,
+    /// `nextheader`
+    #[token("nextheader")]
+    NextHeader,
+    /// `initiatorspi`
+    #[token("initiatorspi")]
+    InitiatorSpi,
+    /// `responderspi`
+    #[token("responderspi")]
+    ResponderSpi,
+    /// `exchange`
+    #[token("exchange")]
+    Exchange,
+    /// `sainit`
+    #[token("sainit")]
+    SaInit,
+    /// `createchildsa`
+    #[token("createchildsa")]
+    CreateChildSa,
+    /// `informational`
+    #[token("informational")]
+    Informational,
+    /// `msgid`
+    #[token("msgid")]
+    MsgId,
+    /// `nextpayload`
+    #[token("nextpayload")]
+    NextPayload,
+    /// `initiation`
+    #[token("initiation")]
+    Initiation,
+    /// `cookie`
+    #[token("cookie")]
+    Cookie,
+    /// `data`
+    #[token("data")]
+    Data,
+    /// `sender`
+    #[token("sender")]
+    Sender,
+    /// `receiver`
+    #[token("receiver")]
+    Receiver,
+    /// `counter`
+    #[token("counter")]
+    Counter,
+    /// `hello`
+    #[token("hello")]
+    Hello,
+    /// `dbd`
+    #[token("dbd")]
+    Dbd,
+    /// `lsr`
+    #[token("lsr")]
+    Lsr,
+    /// `lsu`
+    #[token("lsu")]
+    Lsu,
+    /// `lsack`
+    #[token("lsack")]
+    LsAck,
+    /// `routerid`
+    #[token("routerid")]
+    RouterId,
+    /// `areaid`
+    #[token("areaid")]
+    AreaId,
+    /// `hellointerval`
+    #[token("hellointerval")]
+    HelloInterval,
+    /// `deadinterval`
+    #[token("deadinterval")]
+    DeadInterval,
+    /// `priority`
+    #[token("priority")]
+    Priority,
+    /// `open`
+    #[token("open")]
+    Open,
+    /// `update`
+    #[token("update")]
+    Update,
+    /// `notification`
+    #[token("notification")]
+    Notification,
+    /// `keepalive`
+    #[token("keepalive")]
+    Keepalive,
+    /// `asn`
+    #[token("asn")]
+    Asn,
+    /// `holdtime`
+    #[token("holdtime")]
+    HoldTime,
+    /// `bgpid`
+    #[token("bgpid")]
+    BgpId,
+    /// `prefix`
+    #[token("prefix")]
+    Prefix,
+    /// `nlri`
+    #[token("nlri")]
+    Nlri,
+    /// `nexthop`
+    #[token("nexthop")]
+    NextHop,
+    /// `metric`
+    #[token("metric")]
+    Metric,
+    /// `tag`
+    #[token("tag")]
+    Tag,
+    /// `vrid`
+    #[token("vrid")]
+    Vrid,
+    /// `advint`
+    #[token("advint")]
+    AdvInt,
+    /// `vip`
+    #[token("vip")]
+    Vip,
+    /// `state`
+    #[token("state")]
+    State,
+    /// `joinprune`
+    #[token("joinprune")]
+    JoinPrune,
+    /// `register`
+    #[token("register")]
+    Register,
+    /// `source`
+    #[token("source")]
+    Source,
+    /// `rp`
+    #[token("rp")]
+    Rp,
+    /// `drpriority`
+    #[token("drpriority")]
+    DrPriority,
+    /// `diag`
+    #[token("diag")]
+    Diag,
+    /// `mydisc`
+    #[token("mydisc")]
+    MyDisc,
+    /// `yourdisc`
+    #[token("yourdisc")]
+    YourDisc,
+    /// `mintx`
+    #[token("mintx")]
+    MinTx,
+    /// `minrx`
+    #[token("minrx")]
+    MinRx,
+    /// `mult`
+    #[token("mult")]
+    Mult,
+    /// `featuresreq`
+    #[token("featuresreq")]
+    FeaturesReq,
+    /// `featuresreply`
+    #[token("featuresreply")]
+    FeaturesReply,
+    /// `packetin`
+    #[token("packetin")]
+    PacketIn,
+    /// `packetout`
+    #[token("packetout")]
+    PacketOut,
+    /// `flowmod`
+    #[token("flowmod")]
+    FlowMod,
+    /// `echoreq`
+    #[token("echoreq")]
+    EchoReq,
+    /// `xid`
+    #[token("xid")]
+    Xid,
+    /// `dpid`
+    #[token("dpid")]
+    Dpid,
+    /// `tableid`
+    #[token("tableid")]
+    TableId,
+    /// `init`
+    #[token("init")]
+    Init,
+    /// `initack`
+    #[token("initack")]
+    InitAck,
+    /// `sack`
+    #[token("sack")]
+    Sack,
+    /// `heartbeat`
+    #[token("heartbeat")]
+    Heartbeat,
+    /// `heartbeatack`
+    #[token("heartbeatack")]
+    HeartbeatAck,
+    /// `abort`
+    #[token("abort")]
+    Abort,
+    /// `shutdown`
+    #[token("shutdown")]
+    Shutdown,
+    /// `shutdownack`
+    #[token("shutdownack")]
+    ShutdownAck,
+    /// `shutdowncomplete`
+    #[token("shutdowncomplete")]
+    ShutdownComplete,
+    /// `cookieecho`
+    #[token("cookieecho")]
+    CookieEcho,
+    /// `cookieack`
+    #[token("cookieack")]
+    CookieAck,
+    /// `tsn`
+    #[token("tsn")]
+    Tsn,
+    // Category 4: Layer 7 Network Infrastructure, Management & Telemetry
+    /// `dns`
+    #[token("dns")]
+    Dns,
+    /// `mdns`
+    #[token("mdns")]
+    Mdns,
+    /// `dhcp`
+    #[token("dhcp")]
+    Dhcp,
+    /// `ntp`
+    #[token("ntp")]
+    Ntp,
+    /// `ptp`
+    #[token("ptp")]
+    Ptp,
+    /// `radius`
+    #[token("radius")]
+    Radius,
+    /// `tacacs`
+    #[token("tacacs")]
+    Tacacs,
+    /// `syslog`
+    #[token("syslog")]
+    Syslog,
+    /// `netflow`
+    #[token("netflow")]
+    Netflow,
+    /// `ipfix`
+    #[token("ipfix")]
+    Ipfix,
+    /// `sflow`
+    #[token("sflow")]
+    Sflow,
+    // Category 5: Layer 7 Web, App, Directory, Mail, Storage & Messaging
+    /// `tftp`
+    #[token("tftp")]
+    Tftp,
+    /// `ftp`
+    #[token("ftp")]
+    Ftp,
+    /// `ssh`
+    #[token("ssh")]
+    Ssh,
+    /// `telnet`
+    #[token("telnet")]
+    Telnet,
+    /// `http`
+    #[token("http")]
+    Http,
+    /// `http2`
+    #[token("http2")]
+    Http2,
+    /// `grpc`
+    #[token("grpc")]
+    Grpc,
+    /// `websocket`
+    #[token("websocket")]
+    Websocket,
+    /// `tls`
+    #[token("tls")]
+    Tls,
+    /// `quic`
+    #[token("quic")]
+    Quic,
+    /// `stun`
+    #[token("stun")]
+    Stun,
+    /// `sip`
+    #[token("sip")]
+    Sip,
+    /// `rtp`
+    #[token("rtp")]
+    Rtp,
+    /// `rtsp`
+    #[token("rtsp")]
+    Rtsp,
+    /// `smtp`
+    #[token("smtp")]
+    Smtp,
+    /// `imap`
+    #[token("imap")]
+    Imap,
+    /// `pop3`
+    #[token("pop3")]
+    Pop3,
+    /// `kerberos`
+    #[token("kerberos")]
+    Kerberos,
+    /// `ldap`
+    #[token("ldap")]
+    Ldap,
+    /// `smb`
+    #[token("smb")]
+    Smb,
+    /// `nfs`
+    #[token("nfs")]
+    Nfs,
+    /// `redis`
+    #[token("redis")]
+    Redis,
+    /// `memcached`
+    #[token("memcached")]
+    Memcached,
+    /// `mysql`
+    #[token("mysql")]
+    Mysql,
+    /// `postgres`
+    #[token("postgres")]
+    Postgres,
+    /// `mqtt`
+    #[token("mqtt")]
+    Mqtt,
+    /// `coap`
+    #[token("coap")]
+    Coap,
+    /// `amqp`
+    #[token("amqp")]
+    Amqp,
+    /// `ssdp`
+    #[token("ssdp")]
+    Ssdp,
+    /// `whois`
+    #[token("whois")]
+    Whois,
+    // Category 6: Layer 7 Industrial / OT Protocols
+    /// `modbus`
+    #[token("modbus")]
+    Modbus,
+    /// `bacnet`
+    #[token("bacnet")]
+    Bacnet,
+    /// `dnp3`
+    #[token("dnp3")]
+    Dnp3,
+    /// `s7comm`
+    #[token("s7comm")]
+    S7comm,
+    /// `ethernetip`
+    #[token("ethernetip")]
+    Ethernetip,
+    /// `opcua`
+    #[token("opcua")]
+    Opcua,
+    // Category 4 Sub-keywords
+    /// `txid`
+    #[token("txid")]
+    Txid,
+    /// `qname`
+    #[token("qname")]
+    Qname,
+    /// `qtype`
+    #[token("qtype")]
+    Qtype,
+    /// `rdata`
+    #[token("rdata")]
+    Rdata,
+    /// `rcode`
+    #[token("rcode")]
+    Rcode,
+    /// `ansttl`
+    #[token("ansttl")]
+    AnsTtl,
+    /// `edns0`
+    #[token("edns0")]
+    Edns0,
+    /// `udpsize`
+    #[token("udpsize")]
+    UdpSize,
+    /// `dobit`
+    #[token("dobit")]
+    DoBit,
+    /// `discover`
+    #[token("discover")]
+    Discover,
+    /// `solicit`
+    #[token("solicit")]
+    Solicit,
+    /// `offer`
+    #[token("offer")]
+    Offer,
+    /// `advertise`
+    #[token("advertise")]
+    Advertise,
+    /// `release`
+    #[token("release")]
+    Release,
+    /// `ciaddr`
+    #[token("ciaddr")]
+    Ciaddr,
+    /// `yiaddr`
+    #[token("yiaddr")]
+    Yiaddr,
+    /// `siaddr`
+    #[token("siaddr")]
+    Siaddr,
+    /// `chaddr`
+    #[token("chaddr")]
+    Chaddr,
+    /// `hostname`
+    #[token("hostname")]
+    Hostname,
+    /// `dnsserver`
+    #[token("dnsserver")]
+    DnsServer,
+    /// `router`
+    #[token("router")]
+    Router,
+    /// `subnetmask`
+    #[token("subnetmask")]
+    SubnetMask,
+    /// `leasetime`
+    #[token("leasetime")]
+    LeaseTime,
+    /// `li`
+    #[token("li")]
+    Li,
+    /// `vn`
+    #[token("vn")]
+    Vn,
+    /// `mode`
+    #[token("mode")]
+    Mode,
+    /// `stratum`
+    #[token("stratum")]
+    Stratum,
+    /// `poll`
+    #[token("poll")]
+    Poll,
+    /// `precision`
+    #[token("precision")]
+    Precision,
+    /// `refid`
+    #[token("refid")]
+    RefId,
+    /// `txtimestamp`
+    #[token("txtimestamp")]
+    TxTimestamp,
+    /// `msgtype`
+    #[token("msgtype")]
+    MsgType,
+    /// `sync`
+    #[token("sync")]
+    Sync,
+    /// `delayreq`
+    #[token("delayreq")]
+    DelayReq,
+    /// `followup`
+    #[token("followup")]
+    FollowUp,
+    /// `delayresp`
+    #[token("delayresp")]
+    DelayResp,
+    /// `announce`
+    #[token("announce")]
+    Announce,
+    /// `domain`
+    #[token("domain")]
+    Domain,
+    /// `seqid`
+    #[token("seqid")]
+    SeqId,
+    /// `clockid`
+    #[token("clockid")]
+    ClockId,
+    /// `accessrequest`
+    #[token("accessrequest")]
+    AccessRequest,
+    /// `accessaccept`
+    #[token("accessaccept")]
+    AccessAccept,
+    /// `accessreject`
+    #[token("accessreject")]
+    AccessReject,
+    /// `accesschallenge`
+    #[token("accesschallenge")]
+    AccessChallenge,
+    /// `accountingrequest`
+    #[token("accountingrequest")]
+    AccountingRequest,
+    /// `accountingresponse`
+    #[token("accountingresponse")]
+    AccountingResponse,
+    /// `nasip`
+    #[token("nasip")]
+    NasIp,
+    /// `servicetype`
+    #[token("servicetype")]
+    ServiceType,
+    /// `framedip`
+    #[token("framedip")]
+    FramedIp,
+    /// `authen`
+    #[token("authen")]
+    Authen,
+    /// `author`
+    #[token("author")]
+    Author,
+    /// `acct`
+    #[token("acct")]
+    Acct,
+    /// `sessionid`
+    #[token("sessionid")]
+    SessionId,
+    /// `facility`
+    #[token("facility")]
+    Facility,
+    /// `severity`
+    #[token("severity")]
+    Severity,
+    /// `pri`
+    #[token("pri")]
+    Pri,
+    /// `app`
+    #[token("app")]
+    App,
+    /// `procid`
+    #[token("procid")]
+    Procid,
+    /// `msg`
+    #[token("msg")]
+    Msg,
+    /// `srcip`
+    #[token("srcip")]
+    SrcIp,
+    /// `dstip`
+    #[token("dstip")]
+    DstIp,
+    /// `proto`
+    #[token("proto")]
+    Proto,
+    /// `packets`
+    #[token("packets")]
+    Packets,
+    /// `octets`
+    #[token("octets")]
+    Octets,
+    /// `domainid`
+    #[token("domainid")]
+    DomainId,
+    /// `subagentid`
+    #[token("subagentid")]
+    SubAgentId,
+    /// `uptime`
+    #[token("uptime")]
+    Uptime,
+    /// `samples`
+    #[token("samples")]
+    Samples,
+    // Category 5 Sub-keywords
+    /// `rrq`
+    #[token("rrq")]
+    Rrq,
+    /// `wrq`
+    #[token("wrq")]
+    Wrq,
+    /// `filename`
+    #[token("filename")]
+    Filename,
+    /// `block`
+    #[token("block")]
+    Block,
+    /// `errcode`
+    #[token("errcode")]
+    ErrCode,
+    /// `errmsg`
+    #[token("errmsg")]
+    ErrMsg,
+    /// `cmd`
+    #[token("cmd")]
+    Cmd,
+    /// `arg`
+    #[token("arg")]
+    Arg,
+    /// `banner`
+    #[token("banner")]
+    Banner,
+    /// `kexinit`
+    #[token("kexinit")]
+    KexInit,
+    /// `newkeys`
+    #[token("newkeys")]
+    NewKeys,
+    /// `msgcode`
+    #[token("msgcode")]
+    MsgCode,
+    /// `will`
+    #[token("will")]
+    Will,
+    /// `wont`
+    #[token("wont")]
+    Wont,
+    /// `do`
+    #[token("do")]
+    DoCmd,
+    /// `dont`
+    #[token("dont")]
+    Dont,
+    /// `option`
+    #[token("option")]
+    Option,
+    /// `post`
+    #[token("post")]
+    Post,
+    /// `put`
+    #[token("put")]
+    Put,
+    /// `delete`
+    #[token("delete")]
+    Delete,
+    /// `head`
+    #[token("head")]
+    Head,
+    /// `options`
+    #[token("options")]
+    Options,
+    /// `patch`
+    #[token("patch")]
+    Patch,
+    /// `uri`
+    #[token("uri")]
+    Uri,
+    /// `hosthdr`
+    #[token("hosthdr")]
+    HostHdr,
+    /// `useragent`
+    #[token("useragent")]
+    UserAgent,
+    /// `contenttype`
+    #[token("contenttype")]
+    ContentType,
+    /// `status`
+    #[token("status")]
+    Status,
+    /// `reason`
+    #[token("reason")]
+    Reason,
+    /// `header`
+    #[token("header")]
+    Header,
+    /// `body`
+    #[token("body")]
+    Body,
+    /// `preface`
+    #[token("preface")]
+    Preface,
+    /// `settings`
+    #[token("settings")]
+    Settings,
+    /// `headers`
+    #[token("headers")]
+    Headers,
+    /// `windowupdate`
+    #[token("windowupdate")]
+    WindowUpdate,
+    /// `ping`
+    #[token("ping")]
+    Ping,
+    /// `goaway`
+    #[token("goaway")]
+    Goaway,
+    /// `streamid`
+    #[token("streamid")]
+    StreamId,
+    /// `service`
+    #[token("service")]
+    Service,
+    /// `method`
+    #[token("method")]
+    Method,
+    /// `grpcstatus`
+    #[token("grpcstatus")]
+    GrpcStatus,
+    /// `opcode`
+    #[token("opcode")]
+    Opcode,
+    /// `text`
+    #[token("text")]
+    Text,
+    /// `binary`
+    #[token("binary")]
+    Binary,
+    /// `pong`
+    #[token("pong")]
+    Pong,
+    /// `close`
+    #[token("close")]
+    Close,
+    /// `finbit`
+    #[token("finbit")]
+    FinBit,
+    /// `maskkey`
+    #[token("maskkey")]
+    MaskKey,
+    /// `clienthello`
+    #[token("clienthello")]
+    ClientHello,
+    /// `serverhello`
+    #[token("serverhello")]
+    ServerHello,
+    /// `certificate`
+    #[token("certificate")]
+    Certificate,
+    /// `finished`
+    #[token("finished")]
+    Finished,
+    /// `appdata`
+    #[token("appdata")]
+    AppData,
+    /// `alert`
+    #[token("alert")]
+    Alert,
+    /// `recordversion`
+    #[token("recordversion")]
+    RecordVersion,
+    /// `handshakeversion`
+    #[token("handshakeversion")]
+    HandshakeVersion,
+    /// `sni`
+    #[token("sni")]
+    Sni,
+    /// `ciphersuite`
+    #[token("ciphersuite")]
+    Ciphersuite,
+    /// `alpn`
+    #[token("alpn")]
+    Alpn,
+    /// `initial`
+    #[token("initial")]
+    Initial,
+    /// `zerortt`
+    #[token("zerortt")]
+    ZeroRtt,
+    /// `handshake`
+    #[token("handshake")]
+    Handshake,
+    /// `retry`
+    #[token("retry")]
+    Retry,
+    /// `short`
+    #[token("short")]
+    Short,
+    /// `dcid`
+    #[token("dcid")]
+    Dcid,
+    /// `scid`
+    #[token("scid")]
+    Scid,
+    /// `token`
+    #[token("token")]
+    Token,
+    /// `pktnum`
+    #[token("pktnum")]
+    PktNum,
+    /// `bindingrequest`
+    #[token("bindingrequest")]
+    BindingRequest,
+    /// `bindingresponse`
+    #[token("bindingresponse")]
+    BindingResponse,
+    /// `bindingerror`
+    #[token("bindingerror")]
+    BindingError,
+    /// `xormappedaddr`
+    #[token("xormappedaddr")]
+    XorMappedAddr,
+    /// `software`
+    #[token("software")]
+    Software,
+    /// `invite`
+    #[token("invite")]
+    Invite,
+    /// `bye`
+    #[token("bye")]
+    Bye,
+    /// `cancel`
+    #[token("cancel")]
+    Cancel,
+    /// `from`
+    #[token("from")]
+    From,
+    /// `to`
+    #[token("to")]
+    To,
+    /// `callid`
+    #[token("callid")]
+    CallId,
+    /// `cseq`
+    #[token("cseq")]
+    Cseq,
+    /// `via`
+    #[token("via")]
+    Via,
+    /// `contact`
+    #[token("contact")]
+    Contact,
+    /// `pt`
+    #[token("pt")]
+    Pt,
+    /// `timestamp`
+    #[token("timestamp")]
+    Timestamp,
+    /// `ssrc`
+    #[token("ssrc")]
+    Ssrc,
+    /// `marker`
+    #[token("marker")]
+    Marker,
+    /// `describe`
+    #[token("describe")]
+    Describe,
+    /// `setup`
+    #[token("setup")]
+    Setup,
+    /// `play`
+    #[token("play")]
+    Play,
+    /// `teardown`
+    #[token("teardown")]
+    Teardown,
+    /// `transporthdr`
+    #[token("transporthdr")]
+    TransportHdr,
+    /// `session`
+    #[token("session")]
+    Session,
+    /// `ehlo`
+    #[token("ehlo")]
+    Ehlo,
+    /// `helo`
+    #[token("helo")]
+    Helo,
+    /// `mailfrom`
+    #[token("mailfrom")]
+    MailFrom,
+    /// `rcptto`
+    #[token("rcptto")]
+    RcptTo,
+    /// `quit`
+    #[token("quit")]
+    Quit,
+    /// `param`
+    #[token("param")]
+    Param,
+    /// `ok`
+    #[token("ok")]
+    Ok,
+    /// `err`
+    #[token("err")]
+    Err,
+    /// `error`
+    #[token("error")]
+    ErrorKw,
+    /// `asreq`
+    #[token("asreq")]
+    AsReq,
+    /// `asrep`
+    #[token("asrep")]
+    AsRep,
+    /// `tgsreq`
+    #[token("tgsreq")]
+    TgsReq,
+    /// `tgsrep`
+    #[token("tgsrep")]
+    TgsRep,
+    /// `krberror`
+    #[token("krberror")]
+    KrbError,
+    /// `realm`
+    #[token("realm")]
+    Realm,
+    /// `cname`
+    #[token("cname")]
+    Cname,
+    /// `sname`
+    #[token("sname")]
+    Sname,
+    /// `etype`
+    #[token("etype")]
+    Etype,
+    /// `bindreq`
+    #[token("bindreq")]
+    BindReq,
+    /// `bindres`
+    #[token("bindres")]
+    BindRes,
+    /// `searchreq`
+    #[token("searchreq")]
+    SearchReq,
+    /// `searchentry`
+    #[token("searchentry")]
+    SearchEntry,
+    /// `searchdone`
+    #[token("searchdone")]
+    SearchDone,
+    /// `unbindreq`
+    #[token("unbindreq")]
+    UnbindReq,
+    /// `basedn`
+    #[token("basedn")]
+    BaseDn,
+    /// `filter`
+    #[token("filter")]
+    Filter,
+    /// `resultcode`
+    #[token("resultcode")]
+    ResultCode,
+    /// `command`
+    #[token("command")]
+    Command,
+    /// `negotiate`
+    #[token("negotiate")]
+    Negotiate,
+    /// `sessionsetup`
+    #[token("sessionsetup")]
+    SessionSetup,
+    /// `treeconnect`
+    #[token("treeconnect")]
+    TreeConnect,
+    /// `create`
+    #[token("create")]
+    Create,
+    /// `treedisconnect`
+    #[token("treedisconnect")]
+    TreeDisconnect,
+    /// `treeid`
+    #[token("treeid")]
+    TreeId,
+    /// `share`
+    #[token("share")]
+    Share,
+    /// `vers`
+    #[token("vers")]
+    Vers,
+    /// `proc`
+    #[token("proc")]
+    Proc,
+    /// `path`
+    #[token("path")]
+    Path,
+    /// `compound`
+    #[token("compound")]
+    Compound,
+    /// `args`
+    #[token("args")]
+    Args,
+    /// `replytype`
+    #[token("replytype")]
+    ReplyType,
+    /// `value`
+    #[token("value")]
+    Value,
+    /// `exptime`
+    #[token("exptime")]
+    Exptime,
+    /// `opaque`
+    #[token("opaque")]
+    Opaque,
+    /// `cas`
+    #[token("cas")]
+    Cas,
+    /// `greeting`
+    #[token("greeting")]
+    Greeting,
+    /// `login`
+    #[token("login")]
+    Login,
+    /// `sql`
+    #[token("sql")]
+    Sql,
+    /// `eof`
+    #[token("eof")]
+    Eof,
+    /// `serverversion`
+    #[token("serverversion")]
+    ServerVersion,
+    /// `db`
+    #[token("db")]
+    Db,
+    /// `startup`
+    #[token("startup")]
+    Startup,
+    /// `readyforquery`
+    #[token("readyforquery")]
+    ReadyForQuery,
+    /// `commandcomplete`
+    #[token("commandcomplete")]
+    CommandComplete,
+    /// `errorresponse`
+    #[token("errorresponse")]
+    ErrorResponse,
+    /// `authok`
+    #[token("authok")]
+    AuthOk,
+    /// `connect`
+    #[token("connect")]
+    Connect,
+    /// `connack`
+    #[token("connack")]
+    Connack,
+    /// `publish`
+    #[token("publish")]
+    Publish,
+    /// `puback`
+    #[token("puback")]
+    Puback,
+    /// `subscribe`
+    #[token("subscribe")]
+    Subscribe,
+    /// `suback`
+    #[token("suback")]
+    Suback,
+    /// `pingreq`
+    #[token("pingreq")]
+    Pingreq,
+    /// `pingresp`
+    #[token("pingresp")]
+    Pingresp,
+    /// `disconnect`
+    #[token("disconnect")]
+    Disconnect,
+    /// `clientid`
+    #[token("clientid")]
+    ClientId,
+    /// `topic`
+    #[token("topic")]
+    Topic,
+    /// `qos`
+    #[token("qos")]
+    Qos,
+    /// `retain`
+    #[token("retain")]
+    Retain,
+    /// `pkttype`
+    #[token("pkttype")]
+    PktType,
+    /// `pktid`
+    #[token("pktid")]
+    PktId,
+    /// `returncode`
+    #[token("returncode")]
+    ReturnCode,
+    /// `con`
+    #[token("con")]
+    Con,
+    /// `non`
+    #[token("non")]
+    Non,
+    /// `changed`
+    #[token("changed")]
+    Changed,
+    /// `created`
+    #[token("created")]
+    Created,
+    /// `notfound`
+    #[token("notfound")]
+    NotFound,
+    /// `uripath`
+    #[token("uripath")]
+    UriPath,
+    /// `contentformat`
+    #[token("contentformat")]
+    ContentFormat,
+    /// `protocolheader`
+    #[token("protocolheader")]
+    ProtocolHeader,
+    /// `connectionstart`
+    #[token("connectionstart")]
+    ConnectionStart,
+    /// `channelopen`
+    #[token("channelopen")]
+    ChannelOpen,
+    /// `basicpublish`
+    #[token("basicpublish")]
+    BasicPublish,
+    /// `basicdeliver`
+    #[token("basicdeliver")]
+    BasicDeliver,
+    /// `channel`
+    #[token("channel")]
+    Channel,
+    /// `routingkey`
+    #[token("routingkey")]
+    RoutingKey,
+    /// `msearch`
+    #[token("msearch")]
+    Msearch,
+    /// `notify`
+    #[token("notify")]
+    Notify,
+    /// `man`
+    #[token("man")]
+    Man,
+    /// `mx`
+    #[token("mx")]
+    Mx,
+    /// `st`
+    #[token("st")]
+    St,
+    /// `nt`
+    #[token("nt")]
+    Nt,
+    /// `nts`
+    #[token("nts")]
+    Nts,
+    /// `usn`
+    #[token("usn")]
+    Usn,
+    /// `location`
+    #[token("location")]
+    Location,
+    /// `registrar`
+    #[token("registrar")]
+    Registrar,
+    // Category 6 Sub-keywords
+    /// `protoid`
+    #[token("protoid")]
+    ProtoId,
+    /// `unitid`
+    #[token("unitid")]
+    UnitId,
+    /// `func`
+    #[token("func")]
+    Func,
+    /// `readcoils`
+    #[token("readcoils")]
+    ReadCoils,
+    /// `readdiscreteinputs`
+    #[token("readdiscreteinputs")]
+    ReadDiscreteInputs,
+    /// `readholdingregisters`
+    #[token("readholdingregisters")]
+    ReadHoldingRegisters,
+    /// `readinputregisters`
+    #[token("readinputregisters")]
+    ReadInputRegisters,
+    /// `writesinglecoil`
+    #[token("writesinglecoil")]
+    WriteSingleCoil,
+    /// `writesingleregister`
+    #[token("writesingleregister")]
+    WriteSingleRegister,
+    /// `writemultipleregisters`
+    #[token("writemultipleregisters")]
+    WriteMultipleRegisters,
+    /// `addr`
+    #[token("addr")]
+    Addr,
+    /// `count`
+    #[token("count")]
+    Count,
+    /// `isresponse`
+    #[token("isresponse")]
+    IsResponse,
+    /// `iam`
+    #[token("iam")]
+    IAm,
+    /// `readproperty`
+    #[token("readproperty")]
+    ReadProperty,
+    /// `writeproperty`
+    #[token("writeproperty")]
+    WriteProperty,
+    /// `complexack`
+    #[token("complexack")]
+    ComplexAck,
+    /// `real`
+    #[token("real")]
+    Real,
+    /// `invokeid`
+    #[token("invokeid")]
+    InvokeId,
+    /// `objecttype`
+    #[token("objecttype")]
+    ObjectType,
+    /// `objectinstance`
+    #[token("objectinstance")]
+    ObjectInstance,
+    /// `propertyid`
+    #[token("propertyid")]
+    PropertyId,
+    /// `confirm`
+    #[token("confirm")]
+    Confirm,
+    /// `read`
+    #[token("read")]
+    Read,
+    /// `write`
+    #[token("write")]
+    Write,
+    /// `select`
+    #[token("select")]
+    Select,
+    /// `operate`
+    #[token("operate")]
+    Operate,
+    /// `directoperate`
+    #[token("directoperate")]
+    DirectOperate,
+    /// `unsolicitedresponse`
+    #[token("unsolicitedresponse")]
+    UnsolicitedResponse,
+    /// `variation`
+    #[token("variation")]
+    Variation,
+    /// `crc`
+    #[token("crc")]
+    Crc,
+    /// `src`
+    #[token("src")]
+    Src,
+    /// `dst`
+    #[token("dst")]
+    Dst,
+    /// `rosctr`
+    #[token("rosctr")]
+    Rosctr,
+    /// `pduref`
+    #[token("pduref")]
+    PduRef,
+    /// `setupcomm`
+    #[token("setupcomm")]
+    SetupComm,
+    /// `readvar`
+    #[token("readvar")]
+    ReadVar,
+    /// `writevar`
+    #[token("writevar")]
+    WriteVar,
+    /// `plccontrol`
+    #[token("plccontrol")]
+    PlcControl,
+    /// `szl`
+    #[token("szl")]
+    Szl,
+    /// `area`
+    #[token("area")]
+    Area,
+    /// `dbnum`
+    #[token("dbnum")]
+    DbNum,
+    /// `offset`
+    #[token("offset")]
+    Offset,
+    /// `nop`
+    #[token("nop")]
+    Nop,
+    /// `listservices`
+    #[token("listservices")]
+    ListServices,
+    /// `listidentity`
+    #[token("listidentity")]
+    ListIdentity,
+    /// `listinterfaces`
+    #[token("listinterfaces")]
+    ListInterfaces,
+    /// `registersession`
+    #[token("registersession")]
+    RegisterSession,
+    /// `unregistersession`
+    #[token("unregistersession")]
+    UnregisterSession,
+    /// `sendrrdata`
+    #[token("sendrrdata")]
+    SendRrData,
+    /// `sendunitdata`
+    #[token("sendunitdata")]
+    SendUnitData,
+    /// `sessionhandle`
+    #[token("sessionhandle")]
+    SessionHandle,
+    /// `context`
+    #[token("context")]
+    ContextVal,
+    /// `cipservice`
+    #[token("cipservice")]
+    CipService,
+    /// `cipclass`
+    #[token("cipclass")]
+    CipClass,
+    /// `cipinstance`
+    #[token("cipinstance")]
+    CipInstance,
+    /// `cipattr`
+    #[token("cipattr")]
+    CipAttr,
+    /// `chunktype`
+    #[token("chunktype")]
+    ChunkType,
+    /// `securechannelid`
+    #[token("securechannelid")]
+    SecureChannelId,
+    /// `tokenid`
+    #[token("tokenid")]
+    TokenId,
+    /// `seqnum`
+    #[token("seqnum")]
+    SeqNum,
+    /// `endpointurl`
+    #[token("endpointurl")]
+    EndpointUrl,
+    /// `nodeid`
+    #[token("nodeid")]
+    NodeId,
+    // Wave 3 Protocol and Sub-keywords (`v3.3.0`)
+    /// `accookie`
+    #[token("accookie")]
+    AcCookie,
+    /// `acname`
+    #[token("acname")]
+    AcName,
+    /// `accept`
+    #[token("accept")]
+    Accept,
+    /// `acceptsession`
+    #[token("acceptsession")]
+    AcceptSession,
+    /// `ackreq`
+    #[token("ackreq")]
+    AckReq,
+    /// `acks`
+    #[token("acks")]
+    Acks,
+    /// `ado`
+    #[token("ado")]
+    Ado,
+    /// `adp`
+    #[token("adp")]
+    Adp,
+    /// `alerting`
+    #[token("alerting")]
+    Alerting,
+    /// `alivecheckreq`
+    #[token("alivecheckreq")]
+    AliveCheckReq,
+    /// `alivecheckresp`
+    #[token("alivecheckresp")]
+    AliveCheckResp,
+    /// `allocate`
+    #[token("allocate")]
+    Allocate,
+    /// `altercontext`
+    #[token("altercontext")]
+    AlterContext,
+    /// `amfueid`
+    #[token("amfueid")]
+    AmfUeId,
+    /// `an`
+    #[token("an")]
+    An,
+    /// `announcement`
+    #[token("announcement")]
+    Announcement,
+    /// `apikey`
+    #[token("apikey")]
+    ApiKey,
+    /// `apiversions`
+    #[token("apiversions")]
+    ApiVersions,
+    /// `apn`
+    #[token("apn")]
+    Apn,
+    /// `appid`
+    #[token("appid")]
+    AppId,
+    /// `associationsetuprequest`
+    #[token("associationsetuprequest")]
+    AssociationSetupRequest,
+    /// `associationsetupresponse`
+    #[token("associationsetupresponse")]
+    AssociationSetupResponse,
+    /// `attention`
+    #[token("attention")]
+    Attention,
+    /// `aucx`
+    #[token("aucx")]
+    Aucx,
+    /// `auep`
+    #[token("auep")]
+    Auep,
+    /// `authenticate`
+    #[token("authenticate")]
+    Authenticate,
+    /// `bind`
+    #[token("bind")]
+    Bind,
+    /// `bindack`
+    #[token("bindack")]
+    BindAck,
+    /// `bindnak`
+    #[token("bindnak")]
+    BindNak,
+    /// `bmp`
+    #[token("bmp")]
+    Bmp,
+    /// `bsap`
+    #[token("bsap")]
+    Bsap,
+    /// `button`
+    #[token("button")]
+    Button,
+    /// `c1222`
+    #[token("c1222")]
+    C1222,
+    /// `c2hdata`
+    #[token("c2hdata")]
+    C2hdata,
+    /// `ca`
+    #[token("ca")]
+    Ca,
+    /// `cachereset`
+    #[token("cachereset")]
+    CacheReset,
+    /// `cacheresponse`
+    #[token("cacheresponse")]
+    CacheResponse,
+    /// `callproceeding`
+    #[token("callproceeding")]
+    CallProceeding,
+    /// `callref`
+    #[token("callref")]
+    CallRef,
+    /// `callstate`
+    #[token("callstate")]
+    CallState,
+    /// `calledap`
+    #[token("calledap")]
+    CalledAp,
+    /// `calledid`
+    #[token("calledid")]
+    CalledId,
+    /// `calledparty`
+    #[token("calledparty")]
+    CalledParty,
+    /// `callingap`
+    #[token("callingap")]
+    CallingAp,
+    /// `callingid`
+    #[token("callingid")]
+    CallingId,
+    /// `callingparty`
+    #[token("callingparty")]
+    CallingParty,
+    /// `capabilities`
+    #[token("capabilities")]
+    Capabilities,
+    /// `capability`
+    #[token("capability")]
+    Capability,
+    /// `cause`
+    #[token("cause")]
+    Cause,
+    /// `cca`
+    #[token("cca")]
+    Cca,
+    /// `ccr`
+    #[token("ccr")]
+    Ccr,
+    /// `cdp`
+    #[token("cdp")]
+    Cdp,
+    /// `cea`
+    #[token("cea")]
+    Cea,
+    /// `cer`
+    #[token("cer")]
+    Cer,
+    /// `challenge`
+    #[token("challenge")]
+    Challenge,
+    /// `channelbind`
+    #[token("channelbind")]
+    ChannelBind,
+    /// `channeldata`
+    #[token("channeldata")]
+    ChannelData,
+    /// `chunked`
+    #[token("chunked")]
+    Chunked,
+    /// `circuittype`
+    #[token("circuittype")]
+    CircuitType,
+    /// `cmdsn`
+    #[token("cmdsn")]
+    Cmdsn,
+    /// `collection`
+    #[token("collection")]
+    Collection,
+    /// `conclude`
+    #[token("conclude")]
+    Conclude,
+    /// `confrev`
+    #[token("confrev")]
+    ConfRev,
+    /// `connid`
+    #[token("connid")]
+    ConnId,
+    /// `correlationid`
+    #[token("correlationid")]
+    CorrelationId,
+    /// `cos`
+    #[token("cos")]
+    Cos,
+    /// `cot`
+    #[token("cot")]
+    Cot,
+    /// `crcx`
+    #[token("crcx")]
+    Crcx,
+    /// `createpermission`
+    #[token("createpermission")]
+    CreatePermission,
+    /// `createsessionrequest`
+    #[token("createsessionrequest")]
+    CreateSessionRequest,
+    /// `createsessionresponse`
+    #[token("createsessionresponse")]
+    CreateSessionResponse,
+    /// `criticality`
+    #[token("criticality")]
+    Criticality,
+    /// `ctxid`
+    #[token("ctxid")]
+    CtxId,
+    /// `cycle`
+    #[token("cycle")]
+    Cycle,
+    /// `da1`
+    #[token("da1")]
+    Da1,
+    /// `da2`
+    #[token("da2")]
+    Da2,
+    /// `datset`
+    #[token("datset")]
+    DatSet,
+    /// `dataindication`
+    #[token("dataindication")]
+    DataIndication,
+    /// `datastatus`
+    #[token("datastatus")]
+    DataStatus,
+    /// `dcerpc`
+    #[token("dcerpc")]
+    Dcerpc,
+    /// `dcf`
+    #[token("dcf")]
+    Dcf,
+    /// `deletesessionrequest`
+    #[token("deletesessionrequest")]
+    DeleteSessionRequest,
+    /// `deletesessionresponse`
+    #[token("deletesessionresponse")]
+    DeleteSessionResponse,
+    /// `desktop`
+    #[token("desktop")]
+    Desktop,
+    /// `destqp`
+    #[token("destqp")]
+    DestQp,
+    /// `device`
+    #[token("device")]
+    Device,
+    /// `deviceid`
+    #[token("deviceid")]
+    DeviceId,
+    /// `devicename`
+    #[token("devicename")]
+    DeviceName,
+    /// `diagack`
+    #[token("diagack")]
+    DiagAck,
+    /// `diagnack`
+    #[token("diagnack")]
+    DiagNack,
+    /// `diagnostic`
+    #[token("diagnostic")]
+    Diagnostic,
+    /// `diameter`
+    #[token("diameter")]
+    Diameter,
+    /// `direction`
+    #[token("direction")]
+    Direction,
+    /// `dlcx`
+    #[token("dlcx")]
+    Dlcx,
+    /// `dna`
+    #[token("dna")]
+    Dna,
+    /// `doh`
+    #[token("doh")]
+    Doh,
+    /// `doip`
+    #[token("doip")]
+    Doip,
+    /// `downlinknastransport`
+    #[token("downlinknastransport")]
+    DownlinkNasTransport,
+    /// `drq`
+    #[token("drq")]
+    Drq,
+    /// `dsthost`
+    #[token("dsthost")]
+    DstHost,
+    /// `dstrealm`
+    #[token("dstrealm")]
+    DstRealm,
+    /// `dwa`
+    #[token("dwa")]
+    Dwa,
+    /// `dwr`
+    #[token("dwr")]
+    Dwr,
+    /// `echoresponse`
+    #[token("echoresponse")]
+    EchoResponse,
+    /// `ecm`
+    #[token("ecm")]
+    Ecm,
+    /// `edclass`
+    #[token("edclass")]
+    EdClass,
+    /// `eid`
+    #[token("eid")]
+    Eid,
+    /// `enable`
+    #[token("enable")]
+    Enable,
+    /// `enbid`
+    #[token("enbid")]
+    EnbId,
+    /// `enbname`
+    #[token("enbname")]
+    EnbName,
+    /// `enbueid`
+    #[token("enbueid")]
+    EnbUeId,
+    /// `endid`
+    #[token("endid")]
+    EndId,
+    /// `endmarker`
+    #[token("endmarker")]
+    EndMarker,
+    /// `endofdata`
+    #[token("endofdata")]
+    EndOfData,
+    /// `endcode`
+    #[token("endcode")]
+    Endcode,
+    /// `endpoint`
+    #[token("endpoint")]
+    Endpoint,
+    /// `endpointip`
+    #[token("endpointip")]
+    EndpointIp,
+    /// `endpointport`
+    #[token("endpointport")]
+    EndpointPort,
+    /// `epsemctrl`
+    #[token("epsemctrl")]
+    EpsemCtrl,
+    /// `errorestimate`
+    #[token("errorestimate")]
+    ErrorEstimate,
+    /// `errorindication`
+    #[token("errorindication")]
+    ErrorIndication,
+    /// `errorreport`
+    #[token("errorreport")]
+    ErrorReport,
+    /// `erspan`
+    #[token("erspan")]
+    Erspan,
+    /// `ethercat`
+    #[token("ethercat")]
+    Ethercat,
+    /// `expire`
+    #[token("expire")]
+    Expire,
+    /// `fault`
+    #[token("fault")]
+    Fault,
+    /// `fetch`
+    #[token("fetch")]
+    Fetch,
+    /// `findservice`
+    #[token("findservice")]
+    FindService,
+    /// `fins`
+    #[token("fins")]
+    Fins,
+    /// `forwarder`
+    #[token("forwarder")]
+    Forwarder,
+    /// `fracsec`
+    #[token("fracsec")]
+    FracSec,
+    /// `fraction`
+    #[token("fraction")]
+    Fraction,
+    /// `frameid`
+    #[token("frameid")]
+    FrameId,
+    /// `gcf`
+    #[token("gcf")]
+    Gcf,
+    /// `gesrtp`
+    #[token("gesrtp")]
+    Gesrtp,
+    /// `getnamelist`
+    #[token("getnamelist")]
+    GetNameList,
+    /// `gid`
+    #[token("gid")]
+    Gid,
+    /// `glbp`
+    #[token("glbp")]
+    Glbp,
+    /// `gnbid`
+    #[token("gnbid")]
+    GnbId,
+    /// `goid`
+    #[token("goid")]
+    GoId,
+    /// `gocbref`
+    #[token("gocbref")]
+    GocbRef,
+    /// `goose`
+    #[token("goose")]
+    Goose,
+    /// `gpdu`
+    #[token("gpdu")]
+    Gpdu,
+    /// `grq`
+    #[token("grq")]
+    Grq,
+    /// `gtpc`
+    #[token("gtpc")]
+    Gtpc,
+    /// `gtpu`
+    #[token("gtpu")]
+    Gtpu,
+    /// `h2cdata`
+    #[token("h2cdata")]
+    H2cdata,
+    /// `h323`
+    #[token("h323")]
+    H323,
+    /// `hartip`
+    #[token("hartip")]
+    Hartip,
+    /// `heartbeatrequest`
+    #[token("heartbeatrequest")]
+    HeartbeatRequest,
+    /// `heartbeatresponse`
+    #[token("heartbeatresponse")]
+    HeartbeatResponse,
+    /// `height`
+    #[token("height")]
+    Height,
+    /// `hopid`
+    #[token("hopid")]
+    HopId,
+    /// `hostuniq`
+    #[token("hostuniq")]
+    HostUniq,
+    /// `icf`
+    #[token("icf")]
+    Icf,
+    /// `icreq`
+    #[token("icreq")]
+    Icreq,
+    /// `icresp`
+    #[token("icresp")]
+    Icresp,
+    /// `identify`
+    #[token("identify")]
+    Identify,
+    /// `idx`
+    #[token("idx")]
+    Idx,
+    /// `iec104`
+    #[token("iec104")]
+    Iec104,
+    /// `ifacever`
+    #[token("ifacever")]
+    IfaceVer,
+    /// `iid`
+    #[token("iid")]
+    Iid,
+    /// `imsi`
+    #[token("imsi")]
+    Imsi,
+    /// `index`
+    #[token("index")]
+    Index,
+    /// `initialuemessage`
+    #[token("initialuemessage")]
+    InitialUeMessage,
+    /// `initiator`
+    #[token("initiator")]
+    Initiator,
+    /// `innerdscp`
+    #[token("innerdscp")]
+    InnerDscp,
+    /// `innerttl`
+    #[token("innerttl")]
+    InnerTtl,
+    /// `instanceid`
+    #[token("instanceid")]
+    InstanceId,
+    /// `invversion`
+    #[token("invversion")]
+    InvVersion,
+    /// `io`
+    #[token("io")]
+    Io,
+    /// `ioa`
+    #[token("ioa")]
+    Ioa,
+    /// `ipip`
+    #[token("ipip")]
+    Ipip,
+    /// `ipmi`
+    #[token("ipmi")]
+    Ipmi,
+    /// `ipv4prefix`
+    #[token("ipv4prefix")]
+    Ipv4Prefix,
+    /// `ipv6prefix`
+    #[token("ipv6prefix")]
+    Ipv6Prefix,
+    /// `irc`
+    #[token("irc")]
+    Irc,
+    /// `irq`
+    #[token("irq")]
+    Irq,
+    /// `iscsi`
+    #[token("iscsi")]
+    Iscsi,
+    /// `isis`
+    #[token("isis")]
+    Isis,
+    /// `item`
+    #[token("item")]
+    Item,
+    /// `itt`
+    #[token("itt")]
+    Itt,
+    /// `jitter`
+    #[token("jitter")]
+    Jitter,
+    /// `join`
+    #[token("join")]
+    Join,
+    /// `kafka`
+    #[token("kafka")]
+    Kafka,
+    /// `keepaliveack`
+    #[token("keepaliveack")]
+    KeepaliveAck,
+    /// `keypadbutton`
+    #[token("keypadbutton")]
+    KeypadButton,
+    /// `knxnetip`
+    #[token("knxnetip")]
+    Knxnetip,
+    /// `l1csnp`
+    #[token("l1csnp")]
+    L1Csnp,
+    /// `l1iih`
+    #[token("l1iih")]
+    L1Iih,
+    /// `l1lsp`
+    #[token("l1lsp")]
+    L1Lsp,
+    /// `l1psnp`
+    #[token("l1psnp")]
+    L1Psnp,
+    /// `l2csnp`
+    #[token("l2csnp")]
+    L2Csnp,
+    /// `l2iih`
+    #[token("l2iih")]
+    L2Iih,
+    /// `l2lsp`
+    #[token("l2lsp")]
+    L2Lsp,
+    /// `l2psnp`
+    #[token("l2psnp")]
+    L2Psnp,
+    /// `l2tp`
+    #[token("l2tp")]
+    L2tp,
+    /// `labelmapping`
+    #[token("labelmapping")]
+    LabelMapping,
+    /// `labelrelease`
+    #[token("labelrelease")]
+    LabelRelease,
+    /// `labelrequest`
+    #[token("labelrequest")]
+    LabelRequest,
+    /// `labelspace`
+    #[token("labelspace")]
+    LabelSpace,
+    /// `labelwithdraw`
+    #[token("labelwithdraw")]
+    LabelWithdraw,
+    /// `lanid`
+    #[token("lanid")]
+    LanId,
+    /// `ldp`
+    #[token("ldp")]
+    Ldp,
+    /// `lifetime`
+    #[token("lifetime")]
+    Lifetime,
+    /// `line`
+    #[token("line")]
+    Line,
+    /// `lisp`
+    #[token("lisp")]
+    Lisp,
+    /// `llmnr`
+    #[token("llmnr")]
+    Llmnr,
+    /// `localopts`
+    #[token("localopts")]
+    LocalOpts,
+    /// `logon`
+    #[token("logon")]
+    Logon,
+    /// `logout`
+    #[token("logout")]
+    Logout,
+    /// `lost`
+    #[token("lost")]
+    Lost,
+    /// `lspid`
+    #[token("lspid")]
+    LspId,
+    /// `lsrid`
+    #[token("lsrid")]
+    LsrId,
+    /// `lun`
+    #[token("lun")]
+    Lun,
+    /// `macsec`
+    #[token("macsec")]
+    Macsec,
+    /// `majorver`
+    #[token("majorver")]
+    MajorVer,
+    /// `mapnotify`
+    #[token("mapnotify")]
+    MapNotify,
+    /// `mapregister`
+    #[token("mapregister")]
+    MapRegister,
+    /// `mapreply`
+    #[token("mapreply")]
+    MapReply,
+    /// `maprequest`
+    #[token("maprequest")]
+    MapRequest,
+    /// `maxlen`
+    #[token("maxlen")]
+    MaxLen,
+    /// `mcs`
+    #[token("mcs")]
+    Mcs,
+    /// `mdtype`
+    #[token("mdtype")]
+    MdType,
+    /// `mdcx`
+    #[token("mdcx")]
+    Mdcx,
+    /// `mediaport`
+    #[token("mediaport")]
+    MediaPort,
+    /// `melsec`
+    #[token("melsec")]
+    Melsec,
+    /// `metadata`
+    #[token("metadata")]
+    Metadata,
+    /// `methodid`
+    #[token("methodid")]
+    MethodId,
+    /// `mgcp`
+    #[token("mgcp")]
+    Mgcp,
+    /// `minorver`
+    #[token("minorver")]
+    MinorVer,
+    /// `mmeueid`
+    #[token("mmeueid")]
+    MmeUeId,
+    /// `mms`
+    #[token("mms")]
+    Mms,
+    /// `modifybearerrequest`
+    #[token("modifybearerrequest")]
+    ModifyBearerRequest,
+    /// `modifybearerresponse`
+    #[token("modifybearerresponse")]
+    ModifyBearerResponse,
+    /// `mongodb`
+    #[token("mongodb")]
+    Mongodb,
+    /// `mssql`
+    #[token("mssql")]
+    Mssql,
+    /// `nack`
+    #[token("nack")]
+    Nack,
+    /// `naspdu`
+    #[token("naspdu")]
+    NasPdu,
+    /// `nativevlan`
+    #[token("nativevlan")]
+    NativeVlan,
+    /// `nbtype`
+    #[token("nbtype")]
+    NbType,
+    /// `nbns`
+    #[token("nbns")]
+    Nbns,
+    /// `ndscom`
+    #[token("ndscom")]
+    NdsCom,
+    /// `netconf`
+    #[token("netconf")]
+    Netconf,
+    /// `netfn`
+    #[token("netfn")]
+    Netfn,
+    /// `network`
+    #[token("network")]
+    Network,
+    /// `nextproto`
+    #[token("nextproto")]
+    NextProto,
+    /// `ngsetupfailure`
+    #[token("ngsetupfailure")]
+    NgSetupFailure,
+    /// `ngsetuprequest`
+    #[token("ngsetuprequest")]
+    NgSetupRequest,
+    /// `ngsetupresponse`
+    #[token("ngsetupresponse")]
+    NgSetupResponse,
+    /// `ngap`
+    #[token("ngap")]
+    Ngap,
+    /// `nick`
+    #[token("nick")]
+    Nick,
+    /// `nonce`
+    #[token("nonce")]
+    Nonce,
+    /// `npdu`
+    #[token("npdu")]
+    Npdu,
+    /// `nr`
+    #[token("nr")]
+    Nr,
+    /// `nsh`
+    #[token("nsh")]
+    Nsh,
+    /// `nsid`
+    #[token("nsid")]
+    Nsid,
+    /// `ntfy`
+    #[token("ntfy")]
+    Ntfy,
+    /// `ntlm`
+    #[token("ntlm")]
+    Ntlm,
+    /// `numdatsetentries`
+    #[token("numdatsetentries")]
+    NumDatSetEntries,
+    /// `nvmetcp`
+    #[token("nvmetcp")]
+    Nvmetcp,
+    /// `oam`
+    #[token("oam")]
+    Oam,
+    /// `offhook`
+    #[token("offhook")]
+    OffHook,
+    /// `offerservice`
+    #[token("offerservice")]
+    OfferService,
+    /// `onhook`
+    #[token("onhook")]
+    OnHook,
+    /// `openreceivechannel`
+    #[token("openreceivechannel")]
+    OpenReceiveChannel,
+    /// `openreceivechannelack`
+    #[token("openreceivechannelack")]
+    OpenReceiveChannelAck,
+    /// `operation`
+    #[token("operation")]
+    Operation,
+    /// `opnum`
+    #[token("opnum")]
+    Opnum,
+    /// `originhost`
+    #[token("originhost")]
+    OriginHost,
+    /// `ownerid`
+    #[token("ownerid")]
+    OwnerId,
+    /// `p2piih`
+    #[token("p2piih")]
+    P2pIih,
+    /// `padding`
+    #[token("padding")]
+    Padding,
+    /// `padi`
+    #[token("padi")]
+    Padi,
+    /// `pado`
+    #[token("pado")]
+    Pado,
+    /// `padr`
+    #[token("padr")]
+    Padr,
+    /// `pads`
+    #[token("pads")]
+    Pads,
+    /// `padt`
+    #[token("padt")]
+    Padt,
+    /// `partition`
+    #[token("partition")]
+    Partition,
+    /// `password`
+    #[token("password")]
+    Password,
+    /// `patherr`
+    #[token("patherr")]
+    PathErr,
+    /// `pathtear`
+    #[token("pathtear")]
+    PathTear,
+    /// `pc`
+    #[token("pc")]
+    Pc,
+    /// `peerdown`
+    #[token("peerdown")]
+    PeerDown,
+    /// `peerip`
+    #[token("peerip")]
+    PeerIp,
+    /// `peertype`
+    #[token("peertype")]
+    PeerType,
+    /// `peerup`
+    #[token("peerup")]
+    PeerUp,
+    /// `pfc`
+    #[token("pfc")]
+    Pfc,
+    /// `pfcp`
+    #[token("pfcp")]
+    Pfcp,
+    /// `pkey`
+    #[token("pkey")]
+    Pkey,
+    /// `platform`
+    #[token("platform")]
+    Platform,
+    /// `plmn`
+    #[token("plmn")]
+    Plmn,
+    /// `pn`
+    #[token("pn")]
+    Pn,
+    /// `port`
+    #[token("port")]
+    Port,
+    /// `pppproto`
+    #[token("pppproto")]
+    PppProto,
+    /// `pppoe`
+    #[token("pppoe")]
+    Pppoe,
+    /// `prelogin`
+    #[token("prelogin")]
+    Prelogin,
+    /// `privmsg`
+    #[token("privmsg")]
+    Privmsg,
+    /// `probe`
+    #[token("probe")]
+    Probe,
+    /// `proccode`
+    #[token("proccode")]
+    ProcCode,
+    /// `produce`
+    #[token("produce")]
+    Produce,
+    /// `profinet`
+    #[token("profinet")]
+    Profinet,
+    /// `protover`
+    #[token("protover")]
+    ProtoVer,
+    /// `q0`
+    #[token("q0")]
+    Q0,
+    /// `q1`
+    #[token("q1")]
+    Q1,
+    /// `q2`
+    #[token("q2")]
+    Q2,
+    /// `q3`
+    #[token("q3")]
+    Q3,
+    /// `q4`
+    #[token("q4")]
+    Q4,
+    /// `q5`
+    #[token("q5")]
+    Q5,
+    /// `q6`
+    #[token("q6")]
+    Q6,
+    /// `q7`
+    #[token("q7")]
+    Q7,
+    /// `qfi`
+    #[token("qfi")]
+    Qfi,
+    /// `qid`
+    #[token("qid")]
+    Qid,
+    /// `quanta`
+    #[token("quanta")]
+    Quanta,
+    /// `r2t`
+    #[token("r2t")]
+    R2t,
+    /// `ranname`
+    #[token("ranname")]
+    RanName,
+    /// `ranueid`
+    #[token("ranueid")]
+    RanUeId,
+    /// `rasaddr`
+    #[token("rasaddr")]
+    RasAddr,
+    /// `rat`
+    #[token("rat")]
+    Rat,
+    /// `rcf`
+    #[token("rcf")]
+    Rcf,
+    /// `rdp`
+    #[token("rdp")]
+    Rdp,
+    /// `recovery`
+    #[token("recovery")]
+    Recovery,
+    /// `reflector`
+    #[token("reflector")]
+    Reflector,
+    /// `refresh`
+    #[token("refresh")]
+    Refresh,
+    /// `refuse`
+    #[token("refuse")]
+    Refuse,
+    /// `registerack`
+    #[token("registerack")]
+    RegisterAck,
+    /// `releasecomplete`
+    #[token("releasecomplete")]
+    ReleaseComplete,
+    /// `requestnoreply`
+    #[token("requestnoreply")]
+    RequestNoReply,
+    /// `requestsession`
+    #[token("requestsession")]
+    RequestSession,
+    /// `requestedtransport`
+    #[token("requestedtransport")]
+    RequestedTransport,
+    /// `resetquery`
+    #[token("resetquery")]
+    ResetQuery,
+    /// `responseto`
+    #[token("responseto")]
+    ResponseTo,
+    /// `resv`
+    #[token("resv")]
+    Resv,
+    /// `resvconf`
+    #[token("resvconf")]
+    ResvConf,
+    /// `resverr`
+    #[token("resverr")]
+    ResvErr,
+    /// `resvtear`
+    #[token("resvtear")]
+    ResvTear,
+    /// `rloc`
+    #[token("rloc")]
+    Rloc,
+    /// `rocev2`
+    #[token("rocev2")]
+    Rocev2,
+    /// `rocplus`
+    #[token("rocplus")]
+    Rocplus,
+    /// `routemon`
+    #[token("routemon")]
+    Routemon,
+    /// `routingreq`
+    #[token("routingreq")]
+    RoutingReq,
+    /// `routingresp`
+    #[token("routingresp")]
+    RoutingResp,
+    /// `rpc`
+    #[token("rpc")]
+    Rpc,
+    /// `rpcreply`
+    #[token("rpcreply")]
+    Rpcreply,
+    /// `rpkirtr`
+    #[token("rpkirtr")]
+    Rpkirtr,
+    /// `rqnt`
+    #[token("rqnt")]
+    Rqnt,
+    /// `rqseq`
+    #[token("rqseq")]
+    Rqseq,
+    /// `rr`
+    #[token("rr")]
+    Rr,
+    /// `rsip`
+    #[token("rsip")]
+    Rsip,
+    /// `rsvp`
+    #[token("rsvp")]
+    Rsvp,
+    /// `rtcp`
+    #[token("rtcp")]
+    Rtcp,
+    /// `rxseq`
+    #[token("rxseq")]
+    RxSeq,
+    /// `s1setupfailure`
+    #[token("s1setupfailure")]
+    S1SetupFailure,
+    /// `s1setuprequest`
+    #[token("s1setuprequest")]
+    S1SetupRequest,
+    /// `s1setupresponse`
+    #[token("s1setupresponse")]
+    S1SetupResponse,
+    /// `s1ap`
+    #[token("s1ap")]
+    S1ap,
+    /// `s7commplus`
+    #[token("s7commplus")]
+    S7commplus,
+    /// `sa1`
+    #[token("sa1")]
+    Sa1,
+    /// `sa2`
+    #[token("sa2")]
+    Sa2,
+    /// `scccn`
+    #[token("scccn")]
+    Scccn,
+    /// `sccp`
+    #[token("sccp")]
+    Sccp,
+    /// `sccrp`
+    #[token("sccrp")]
+    Sccrp,
+    /// `sccrq`
+    #[token("sccrq")]
+    Sccrq,
+    /// `sci`
+    #[token("sci")]
+    Sci,
+    /// `scope`
+    #[token("scope")]
+    Scope,
+    /// `scopes`
+    #[token("scopes")]
+    Scopes,
+    /// `sdservice`
+    #[token("sdservice")]
+    SdService,
+    /// `sdttl`
+    #[token("sdttl")]
+    SdTtl,
+    /// `sdes`
+    #[token("sdes")]
+    Sdes,
+    /// `securitytype`
+    #[token("securitytype")]
+    SecurityType,
+    /// `segleft`
+    #[token("segleft")]
+    SegLeft,
+    /// `seid`
+    #[token("seid")]
+    Seid,
+    /// `sendindication`
+    #[token("sendindication")]
+    SendIndication,
+    /// `senderttl`
+    #[token("senderttl")]
+    SenderTtl,
+    /// `serial`
+    #[token("serial")]
+    Serial,
+    /// `serialnotify`
+    #[token("serialnotify")]
+    SerialNotify,
+    /// `serialquery`
+    #[token("serialquery")]
+    SerialQuery,
+    /// `serverstart`
+    #[token("serverstart")]
+    ServerStart,
+    /// `serviceid`
+    #[token("serviceid")]
+    ServiceId,
+    /// `servicename`
+    #[token("servicename")]
+    ServiceName,
+    /// `sessiondeletionrequest`
+    #[token("sessiondeletionrequest")]
+    SessionDeletionRequest,
+    /// `sessiondeletionresponse`
+    #[token("sessiondeletionresponse")]
+    SessionDeletionResponse,
+    /// `sessionestablishmentrequest`
+    #[token("sessionestablishmentrequest")]
+    SessionEstablishmentRequest,
+    /// `sessionestablishmentresponse`
+    #[token("sessionestablishmentresponse")]
+    SessionEstablishmentResponse,
+    /// `sessionmodificationrequest`
+    #[token("sessionmodificationrequest")]
+    SessionModificationRequest,
+    /// `sessionmodificationresponse`
+    #[token("sessionmodificationresponse")]
+    SessionModificationResponse,
+    /// `setupresponse`
+    #[token("setupresponse")]
+    SetupResponse,
+    /// `sframe`
+    #[token("sframe")]
+    Sframe,
+    /// `si`
+    #[token("si")]
+    Si,
+    /// `sid`
+    #[token("sid")]
+    Sid,
+    /// `simulation`
+    #[token("simulation")]
+    Simulation,
+    /// `sl`
+    #[token("sl")]
+    Sl,
+    /// `smpcnt`
+    #[token("smpcnt")]
+    SmpCnt,
+    /// `smprate`
+    #[token("smprate")]
+    SmpRate,
+    /// `smpsynch`
+    #[token("smpsynch")]
+    SmpSynch,
+    /// `sna`
+    #[token("sna")]
+    Sna,
+    /// `socks`
+    #[token("socks")]
+    Socks,
+    /// `someip`
+    #[token("someip")]
+    Someip,
+    /// `spid`
+    #[token("spid")]
+    Spid,
+    /// `sqnum`
+    #[token("sqnum")]
+    SqNum,
+    /// `sr`
+    #[token("sr")]
+    Sr,
+    /// `srv6`
+    #[token("srv6")]
+    Srv6,
+    /// `stnum`
+    #[token("stnum")]
+    StNum,
+    /// `startack`
+    #[token("startack")]
+    StartAck,
+    /// `startdt`
+    #[token("startdt")]
+    StartDt,
+    /// `startsessions`
+    #[token("startsessions")]
+    StartSessions,
+    /// `starttone`
+    #[token("starttone")]
+    StartTone,
+    /// `station`
+    #[token("station")]
+    Station,
+    /// `statsreport`
+    #[token("statsreport")]
+    StatsReport,
+    /// `statsn`
+    #[token("statsn")]
+    Statsn,
+    /// `stopdt`
+    #[token("stopdt")]
+    StopDt,
+    /// `stopsessions`
+    #[token("stopsessions")]
+    StopSessions,
+    /// `stoptone`
+    #[token("stoptone")]
+    StopTone,
+    /// `stopccn`
+    #[token("stopccn")]
+    Stopccn,
+    /// `subcmd`
+    #[token("subcmd")]
+    Subcmd,
+    /// `subscribeack`
+    #[token("subscribeack")]
+    SubscribeAck,
+    /// `sv`
+    #[token("sv")]
+    Sv,
+    /// `svid`
+    #[token("svid")]
+    SvId,
+    /// `swversion`
+    #[token("swversion")]
+    SwVersion,
+    /// `synchrophasor`
+    #[token("synchrophasor")]
+    Synchrophasor,
+    /// `sysid`
+    #[token("sysid")]
+    SysId,
+    /// `tac`
+    #[token("tac")]
+    Tac,
+    /// `targetport`
+    #[token("targetport")]
+    TargetPort,
+    /// `tci`
+    #[token("tci")]
+    Tci,
+    /// `teid`
+    #[token("teid")]
+    Teid,
+    /// `terminate`
+    #[token("terminate")]
+    Terminate,
+    /// `termination`
+    #[token("termination")]
+    Termination,
+    /// `testfr`
+    #[token("testfr")]
+    TestFr,
+    /// `timetolive`
+    #[token("timetolive")]
+    TimeToLive,
+    /// `timeout`
+    #[token("timeout")]
+    Timeout,
+    /// `timer`
+    #[token("timer")]
+    Timer,
+    /// `tns`
+    #[token("tns")]
+    Tns,
+    /// `tone`
+    #[token("tone")]
+    Tone,
+    /// `transferstatus`
+    #[token("transferstatus")]
+    TransferStatus,
+    /// `tunnelid`
+    #[token("tunnelid")]
+    TunnelId,
+    /// `turn`
+    #[token("turn")]
+    Turn,
+    /// `twamp`
+    #[token("twamp")]
+    Twamp,
+    /// `txseq`
+    #[token("txseq")]
+    TxSeq,
+    /// `typeid`
+    #[token("typeid")]
+    TypeId,
+    /// `types`
+    #[token("types")]
+    Types,
+    /// `udpassociate`
+    #[token("udpassociate")]
+    Udpassociate,
+    /// `uecontextreleasecommand`
+    #[token("uecontextreleasecommand")]
+    UeContextReleaseCommand,
+    /// `uecontextreleasecomplete`
+    #[token("uecontextreleasecomplete")]
+    UeContextReleaseComplete,
+    /// `uplinknastransport`
+    #[token("uplinknastransport")]
+    UplinkNasTransport,
+    /// `uuid`
+    #[token("uuid")]
+    Uuid,
+    /// `v4`
+    #[token("v4")]
+    V4,
+    /// `v6`
+    #[token("v6")]
+    V6,
+    /// `vehicleeid`
+    #[token("vehicleeid")]
+    VehicleEid,
+    /// `vehicleid`
+    #[token("vehicleid")]
+    VehicleId,
+    /// `vehiclevin`
+    #[token("vehiclevin")]
+    VehicleVin,
+    /// `vid`
+    #[token("vid")]
+    Vid,
+    /// `vin`
+    #[token("vin")]
+    Vin,
+    /// `vmac`
+    #[token("vmac")]
+    Vmac,
+    /// `vnc`
+    #[token("vnc")]
+    Vnc,
+    /// `weight`
+    #[token("weight")]
+    Weight,
+    /// `width`
+    #[token("width")]
+    Width,
+    /// `withdraw`
+    #[token("withdraw")]
+    Withdraw,
+    /// `wkc`
+    #[token("wkc")]
+    Wkc,
+    /// `workstation`
+    #[token("workstation")]
+    Workstation,
+    /// `wsdiscovery`
+    #[token("wsdiscovery")]
+    Wsdiscovery,
+    /// `x224cc`
+    #[token("x224cc")]
+    X224Cc,
+    /// `x224cr`
+    #[token("x224cr")]
+    X224Cr,
+    /// `xaddrs`
+    #[token("xaddrs")]
+    Xaddrs,
+    /// `xorpeeraddr`
+    #[token("xorpeeraddr")]
+    XorPeerAddr,
+    /// `xorrelayedaddr`
+    #[token("xorrelayedaddr")]
+    XorRelayedAddr,
+    /// `xpos`
+    #[token("xpos")]
+    Xpos,
+    /// `ypos`
+    #[token("ypos")]
+    Ypos,
+    /// `->`
+    #[token("->")]
+    RightArrow,
+    /// `<-`
+    #[token("<-")]
+    LeftArrow,
+    /// `{`
+    #[token("{")]
+    LBrace,
+    /// `}`
+    #[token("}")]
+    RBrace,
+    /// `(`
+    #[token("(")]
+    LParen,
+    /// `)`
+    #[token(")")]
+    RParen,
+    /// `,`
+    #[token(",")]
+    Comma,
+    // Time suffixes
+    /// `ns`
+    #[token("ns", priority = 2)]
+    Ns,
+    /// `us`
+    #[token("us", priority = 2)]
+    Us,
+    /// `ms`
+    #[token("ms", priority = 2)]
+    Ms,
+    /// `s`
+    #[token("s", priority = 2)]
+    Sec,
+    /// `m`
+    #[token("m", priority = 2)]
+    Min,
+    /// User-defined identifier (allows uppercase, `_`, and internal `-`, stopping before `->`).
+    #[regex(r"[a-zA-Z_][a-zA-Z0-9_]*(-[a-zA-Z0-9_]+)*", priority = 1)]
+    Ident(&'a str),
+    /// String literal
+    #[regex(r#""([^"\\\r\n]|\\[^\r\n])*""#)]
+    StringLit(&'a str),
+    // Match IPv4 and IPv6-like strings loosely, parser will validate
+    /// IPv4/IPv6 address
+    #[regex(r"[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+", priority = 5)]
+    #[regex(r"::[0-9a-fA-F:.]*|[0-9a-fA-F]{1,4}(:[0-9a-fA-F:.]*)+", priority = 2)]
+    IpAddress(&'a str),
+    // Match MAC addresses in colon (00:1a:2b:3c:4d:5e), hyphen (00-1A-2B-3C-4D-5E), or Cisco dotted-quad (001a.2b3c.4d5e) notation
+    /// MAC address
+    #[regex(r"([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}", priority = 6)]
+    #[regex(r"([0-9a-fA-F]{2}-){5}[0-9a-fA-F]{2}", priority = 6)]
+    #[regex(r"[0-9a-fA-F]{4}\.[0-9a-fA-F]{4}\.[0-9a-fA-F]{4}", priority = 6)]
+    MacAddress(&'a str),
+    // Match OIDs loosely
+    /// SNMP OID
+    #[regex(r"\.?[0-9]+(\.[0-9]+)*", priority = 3)]
+    OidStr(&'a str),
+    /// Numeric literal (supports decimal and hex integers)
+    #[regex(r"-?[0-9]+|0[xX][0-9a-fA-F]+", priority = 4)]
+    Number(&'a str),
 }
 
-/// Expands a single-byte lexer failure span for multi-character constructs (`/24`, `/path`, `/*`, `'...'`, `“...”`).
+/// Expands a single-byte lexer failure span for multi-character constructs (`/*`, `"..."`, `<--`, `-->`, `=>`, `/24`, `/path`, `'...'`, `“...”`, NBSP/ZWSP).
 fn expand_lex_error_span(input: &str, span: std::ops::Range<usize>) -> (usize, usize) {
     let start = span.start.min(input.len());
     let rest = &input[start..];
     let bytes = rest.as_bytes();
-    let len = if bytes.starts_with(b"/*") || bytes.starts_with(b"*/") {
+    if bytes.first() == Some(&b'-')
+        && start >= 2
+        && input.as_bytes().get(start - 2..start) == Some(b"<-".as_slice())
+    {
+        return (start - 2, 3);
+    }
+    let len = if bytes.starts_with(b"-->") {
+        3
+    } else if bytes.starts_with(b"=>") || bytes.starts_with(b"/*") || bytes.starts_with(b"*/") {
         2
+    } else if bytes.first() == Some(&b'"') {
+        rest.split(['\r', '\n']).next().unwrap_or(rest).len().max(1)
     } else if bytes.first() == Some(&b'/') && bytes.get(1).is_some_and(|b| b.is_ascii_digit()) {
         1 + bytes[1..].iter().take_while(|b| b.is_ascii_digit()).count()
     } else if bytes.first() == Some(&b'/')
@@ -1391,14 +3507,14 @@ fn expand_lex_error_span(input: &str, span: std::ops::Range<usize>) -> (usize, u
             .take_while(|b| b.is_ascii_graphic() && !matches!(b, b'{' | b'}' | b'(' | b')' | b','))
             .count()
     } else if bytes.first() == Some(&b'\'') {
-        let line_rest = rest.lines().next().unwrap_or(rest);
+        let line_rest = rest.split(['\r', '\n']).next().unwrap_or(rest);
         if let Some(close_idx) = line_rest.get(1..).and_then(|s| s.find('\'')) {
             close_idx + 2
         } else {
             span.end.saturating_sub(span.start).max(1)
         }
     } else if let Some(first_ch) = rest.chars().next() {
-        let line_rest = rest.lines().next().unwrap_or(rest);
+        let line_rest = rest.split(['\r', '\n']).next().unwrap_or(rest);
         let after_first = &line_rest[first_ch.len_utf8()..];
         let close_quote = match first_ch {
             '\u{201c}' => Some('\u{201d}'),

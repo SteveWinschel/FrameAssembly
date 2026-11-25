@@ -80,6 +80,122 @@ fn encode_mx_rdata(rdata_str: &str) -> Vec<u8> {
     out
 }
 
+/// Encodes an RFC 1035 §3.3.13 SOA RDATA payload (`MNAME`, `RNAME`, `SERIAL`, `REFRESH`, `RETRY`, `EXPIRE`, `MINIMUM`).
+fn encode_soa_rdata(rdata_str: &str) -> Vec<u8> {
+    let mut parts = rdata_str.split_whitespace();
+    let mname = parts
+        .next()
+        .filter(|s| !s.is_empty())
+        .unwrap_or("ns1.example.com");
+    let rname_raw = parts
+        .next()
+        .filter(|s| !s.is_empty())
+        .unwrap_or("hostmaster.example.com");
+    let rname = rname_raw.replacen('@', ".", 1);
+    let serial = parts
+        .next()
+        .and_then(|s| s.parse::<u32>().ok())
+        .unwrap_or(2_026_010_101);
+    let refresh = parts
+        .next()
+        .and_then(|s| s.parse::<u32>().ok())
+        .unwrap_or(7200);
+    let retry = parts
+        .next()
+        .and_then(|s| s.parse::<u32>().ok())
+        .unwrap_or(900);
+    let expire = parts
+        .next()
+        .and_then(|s| s.parse::<u32>().ok())
+        .unwrap_or(1_209_600);
+    let minimum = parts
+        .next()
+        .and_then(|s| s.parse::<u32>().ok())
+        .unwrap_or(300);
+
+    let mut out = encode_dns_name(mname);
+    out.extend_from_slice(&encode_dns_name(&rname));
+    out.extend_from_slice(&serial.to_be_bytes());
+    out.extend_from_slice(&refresh.to_be_bytes());
+    out.extend_from_slice(&retry.to_be_bytes());
+    out.extend_from_slice(&expire.to_be_bytes());
+    out.extend_from_slice(&minimum.to_be_bytes());
+    out
+}
+
+/// Encodes an RFC 2782 SRV RDATA payload (`Priority`, `Weight`, `Port`, and wire-format `Target`).
+fn encode_srv_rdata(rdata_str: &str) -> Vec<u8> {
+    let mut parts = rdata_str.split_whitespace();
+    let first = parts.next();
+    let (priority, weight, port, target) = if let Some(p0) = first
+        && let Ok(prio) = p0.parse::<u16>()
+        && let Some(p1) = parts.next()
+        && let Ok(wt) = p1.parse::<u16>()
+        && let Some(p2) = parts.next()
+        && let Ok(pt) = p2.parse::<u16>()
+    {
+        let tgt = parts
+            .next()
+            .filter(|s| !s.is_empty())
+            .unwrap_or("srv.example.com");
+        (prio, wt, pt, tgt)
+    } else if let Some(target_only) = first.filter(|s| !s.is_empty()) {
+        (10u16, 5u16, 443u16, target_only)
+    } else {
+        (10u16, 5u16, 443u16, "srv.example.com")
+    };
+
+    let mut out = Vec::with_capacity(8 + target.len());
+    out.extend_from_slice(&priority.to_be_bytes());
+    out.extend_from_slice(&weight.to_be_bytes());
+    out.extend_from_slice(&port.to_be_bytes());
+    out.extend_from_slice(&encode_dns_name(target));
+    out
+}
+
+/// Encodes one DNS resource record RDATA payload matching `qtype`.
+fn encode_dns_rr_rdata(qtype: u16, rdata_opt: Option<&str>, payload_bytes: &[u8]) -> Vec<u8> {
+    if let Some(rdata_str) = rdata_opt {
+        match qtype {
+            1 => {
+                if let Ok(IpAddr::V4(v4)) = rdata_str.parse::<IpAddr>() {
+                    v4.octets().to_vec()
+                } else {
+                    [93, 184, 216, 34].to_vec()
+                }
+            }
+            28 => {
+                if let Ok(IpAddr::V6(v6)) = rdata_str.parse::<IpAddr>() {
+                    v6.octets().to_vec()
+                } else {
+                    alloc::vec![0x20, 0x01, 0x0d, 0xb8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]
+                }
+            }
+            2 | 5 | 12 => encode_dns_name(rdata_str),
+            6 => encode_soa_rdata(rdata_str),
+            15 => encode_mx_rdata(rdata_str),
+            16 => encode_txt_rdata(rdata_str),
+            33 => encode_srv_rdata(rdata_str),
+            _ => rdata_str.as_bytes().to_vec(),
+        }
+    } else if !payload_bytes.is_empty() {
+        payload_bytes.to_vec()
+    } else {
+        match qtype {
+            1 => [93, 184, 216, 34].to_vec(),
+            28 => alloc::vec![0x20, 0x01, 0x0d, 0xb8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            2 | 5 | 12 => encode_dns_name("ns1.example.com"),
+            6 => encode_soa_rdata(
+                "ns1.example.com hostmaster.example.com 2026010101 7200 900 1209600 300",
+            ),
+            15 => encode_mx_rdata("10 mail.example.com"),
+            16 => encode_txt_rdata("v=spf1 -all"),
+            33 => encode_srv_rdata("10 5 443 srv.example.com"),
+            _ => [93, 184, 216, 34].to_vec(),
+        }
+    }
+}
+
 /// Builds an RFC 1035 DNS message payload for UDP or TCP transmission.
 ///
 /// When `is_tcp` is true, a 2-byte big-endian message length prefix is prepended (RFC 1035 §4.2.2).
@@ -120,10 +236,21 @@ pub(crate) fn build_dns_or_mdns_payload(
     }
 
     let qdcount = 1u16;
-    let has_answer = is_resp || spec.rdata.is_some();
-    let ancount = if has_answer { 1u16 } else { 0u16 };
+    let mut answer_items: Vec<Option<&str>> = Vec::new();
+    if !spec.rdata_list.is_empty() {
+        for r in &spec.rdata_list {
+            answer_items.push(Some(*r));
+        }
+    } else if let Some(r) = spec.rdata {
+        answer_items.push(Some(r));
+    } else if is_resp {
+        answer_items.push(None);
+    }
+    let has_answer = !answer_items.is_empty();
+    let ancount = answer_items.len().min(usize::from(u16::MAX)) as u16;
     let nscount = 0u16;
-    let arcount = 0u16;
+    let has_edns0 = spec.edns0 || spec.udp_size.is_some() || spec.do_bit;
+    let arcount = if has_edns0 { 1u16 } else { 0u16 };
 
     let mut dns_msg = Vec::new();
     dns_msg.extend_from_slice(&txid.to_be_bytes());
@@ -142,52 +269,35 @@ pub(crate) fn build_dns_or_mdns_payload(
     dns_msg.extend_from_slice(&qtype.to_be_bytes());
     dns_msg.extend_from_slice(&1u16.to_be_bytes()); // QCLASS IN (1)
 
-    // Answer section (if present)
+    // Answer section (supports 1 or more RRs via ANCOUNT)
     if has_answer {
-        // Name compression pointer back to QNAME at byte offset 12
-        dns_msg.extend_from_slice(&0xC00Cu16.to_be_bytes());
-        dns_msg.extend_from_slice(&qtype.to_be_bytes());
-        dns_msg.extend_from_slice(&1u16.to_be_bytes()); // CLASS IN (1)
         let ttl = spec.ans_ttl.unwrap_or(300);
-        dns_msg.extend_from_slice(&ttl.to_be_bytes());
+        for rdata_opt in answer_items.iter().take(usize::from(ancount)) {
+            // Name compression pointer back to QNAME at byte offset 12
+            dns_msg.extend_from_slice(&0xC00Cu16.to_be_bytes());
+            dns_msg.extend_from_slice(&qtype.to_be_bytes());
+            dns_msg.extend_from_slice(&1u16.to_be_bytes()); // CLASS IN (1)
+            dns_msg.extend_from_slice(&ttl.to_be_bytes());
 
-        let rdata_bytes = if let Some(rdata_str) = spec.rdata {
-            match qtype {
-                1 => {
-                    if let Ok(IpAddr::V4(v4)) = rdata_str.parse::<IpAddr>() {
-                        v4.octets().to_vec()
-                    } else {
-                        [93, 184, 216, 34].to_vec()
-                    }
-                }
-                28 => {
-                    if let Ok(IpAddr::V6(v6)) = rdata_str.parse::<IpAddr>() {
-                        v6.octets().to_vec()
-                    } else {
-                        alloc::vec![0x20, 0x01, 0x0d, 0xb8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]
-                    }
-                }
-                2 | 5 | 12 => encode_dns_name(rdata_str),
-                15 => encode_mx_rdata(rdata_str),
-                16 => encode_txt_rdata(rdata_str),
-                _ => rdata_str.as_bytes().to_vec(),
-            }
-        } else if !payload_bytes.is_empty() {
-            payload_bytes.to_vec()
-        } else {
-            match qtype {
-                1 => [93, 184, 216, 34].to_vec(),
-                28 => alloc::vec![0x20, 0x01, 0x0d, 0xb8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-                2 | 5 | 12 => encode_dns_name("ns1.example.com"),
-                15 => encode_mx_rdata("mail.example.com"),
-                16 => encode_txt_rdata("v=spf1 -all"),
-                _ => [93, 184, 216, 34].to_vec(),
-            }
-        };
+            let rdata_bytes = encode_dns_rr_rdata(qtype, *rdata_opt, payload_bytes);
+            dns_msg.extend_from_slice(&(rdata_bytes.len() as u16).to_be_bytes());
+            dns_msg.extend_from_slice(&rdata_bytes);
+        }
+    }
 
-        dns_msg.extend_from_slice(&(rdata_bytes.len() as u16).to_be_bytes());
-        dns_msg.extend_from_slice(&rdata_bytes);
-    } else if !payload_bytes.is_empty() {
+    // Additional section: RFC 6891 EDNS0 OPT RR (Type 41) when edns0/udpsize/dobit is active
+    if has_edns0 {
+        let udp_size = spec.udp_size.unwrap_or(4096);
+        let ext_rcode = spec.rcode.map_or(0u8, |r| r >> 4);
+        let edns_flags_hi = if spec.do_bit { 0x80u8 } else { 0x00u8 };
+        dns_msg.push(0x00); // NAME: root domain (.)
+        dns_msg.extend_from_slice(&41u16.to_be_bytes()); // TYPE: OPT (41)
+        dns_msg.extend_from_slice(&udp_size.to_be_bytes()); // CLASS: requestor UDP payload size
+        dns_msg.extend_from_slice(&[ext_rcode, 0x00, edns_flags_hi, 0x00]); // extended RCODE / EDNS version / DO flag
+        dns_msg.extend_from_slice(&0u16.to_be_bytes()); // RDLEN: 0
+    }
+
+    if !has_answer && !payload_bytes.is_empty() {
         dns_msg.extend_from_slice(payload_bytes);
     }
 

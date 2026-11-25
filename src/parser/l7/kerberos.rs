@@ -12,7 +12,7 @@ use winnow::prelude::*;
 
 use crate::ast::*;
 use crate::lexer::Token;
-use crate::parser::{parse_str_val, parse_u32, tag, ParsedField, Stream};
+use crate::parser::{parse_i32, parse_str_val, tag, ParsedField, Stream};
 
 /// Parses a Kerberos protocol declaration or ticket field.
 pub(crate) fn parse_kerberos_field<'i, 'a>(
@@ -36,8 +36,8 @@ pub(crate) fn parse_kerberos_field<'i, 'a>(
                 .map(|((_, s), v)| ParsedField::L7StringField("CNAME", v, (s.start, s.end - s.start))),
             (tag(Token::Sname), cut_err(parse_str_val))
                 .map(|((_, s), v)| ParsedField::L7StringField("SNAME", v, (s.start, s.end - s.start))),
-            (tag(Token::Etype), cut_err(parse_u32))
-                .map(|((_, s), v)| ParsedField::L7U32Field("ETYPE", v, (s.start, s.end - s.start))),
+            (tag(Token::Etype), cut_err(parse_i32))
+                .map(|((_, s), v)| ParsedField::L7I32Field("ETYPE", v, (s.start, s.end - s.start))),
         )),
     ))
     .parse_next(input)

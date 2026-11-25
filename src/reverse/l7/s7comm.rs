@@ -2,9 +2,10 @@
 //!
 //! This module implements fuzz-safe wire-to-AST dissection for `s7comm` frames encapsulated in
 //! RFC 1006 TPKT (`\x03\x00`), ISO 8073 COTP DT (`\x02\xF0\x80`), and the `0x32` S7 protocol magic
-//! byte over TCP (port `102` and NAT gateway custom ports). It decodes `rosctr` (`"job"`, `"ack"`,
-//! `"ackdata"`, `"userdata"`), `pduref`, `setupcomm`, `plccontrol`, `readvar`, and `writevar`
-//! (with `area`, `dbnum`, byte `offset`, and `count`).
+//! byte over TCP or SCTP (port `102` and NAT gateway custom ports). It decodes `rosctr` (`"ack"`,
+//! `"ackdata"`), `pduref`, `setupcomm`, `plccontrol`, `readvar`, `writevar`, and `szl` (`Userdata`
+//! System Status List request and `ackdata` response frames) with `area`, `dbnum`, byte `offset`,
+//! and `count`.
 
 use alloc::format;
 use alloc::string::String;
@@ -13,14 +14,27 @@ use alloc::vec::Vec;
 use crate::ast::{Protocol, TransportProto};
 use crate::reverse::ProtocolDissection;
 
-/// Dissects a Siemens `s7comm` TPKT + COTP + `0x32` PDU frame over TCP.
+/// Valid S7 PLC memory area codes accepted by the `s7comm` forward builder without rewriting to `0x84`.
+fn is_valid_s7_area_byte(area: u8) -> bool {
+    matches!(area, 0x03 | 0x05..=0x07 | 0x1C..=0x1F | 0x80..=0x87)
+}
+
+/// Canonical 8-byte `Userdata` parameter block for an S7comm `SZL` request.
+const SZL_REQ_PARAM: [u8; 8] = [0x00, 0x01, 0x12, 0x04, 0x11, 0x44, 0x01, 0x00];
+
+/// Canonical 12-byte `Userdata` parameter block for an S7comm `SZL` `ACK_DATA` response.
+const SZL_RESP_PARAM: [u8; 12] = [
+    0x00, 0x01, 0x12, 0x08, 0x12, 0x84, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
+];
+
+/// Dissects a Siemens `s7comm` TPKT + COTP + `0x32` PDU frame over TCP or SCTP.
 pub(crate) fn dissect_s7comm(
     transport: TransportProto,
     _src_port: u16,
     _dst_port: u16,
     payload: &[u8],
 ) -> Option<ProtocolDissection> {
-    if !matches!(transport, TransportProto::Tcp)
+    if !matches!(transport, TransportProto::Tcp | TransportProto::Sctp)
         || payload.len() < 17
         || &payload[0..2] != b"\x03\x00"
         || u16::from_be_bytes([payload[2], payload[3]]) as usize != payload.len()
@@ -55,7 +69,7 @@ pub(crate) fn dissect_s7comm(
         1 => {}
         2 => tokens.push_str(" rosctr \"ack\""),
         3 => tokens.push_str(" rosctr \"ackdata\""),
-        7 => tokens.push_str(" rosctr \"userdata\""),
+        7 => {}
         _ => return None,
     }
     if pdu_ref != 1 {
@@ -63,7 +77,28 @@ pub(crate) fn dissect_s7comm(
     }
 
     let residual: Vec<u8>;
-    if param == [0xF0, 0x00, 0x00, 0x01, 0x00, 0x01, 0x01, 0xE0] {
+    if rosctr == 7 {
+        if param == SZL_REQ_PARAM {
+            tokens.push_str(" szl");
+        } else if param == SZL_RESP_PARAM {
+            tokens.push_str(" rosctr \"ackdata\" szl");
+        } else {
+            return None;
+        }
+        if data.len() < 4
+            || data[0] != 0xFF
+            || data[1] != 0x09
+            || u16::from_be_bytes([data[2], data[3]]) as usize != data.len() - 4
+        {
+            return None;
+        }
+        let body = &data[4..];
+        residual = if body == b"\x00\x11\x00\x00" {
+            Vec::new()
+        } else {
+            body.to_vec()
+        };
+    } else if param == [0xF0, 0x00, 0x00, 0x01, 0x00, 0x01, 0x01, 0xE0] {
         tokens.push_str(" setupcomm");
         residual = data.to_vec();
     } else if param == [0x28, 0x00] {
@@ -111,6 +146,9 @@ pub(crate) fn dissect_s7comm(
         }
         let db_num = u16::from_be_bytes([param[8], param[9]]);
         let area = param[10];
+        if !is_valid_s7_area_byte(area) {
+            return None;
+        }
         let bit_off = ((param[11] as u32) << 16) | ((param[12] as u32) << 8) | (param[13] as u32);
         if (bit_off & 0x07) != 0 {
             return None;

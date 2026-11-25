@@ -20,7 +20,7 @@ use core::net::IpAddr;
 #[doc(alias = "NAS_IP")]
 #[doc(alias = "FRAMED_IP")]
 pub fn build_radius_payload(
-    _ctx: &WireContext,
+    ctx: &WireContext,
     spec: &RadiusSpec,
     payload_bytes: &[u8],
 ) -> (Vec<u8>, u16) {
@@ -50,8 +50,16 @@ pub fn build_radius_payload(
     avps.push((user_slice.len() + 2) as u8);
     avps.extend_from_slice(user_slice);
 
-    // NAS-IP-Address (Type 4) or NAS-IPv6-Address (Type 95, RFC 3162)
-    match spec.nas_ip {
+    // NAS-IP-Address (Type 4) or NAS-IPv6-Address (Type 95, RFC 3162).
+    // Include `ctx.src_ip` on client requests (`Access-Request` / `Accounting-Request`) when omitted.
+    let eff_nas_ip = spec.nas_ip.or_else(|| {
+        if matches!(code, 1 | 4) && !ctx.src_ip.is_unspecified() {
+            Some(ctx.src_ip)
+        } else {
+            None
+        }
+    });
+    match eff_nas_ip {
         Some(IpAddr::V4(v4)) => {
             avps.push(4);
             avps.push(6);

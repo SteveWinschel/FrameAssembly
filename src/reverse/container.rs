@@ -16,8 +16,19 @@ use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use pcap_file::DataLink;
 use pcap_file::pcap::PcapReader;
+use pcap_file::pcapng::blocks::enhanced_packet::EnhancedPacketOption;
 use pcap_file::pcapng::blocks::interface_description::InterfaceDescriptionOption;
+use pcap_file::pcapng::blocks::packet::PacketOption;
 use pcap_file::pcapng::{Block, PcapNgReader};
+
+/// Maximum capture byte size accepted from any capture file or stream (`256 MiB`).
+pub(crate) const MAX_CAPTURE_BYTES: u64 = 256 * 1024 * 1024;
+
+/// Maximum snapshot or packet capture length accepted per record (`256 KiB`).
+pub(crate) const MAX_SNAPLEN: u32 = 262_144;
+
+/// Maximum number of normalized packet frames processed per capture (`100_000`).
+pub(crate) const MAX_REVERSE_FRAMES: usize = 100_000;
 
 /// Per-interface metadata recorded from a PCAPNG `InterfaceDescriptionBlock`.
 #[derive(Debug, Clone, Copy)]
@@ -31,6 +42,7 @@ struct InterfaceMeta {
 }
 
 impl Default for InterfaceMeta {
+    /// Returns the default Ethernet II interface metadata with microsecond-fallback resolution.
     fn default() -> Self {
         Self {
             linktype: DataLink::ETHERNET,
@@ -49,6 +61,12 @@ pub(crate) struct NormalizedFrame {
     pub eth_bytes: Vec<u8>,
     /// Whether the original capture linktype lacked Ethernet MAC headers (`RAW`/`IPV4`/`IPV6`/`NULL`/`LOOP`).
     pub is_l3_only: bool,
+    /// Whether the frame carried a valid trailing 4-byte IEEE 802.3 CRC-32 FCS (`fcs`).
+    pub fcs: bool,
+    /// Whether the frame carried an inverted trailing 4-byte IEEE 802.3 CRC-32 FCS (`badfcs`).
+    pub bad_fcs: bool,
+    /// Optional per-packet comment extracted from PCAPNG block options.
+    pub comment: Option<String>,
 }
 
 /// Normalized container capture result pairing extracted frames with non-fatal container warnings.
@@ -75,18 +93,52 @@ fn is_supported_linktype(linktype: DataLink) -> bool {
     )
 }
 
+/// Reads at most `max_bytes` from `reader`, failing cleanly if the stream exceeds `max_bytes`.
+pub(crate) fn read_bounded_capture<R: std::io::Read>(
+    reader: R,
+    max_bytes: u64,
+) -> Result<Vec<u8>, String> {
+    use std::io::Read as _;
+    let limit = max_bytes.saturating_add(1);
+    let mut buf = Vec::new();
+    reader
+        .take(limit)
+        .read_to_end(&mut buf)
+        .map_err(|e| alloc::format!("Failed to read capture stream: {}", e))?;
+    if (buf.len() as u64) > max_bytes {
+        return Err(alloc::format!(
+            "Capture stream exceeds maximum supported size of {} bytes",
+            max_bytes
+        ));
+    }
+    Ok(buf)
+}
+
+/// Concatenates non-empty PCAPNG comment option values into a single optional string.
+fn join_non_empty_comments<'a>(comments: impl Iterator<Item = &'a str>) -> Option<String> {
+    let mut joined = String::new();
+    for comment in comments {
+        if comment.is_empty() {
+            continue;
+        }
+        if !joined.is_empty() {
+            joined.push('\n');
+        }
+        joined.push_str(comment);
+    }
+    (!joined.is_empty()).then_some(joined)
+}
+
 /// Reads all frames and non-fatal warnings from a `.pcap` or `.pcapng` capture stream and normalizes them to Ethernet II.
 ///
 /// # Errors
-/// Returns a descriptive error string if the stream is shorter than 4 bytes, does not start with
-/// a recognized PCAP or PCAPNG magic number, or contains no supported/valid frames.
+/// Returns a descriptive error string if the stream exceeds [`MAX_CAPTURE_BYTES`], exceeds [`MAX_SNAPLEN`] or
+/// [`MAX_REVERSE_FRAMES`], is shorter than 4 bytes, does not start with a recognized PCAP or PCAPNG magic
+/// number, or contains no supported/valid frames.
 pub(crate) fn read_capture_frames_with_warnings<R: std::io::Read>(
-    mut reader: R,
+    reader: R,
 ) -> Result<CaptureReadResult, String> {
-    let mut buf = Vec::new();
-    reader
-        .read_to_end(&mut buf)
-        .map_err(|e| alloc::format!("Failed to read capture stream: {}", e))?;
+    let buf = read_bounded_capture(reader, MAX_CAPTURE_BYTES)?;
 
     if buf.len() < 4 {
         return Err(
@@ -114,8 +166,9 @@ pub(crate) fn read_capture_frames_with_warnings<R: std::io::Read>(
 /// Reads all frames from a `.pcap` or `.pcapng` capture stream and normalizes them to Ethernet II.
 ///
 /// # Errors
-/// Returns a descriptive error string if the stream is shorter than 4 bytes, does not start with
-/// a recognized PCAP or PCAPNG magic number, or contains corrupt container blocks.
+/// Returns a descriptive error string if the stream exceeds [`MAX_CAPTURE_BYTES`], exceeds [`MAX_SNAPLEN`] or
+/// [`MAX_REVERSE_FRAMES`], is shorter than 4 bytes, does not start with a recognized PCAP or PCAPNG magic
+/// number, or contains corrupt container blocks.
 #[allow(dead_code)]
 pub(crate) fn read_capture_frames<R: std::io::Read>(
     reader: R,
@@ -168,9 +221,10 @@ fn scale_pcapng_ts_to_ns(raw_ticks: u64, meta: InterfaceMeta) -> u64 {
     scaled_ns.saturating_add(meta.ts_offset_secs.saturating_mul(1_000_000_000))
 }
 
-/// Pre-sanitizes PCAPNG `InterfaceDescriptionBlock` options so `pcap-file`'s `PcapNgReader` does not
-/// reject standard 4-byte `if_tzone` (`opt_code == 10`) options where `pcap-file` expects 1 byte.
-fn sanitize_pcapng_idb_options(buf: &[u8]) -> Cow<'_, [u8]> {
+/// Pre-validates PCAPNG block snapshot/captured lengths against [`MAX_SNAPLEN`] and sanitizes
+/// `InterfaceDescriptionBlock` options so `pcap-file`'s `PcapNgReader` does not reject standard
+/// 4-byte `if_tzone` (`opt_code == 10`) options or panic on oversized `captured_len` arithmetic.
+fn sanitize_pcapng_idb_options(buf: &[u8]) -> Result<Cow<'_, [u8]>, String> {
     let mut pos = 0usize;
     let mut is_be = false;
     let mut owned: Option<Vec<u8>> = None;
@@ -210,6 +264,34 @@ fn sanitize_pcapng_idb_options(buf: &[u8]) -> Cow<'_, [u8]> {
         if total_len < 12 {
             break;
         }
+
+        // Guard IDB snaplen and packet block captured lengths before `pcap-file` parses or wraps `captured_len + pad`.
+        if block_type == 1 && pos.saturating_add(16) <= buf.len() {
+            let snaplen = read_u32(buf, pos + 12, is_be);
+            if snaplen > MAX_SNAPLEN {
+                return Err(alloc::format!(
+                    "PCAPNG interface snaplen {} exceeds maximum allowed {} bytes",
+                    snaplen,
+                    MAX_SNAPLEN
+                ));
+            }
+        } else if matches!(block_type, 2 | 6) && pos.saturating_add(24) <= buf.len() {
+            let captured_len = read_u32(buf, pos + 20, is_be);
+            if captured_len > MAX_SNAPLEN {
+                return Err(alloc::format!(
+                    "PCAPNG packet captured length {} exceeds maximum allowed {} bytes",
+                    captured_len,
+                    MAX_SNAPLEN
+                ));
+            }
+        } else if block_type == 3 && total_len >= 16 && (total_len - 16) > MAX_SNAPLEN as usize {
+            return Err(alloc::format!(
+                "PCAPNG simple packet length {} exceeds maximum allowed {} bytes",
+                total_len - 16,
+                MAX_SNAPLEN
+            ));
+        }
+
         let Some(block_end) = pos.checked_add(total_len) else {
             break;
         };
@@ -251,15 +333,15 @@ fn sanitize_pcapng_idb_options(buf: &[u8]) -> Cow<'_, [u8]> {
         pos = block_end;
     }
 
-    match owned {
+    Ok(match owned {
         Some(v) => Cow::Owned(v),
         None => Cow::Borrowed(buf),
-    }
+    })
 }
 
 /// Parses a PCAPNG byte buffer across one or more Section Header Blocks and interfaces.
 fn read_pcapng_bytes(buf: &[u8]) -> Result<CaptureReadResult, String> {
-    let clean_buf = sanitize_pcapng_idb_options(buf);
+    let clean_buf = sanitize_pcapng_idb_options(buf)?;
     let mut ng_reader = PcapNgReader::new(std::io::Cursor::new(clean_buf.as_ref()))
         .map_err(|e| alloc::format!("Failed to initialize PCAPNG reader: {}", e))?;
 
@@ -302,6 +384,13 @@ fn read_pcapng_bytes(buf: &[u8]) -> Result<CaptureReadResult, String> {
                 skipped_per_iface.clear();
             }
             Block::InterfaceDescription(idb) => {
+                if idb.snaplen > MAX_SNAPLEN {
+                    return Err(alloc::format!(
+                        "PCAPNG interface snaplen {} exceeds maximum allowed {} bytes",
+                        idb.snaplen,
+                        MAX_SNAPLEN
+                    ));
+                }
                 let mut ts_resol = None;
                 let mut ts_offset_secs = 0u64;
                 for opt in &idb.options {
@@ -321,6 +410,13 @@ fn read_pcapng_bytes(buf: &[u8]) -> Result<CaptureReadResult, String> {
                 skipped_per_iface.push(0);
             }
             Block::EnhancedPacket(epb) => {
+                if epb.data.len() > MAX_SNAPLEN as usize {
+                    return Err(alloc::format!(
+                        "PCAPNG packet length {} exceeds maximum allowed {} bytes",
+                        epb.data.len(),
+                        MAX_SNAPLEN
+                    ));
+                }
                 let iface_idx = epb.interface_id as usize;
                 let meta = interfaces.get(iface_idx).copied().unwrap_or_default();
                 let raw_ticks = epb.timestamp.as_nanos() as u64;
@@ -332,11 +428,31 @@ fn read_pcapng_bytes(buf: &[u8]) -> Result<CaptureReadResult, String> {
                     }
                     continue;
                 }
-                if let Some(frame) = normalize_frame(&epb.data, meta.linktype, ts_ns)? {
+                let comment = join_non_empty_comments(epb.options.iter().filter_map(|opt| {
+                    match opt {
+                        EnhancedPacketOption::Comment(c) => Some(c.as_ref()),
+                        _ => None,
+                    }
+                }));
+                if let Some(mut frame) = normalize_frame(&epb.data, meta.linktype, ts_ns)? {
+                    if frames.len() >= MAX_REVERSE_FRAMES {
+                        return Err(alloc::format!(
+                            "Capture exceeds maximum supported limit of {} frames",
+                            MAX_REVERSE_FRAMES
+                        ));
+                    }
+                    frame.comment = comment;
                     frames.push(frame);
                 }
             }
             Block::SimplePacket(spb) => {
+                if spb.data.len() > MAX_SNAPLEN as usize {
+                    return Err(alloc::format!(
+                        "PCAPNG simple packet length {} exceeds maximum allowed {} bytes",
+                        spb.data.len(),
+                        MAX_SNAPLEN
+                    ));
+                }
                 let meta = interfaces.first().copied().unwrap_or_default();
                 let ts_ns = last_timestamp_ns;
                 if !is_supported_linktype(meta.linktype) {
@@ -346,10 +462,23 @@ fn read_pcapng_bytes(buf: &[u8]) -> Result<CaptureReadResult, String> {
                     continue;
                 }
                 if let Some(frame) = normalize_frame(&spb.data, meta.linktype, ts_ns)? {
+                    if frames.len() >= MAX_REVERSE_FRAMES {
+                        return Err(alloc::format!(
+                            "Capture exceeds maximum supported limit of {} frames",
+                            MAX_REVERSE_FRAMES
+                        ));
+                    }
                     frames.push(frame);
                 }
             }
             Block::Packet(pb) => {
+                if pb.data.len() > MAX_SNAPLEN as usize {
+                    return Err(alloc::format!(
+                        "PCAPNG packet length {} exceeds maximum allowed {} bytes",
+                        pb.data.len(),
+                        MAX_SNAPLEN
+                    ));
+                }
                 let iface_idx = pb.interface_id as usize;
                 let meta = interfaces.get(iface_idx).copied().unwrap_or_default();
                 let ts_ns = scale_pcapng_ts_to_ns(pb.timestamp, meta);
@@ -360,7 +489,20 @@ fn read_pcapng_bytes(buf: &[u8]) -> Result<CaptureReadResult, String> {
                     }
                     continue;
                 }
-                if let Some(frame) = normalize_frame(&pb.data, meta.linktype, ts_ns)? {
+                let comment = join_non_empty_comments(pb.options.iter().filter_map(|opt| {
+                    match opt {
+                        PacketOption::Comment(c) => Some(c.as_ref()),
+                        _ => None,
+                    }
+                }));
+                if let Some(mut frame) = normalize_frame(&pb.data, meta.linktype, ts_ns)? {
+                    if frames.len() >= MAX_REVERSE_FRAMES {
+                        return Err(alloc::format!(
+                            "Capture exceeds maximum supported limit of {} frames",
+                            MAX_REVERSE_FRAMES
+                        ));
+                    }
+                    frame.comment = comment;
                     frames.push(frame);
                 }
             }
@@ -392,11 +534,12 @@ fn read_pcapng_bytes(buf: &[u8]) -> Result<CaptureReadResult, String> {
     Ok(CaptureReadResult { frames, warnings })
 }
 
-/// Widens a classic `.pcap` global header `snaplen` (`bytes 16..20`) when packet records carry
-/// `orig_len > snaplen` (such as `tcpdump -s 96` captures rejected by `pcap-file`'s header check).
-fn widen_legacy_pcap_snaplen(buf: &[u8]) -> Cow<'_, [u8]> {
+/// Validates classic `.pcap` `snaplen`/`incl_len` bounds against [`MAX_SNAPLEN`] and widens a
+/// classic `.pcap` global header `snaplen` (`bytes 16..20`) when bounded records carry `orig_len > snaplen`
+/// (such as `tcpdump -s 96` captures rejected by `pcap-file`'s header check).
+fn widen_legacy_pcap_snaplen(buf: &[u8]) -> Result<Cow<'_, [u8]>, String> {
     if buf.len() < 24 {
-        return Cow::Borrowed(buf);
+        return Ok(Cow::Borrowed(buf));
     }
     let is_be = matches!(buf[0], 0xa1);
     let read_u32 = |o: usize| -> u32 {
@@ -408,12 +551,26 @@ fn widen_legacy_pcap_snaplen(buf: &[u8]) -> Cow<'_, [u8]> {
         }
     };
     let hdr_snaplen = read_u32(16);
+    if hdr_snaplen > MAX_SNAPLEN {
+        return Err(alloc::format!(
+            "PCAP header snaplen {} exceeds maximum allowed {} bytes",
+            hdr_snaplen,
+            MAX_SNAPLEN
+        ));
+    }
     let mut max_needed = hdr_snaplen;
     let mut pos = 24usize;
     while pos.saturating_add(16) <= buf.len() {
         let incl_len = read_u32(pos + 8);
+        if incl_len > MAX_SNAPLEN {
+            return Err(alloc::format!(
+                "PCAP packet captured length {} exceeds maximum allowed {} bytes",
+                incl_len,
+                MAX_SNAPLEN
+            ));
+        }
         let orig_len = read_u32(pos + 12);
-        max_needed = max_needed.max(incl_len).max(orig_len);
+        max_needed = max_needed.max(incl_len).max(orig_len.min(MAX_SNAPLEN));
         let Some(next_pos) = pos.checked_add(16).and_then(|v| v.checked_add(incl_len as usize))
         else {
             break;
@@ -431,15 +588,15 @@ fn widen_legacy_pcap_snaplen(buf: &[u8]) -> Cow<'_, [u8]> {
             max_needed.to_le_bytes()
         };
         copy[16..20].copy_from_slice(&bytes);
-        Cow::Owned(copy)
+        Ok(Cow::Owned(copy))
     } else {
-        Cow::Borrowed(buf)
+        Ok(Cow::Borrowed(buf))
     }
 }
 
 /// Parses a legacy PCAP byte buffer (microsecond or nanosecond precision).
 fn read_legacy_pcap_bytes(buf: &[u8]) -> Result<CaptureReadResult, String> {
-    let clean_buf = widen_legacy_pcap_snaplen(buf);
+    let clean_buf = widen_legacy_pcap_snaplen(buf)?;
     let mut pcap_reader = PcapReader::new(std::io::Cursor::new(clean_buf.as_ref()))
         .map_err(|e| alloc::format!("Failed to initialize legacy PCAP reader: {}", e))?;
     let linktype = pcap_reader.header().datalink;
@@ -467,8 +624,21 @@ fn read_legacy_pcap_bytes(buf: &[u8]) -> Result<CaptureReadResult, String> {
                 return Err(alloc::format!("Failed to parse PCAP packet: {}", e));
             }
         };
+        if pkt.data.len() > MAX_SNAPLEN as usize {
+            return Err(alloc::format!(
+                "PCAP packet length {} exceeds maximum allowed {} bytes",
+                pkt.data.len(),
+                MAX_SNAPLEN
+            ));
+        }
         let ts_ns = pkt.timestamp.as_nanos() as u64;
         if let Some(frame) = normalize_frame(&pkt.data, linktype, ts_ns)? {
+            if frames.len() >= MAX_REVERSE_FRAMES {
+                return Err(alloc::format!(
+                    "Capture exceeds maximum supported limit of {} frames",
+                    MAX_REVERSE_FRAMES
+                ));
+            }
             frames.push(frame);
         }
     }
@@ -497,12 +667,13 @@ fn normalize_frame(
             (raw.to_vec(), false)
         }
         DataLink::RAW | DataLink::IPV4 | DataLink::IPV6 => {
-            let version = raw[0] >> 4;
-            let ethertype: u16 = match version {
-                4 => 0x0800,
-                6 => 0x86DD,
-                _ if linktype == DataLink::IPV6 => 0x86DD,
-                _ => 0x0800,
+            let ethertype: u16 = match linktype {
+                DataLink::IPV4 => 0x0800,
+                DataLink::IPV6 => 0x86DD,
+                _ => match raw[0] >> 4 {
+                    6 => 0x86DD,
+                    _ => 0x0800,
+                },
             };
             let mut eth = Vec::with_capacity(14 + raw.len());
             eth.extend_from_slice(&[0x00, 0x00, 0x00, 0x00, 0x00, 0x02]);
@@ -518,17 +689,29 @@ fn normalize_frame(
                     raw.len()
                 ));
             }
+            let pkt_type = u16::from_be_bytes([raw[0], raw[1]]);
             let halen = u16::from_be_bytes([raw[4], raw[5]]) as usize;
             let src_mac = if halen == 6 {
                 [raw[6], raw[7], raw[8], raw[9], raw[10], raw[11]]
             } else {
                 [0x00, 0x00, 0x00, 0x00, 0x00, 0x01]
             };
-            let dst_mac = [0x00, 0x00, 0x00, 0x00, 0x00, 0x02];
-            let mut eth = Vec::with_capacity(14 + raw.len() - 16);
+            let dst_mac = if pkt_type == 1 {
+                [0xff, 0xff, 0xff, 0xff, 0xff, 0xff]
+            } else {
+                [0x00, 0x00, 0x00, 0x00, 0x00, 0x02]
+            };
+            let proto = u16::from_be_bytes([raw[14], raw[15]]);
+            let payload_len = raw.len() - 16;
+            let et_bytes = if matches!(proto, 0x0001 | 0x0004) && (1..=1500).contains(&payload_len) {
+                (payload_len as u16).to_be_bytes()
+            } else {
+                [raw[14], raw[15]]
+            };
+            let mut eth = Vec::with_capacity(14 + payload_len);
             eth.extend_from_slice(&dst_mac);
             eth.extend_from_slice(&src_mac);
-            eth.extend_from_slice(&raw[14..16]);
+            eth.extend_from_slice(&et_bytes);
             eth.extend_from_slice(&raw[16..]);
             (eth, halen != 6)
         }
@@ -539,17 +722,37 @@ fn normalize_frame(
                     raw.len()
                 ));
             }
-            let halen = raw[10] as usize;
+            // Tcpdump LINKTYPE_LINUX_SLL2 stores `packet_type` (0..=4) at byte 10 and `halen` at byte 11;
+            // keep a narrow fallback for legacy test vectors that stored `halen == 6` at byte 10 with byte 11 == 0.
+            let real_sll2 = raw[11] > 0;
+            let halen = if real_sll2 {
+                raw[11] as usize
+            } else if raw[10] == 6 {
+                6
+            } else {
+                0
+            };
             let src_mac = if halen == 6 {
                 [raw[12], raw[13], raw[14], raw[15], raw[16], raw[17]]
             } else {
                 [0x00, 0x00, 0x00, 0x00, 0x00, 0x01]
             };
-            let dst_mac = [0x00, 0x00, 0x00, 0x00, 0x00, 0x02];
-            let mut eth = Vec::with_capacity(14 + raw.len() - 20);
+            let dst_mac = if real_sll2 && raw[10] == 1 {
+                [0xff, 0xff, 0xff, 0xff, 0xff, 0xff]
+            } else {
+                [0x00, 0x00, 0x00, 0x00, 0x00, 0x02]
+            };
+            let proto = u16::from_be_bytes([raw[0], raw[1]]);
+            let payload_len = raw.len() - 20;
+            let et_bytes = if matches!(proto, 0x0001 | 0x0004) && (1..=1500).contains(&payload_len) {
+                (payload_len as u16).to_be_bytes()
+            } else {
+                [raw[0], raw[1]]
+            };
+            let mut eth = Vec::with_capacity(14 + payload_len);
             eth.extend_from_slice(&dst_mac);
             eth.extend_from_slice(&src_mac);
-            eth.extend_from_slice(&raw[0..2]);
+            eth.extend_from_slice(&et_bytes);
             eth.extend_from_slice(&raw[20..]);
             (eth, halen != 6)
         }
@@ -562,7 +765,13 @@ fn normalize_frame(
             }
             let fam_le = u32::from_le_bytes([raw[0], raw[1], raw[2], raw[3]]);
             let fam_be = u32::from_be_bytes([raw[0], raw[1], raw[2], raw[3]]);
-            let fam = if fam_le <= 0xFFFF { fam_le } else { fam_be };
+            let fam = if linktype == DataLink::LOOP {
+                if fam_be <= 0xFFFF { fam_be } else { fam_le }
+            } else if fam_le <= 0xFFFF {
+                fam_le
+            } else {
+                fam_be
+            };
             let ethertype: u16 = match fam {
                 2 => 0x0800,
                 10 | 24 | 28 | 30 => 0x86DD,
@@ -586,11 +795,14 @@ fn normalize_frame(
         }
     };
 
-    let eth_bytes = strip_padding_and_fcs(eth_raw);
+    let (eth_bytes, fcs, bad_fcs) = strip_padding_and_fcs_with_fcs(eth_raw, !is_l3_only);
     Ok(Some(NormalizedFrame {
         timestamp_ns,
         eth_bytes,
         is_l3_only,
+        fcs,
+        bad_fcs,
+        comment: None,
     }))
 }
 
@@ -604,19 +816,53 @@ fn is_zero_padding_or_fcs(trailing: &[u8], total_frame_len: usize) -> bool {
     all_zero || zero_plus_fcs
 }
 
+/// Classifies a 4-byte trailing slice as a valid IEEE 802.3 CRC-32 (`fcs`) or bitwise-inverted (`badfcs`).
+fn classify_4b_fcs(body: &[u8], trailer: &[u8]) -> (bool, bool) {
+    if trailer.len() != 4 {
+        return (false, false);
+    }
+    let wire = u32::from_le_bytes([trailer[0], trailer[1], trailer[2], trailer[3]]);
+    let crc = crate::packet::ieee8023_crc32(body);
+    if wire == crc {
+        (true, false)
+    } else if wire == (crc ^ 0xFFFF_FFFF) {
+        (false, true)
+    } else {
+        (false, false)
+    }
+}
+
+/// Returns `true` when `eth_bytes[end..]` is an exact 4-byte valid or bitwise-inverted IEEE 802.3 FCS.
+fn is_exact_4b_fcs(eth_bytes: &[u8], end: usize) -> bool {
+    eth_bytes.len() == end.saturating_add(4)
+        && !matches!(
+            classify_4b_fcs(&eth_bytes[..end], &eth_bytes[end..]),
+            (false, false)
+        )
+}
+
 /// Strips 60/64-byte Ethernet zero-padding and 4-byte FCS trailers using inner protocol length fields.
-pub(crate) fn strip_padding_and_fcs(mut eth_bytes: Vec<u8>) -> Vec<u8> {
+#[allow(dead_code)]
+pub(crate) fn strip_padding_and_fcs(eth_bytes: Vec<u8>) -> Vec<u8> {
+    strip_padding_and_fcs_with_fcs(eth_bytes, false).0
+}
+
+/// Strips Ethernet zero-padding and 4-byte FCS trailers while optionally classifying IEEE 802.3 CRC-32 status.
+fn strip_padding_and_fcs_with_fcs(
+    mut eth_bytes: Vec<u8>,
+    detect_fcs: bool,
+) -> (Vec<u8>, bool, bool) {
     if eth_bytes.len() < 14 {
-        return eth_bytes;
+        return (eth_bytes, false, false);
     }
 
     let mut offset = 12usize;
     let mut et = u16::from_be_bytes([eth_bytes[offset], eth_bytes[offset + 1]]);
     offset += 2;
 
-    // Advance past up to 2 IEEE 802.1Q / 802.1ad VLAN tags
+    // Advance past up to 16 stacked IEEE 802.1Q / 802.1ad VLAN tags (matching `l2/vlan.rs`).
     let mut vlan_tags = 0usize;
-    while matches!(et, 0x8100 | 0x88A8 | 0x9100) && vlan_tags < 2 && offset + 4 <= eth_bytes.len() {
+    while matches!(et, 0x8100 | 0x88A8 | 0x9100) && vlan_tags < 16 && offset + 4 <= eth_bytes.len() {
         et = u16::from_be_bytes([eth_bytes[offset + 2], eth_bytes[offset + 3]]);
         offset += 4;
         vlan_tags += 1;
@@ -635,15 +881,36 @@ pub(crate) fn strip_padding_and_fcs(mut eth_bytes: Vec<u8>) -> Vec<u8> {
             match first_byte >> 4 {
                 4 => et = 0x0800,
                 6 => et = 0x86DD,
-                _ => {}
+                _ => {
+                    // Check for RFC 4448 EoMPLS 4-byte zero control word + 14-byte Ethernet header.
+                    if let Some(cw_end) = offset.checked_add(18)
+                        && cw_end <= eth_bytes.len()
+                        && eth_bytes[offset..offset + 4] == [0x00, 0x00, 0x00, 0x00]
+                    {
+                        let inner_et =
+                            u16::from_be_bytes([eth_bytes[offset + 16], eth_bytes[offset + 17]]);
+                        if matches!(
+                            inner_et,
+                            0x0800 | 0x86DD | 0x0806 | 0x888E | 0x88CC | 0x8809 | 1..=1500
+                        ) {
+                            et = inner_et;
+                            offset = cw_end;
+                        }
+                    }
+                }
             }
         }
     }
 
     let l3_offset = offset;
+    let mut protocol_len_known = false;
+    let mut target_len: Option<usize> = None;
+
     match et {
         0x0800 => {
-            if l3_offset + 20 <= eth_bytes.len() {
+            if let Some(hdr_end) = l3_offset.checked_add(20)
+                && hdr_end <= eth_bytes.len()
+            {
                 let ver = eth_bytes[l3_offset] >> 4;
                 let ihl = ((eth_bytes[l3_offset] & 0x0f) as usize) * 4;
                 let total_len =
@@ -652,86 +919,153 @@ pub(crate) fn strip_padding_and_fcs(mut eth_bytes: Vec<u8>) -> Vec<u8> {
                 // Ignore TSO `total_len == 0`
                 if ver == 4
                     && ihl >= 20
-                    && total_len > 0
                     && total_len >= ihl
-                    && l3_offset + total_len <= eth_bytes.len()
+                    && let Some(end) = l3_offset.checked_add(total_len)
+                    && end <= eth_bytes.len()
                 {
-                    eth_bytes.truncate(l3_offset + total_len);
+                    protocol_len_known = true;
+                    if end < eth_bytes.len() {
+                        target_len = Some(end);
+                    }
                 }
             }
         }
         0x86DD => {
-            if l3_offset + 40 <= eth_bytes.len() && (eth_bytes[l3_offset] >> 4) == 6 {
+            if let Some(hdr_end) = l3_offset.checked_add(40)
+                && hdr_end <= eth_bytes.len()
+                && (eth_bytes[l3_offset] >> 4) == 6
+            {
                 let payload_len =
                     u16::from_be_bytes([eth_bytes[l3_offset + 4], eth_bytes[l3_offset + 5]])
                         as usize;
                 let next_hdr = eth_bytes[l3_offset + 6];
                 if (payload_len > 0 || next_hdr != 0)
-                    && l3_offset + 40 + payload_len <= eth_bytes.len()
+                    && let Some(end) = hdr_end.checked_add(payload_len)
+                    && end <= eth_bytes.len()
                 {
-                    eth_bytes.truncate(l3_offset + 40 + payload_len);
+                    protocol_len_known = true;
+                    if end < eth_bytes.len() {
+                        target_len = Some(end);
+                    }
                 }
             }
         }
         0x0806 => {
-            if l3_offset + 28 < eth_bytes.len() {
+            if let Some(end) = l3_offset.checked_add(28)
+                && end <= eth_bytes.len()
+            {
                 let htype = u16::from_be_bytes([eth_bytes[l3_offset], eth_bytes[l3_offset + 1]]);
                 let ptype =
                     u16::from_be_bytes([eth_bytes[l3_offset + 2], eth_bytes[l3_offset + 3]]);
                 let hlen = eth_bytes[l3_offset + 4];
                 let plen = eth_bytes[l3_offset + 5];
-                if htype == 1
-                    && ptype == 0x0800
-                    && hlen == 6
-                    && plen == 4
-                    && is_zero_padding_or_fcs(&eth_bytes[l3_offset + 28..], eth_bytes.len())
-                {
-                    eth_bytes.truncate(l3_offset + 28);
+                if htype == 1 && ptype == 0x0800 && hlen == 6 && plen == 4 {
+                    protocol_len_known = true;
+                    if end < eth_bytes.len()
+                        && (is_zero_padding_or_fcs(&eth_bytes[end..], eth_bytes.len())
+                            || (detect_fcs && is_exact_4b_fcs(&eth_bytes, end)))
+                    {
+                        target_len = Some(end);
+                    }
                 }
             }
         }
         0x888E => {
-            if l3_offset + 4 <= eth_bytes.len() {
+            if let Some(hdr_end) = l3_offset.checked_add(4)
+                && hdr_end <= eth_bytes.len()
+            {
                 let body_len =
                     u16::from_be_bytes([eth_bytes[l3_offset + 2], eth_bytes[l3_offset + 3]])
                         as usize;
-                let end = l3_offset + 4 + body_len;
-                if end < eth_bytes.len()
-                    && is_zero_padding_or_fcs(&eth_bytes[end..], eth_bytes.len())
+                if let Some(end) = hdr_end.checked_add(body_len)
+                    && end <= eth_bytes.len()
                 {
-                    eth_bytes.truncate(end);
+                    protocol_len_known = true;
+                    if end < eth_bytes.len()
+                        && (is_zero_padding_or_fcs(&eth_bytes[end..], eth_bytes.len())
+                            || (detect_fcs && is_exact_4b_fcs(&eth_bytes, end)))
+                    {
+                        target_len = Some(end);
+                    }
+                }
+            }
+        }
+        0x8809 => {
+            if let Some(end) = l3_offset.checked_add(110)
+                && end <= eth_bytes.len()
+                && eth_bytes[l3_offset..].starts_with(&[0x01, 0x01])
+            {
+                protocol_len_known = true;
+                if end < eth_bytes.len()
+                    && (is_zero_padding_or_fcs(&eth_bytes[end..], eth_bytes.len())
+                        || (detect_fcs && is_exact_4b_fcs(&eth_bytes, end)))
+                {
+                    target_len = Some(end);
                 }
             }
         }
         0x88CC => {
             let mut pos = l3_offset;
-            while pos + 2 <= eth_bytes.len() {
+            while let Some(next_hdr) = pos.checked_add(2)
+                && next_hdr <= eth_bytes.len()
+            {
                 let tlv_hdr = u16::from_be_bytes([eth_bytes[pos], eth_bytes[pos + 1]]);
                 let tlv_type = tlv_hdr >> 9;
                 let tlv_len = (tlv_hdr & 0x01FF) as usize;
-                pos += 2;
+                pos = next_hdr;
                 if tlv_type == 0 && tlv_len == 0 {
+                    protocol_len_known = true;
                     if pos < eth_bytes.len()
-                        && is_zero_padding_or_fcs(&eth_bytes[pos..], eth_bytes.len())
+                        && (is_zero_padding_or_fcs(&eth_bytes[pos..], eth_bytes.len())
+                            || (detect_fcs && is_exact_4b_fcs(&eth_bytes, pos)))
                     {
-                        eth_bytes.truncate(pos);
+                        target_len = Some(pos);
                     }
                     break;
                 }
-                if pos + tlv_len > eth_bytes.len() {
+                let Some(next_pos) = pos.checked_add(tlv_len) else {
+                    break;
+                };
+                if next_pos > eth_bytes.len() {
                     break;
                 }
-                pos += tlv_len;
+                pos = next_pos;
             }
         }
         len if (1..=1500).contains(&len) => {
-            let body_len = len as usize;
-            if l3_offset + body_len <= eth_bytes.len() {
-                eth_bytes.truncate(l3_offset + body_len);
+            if let Some(end) = l3_offset.checked_add(len as usize)
+                && end <= eth_bytes.len()
+            {
+                protocol_len_known = true;
+                if end < eth_bytes.len() {
+                    target_len = Some(end);
+                }
             }
         }
         _ => {}
     }
 
-    eth_bytes
+    let mut fcs = false;
+    let mut bad_fcs = false;
+    let orig_len = eth_bytes.len();
+    if let Some(end) = target_len {
+        if detect_fcs {
+            if orig_len == end.saturating_add(4) {
+                (fcs, bad_fcs) = classify_4b_fcs(&eth_bytes[..end], &eth_bytes[end..]);
+            } else if orig_len == 64 && end < 60 && eth_bytes[end..60].iter().all(|&b| b == 0) {
+                (fcs, bad_fcs) = classify_4b_fcs(&eth_bytes[..60], &eth_bytes[60..64]);
+            }
+        }
+        eth_bytes.truncate(end);
+    } else if detect_fcs && !protocol_len_known && orig_len >= 18 {
+        let body_end = orig_len - 4;
+        let (is_good, is_bad) = classify_4b_fcs(&eth_bytes[..body_end], &eth_bytes[body_end..]);
+        if is_good || is_bad {
+            fcs = is_good;
+            bad_fcs = is_bad;
+            eth_bytes.truncate(body_end);
+        }
+    }
+
+    (eth_bytes, fcs, bad_fcs)
 }

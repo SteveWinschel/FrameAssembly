@@ -21,7 +21,11 @@ pub fn build_ipsec_esp_payload(spec: &IpsecSpec, payload: &[u8]) -> (Vec<u8>, u8
     let seq = spec.seq.unwrap_or(1);
     let next_hdr = spec.next_header.unwrap_or(59); // No Next Header
 
-    let mut esp = Vec::with_capacity(32 + payload.len());
+    let iv_len = spec.iv.as_ref().map_or(8, Vec::len);
+    let data_len = if payload.is_empty() { 16 } else { payload.len() };
+    let icv_len = spec.icv.as_ref().map_or(12, Vec::len);
+
+    let mut esp = Vec::with_capacity(8 + iv_len + data_len + 2 + icv_len);
     esp.extend_from_slice(&spi.to_be_bytes());
     esp.extend_from_slice(&seq.to_be_bytes());
 

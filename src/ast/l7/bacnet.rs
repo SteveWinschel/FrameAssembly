@@ -5,14 +5,14 @@
 //! 4-byte BACnet Virtual Link Control (BVLC) header (`0x81` type, function `0x0A` Original-Unicast
 //! or `0x0B` Original-Broadcast, and 16-bit length), a 2-byte NPDU header (Version `0x01` and
 //! control byte), and an APDU encoding unconfirmed services (`Who-Is`, `I-Am`) or confirmed
-//! services (`ReadProperty` `0x0C`, `WriteProperty` `0x0F`). Canonical `.frasm` syntax:
-//! `bacnet [whois | iam | readproperty | writeproperty] [invokeid <u8>] [objecttype <u16>] [objectinstance <u32>] [propertyid <u32>] [value <u32>]`.
+//! services (`ReadProperty` `0x0C`, `WriteProperty` `0x0F`, `ComplexACK` `0x30`). Canonical `.frasm` syntax:
+//! `bacnet [whois | iam | readproperty | writeproperty | complexack] [invokeid <u8>] [objecttype <u16>] [objectinstance <u32>] [propertyid <u32>] [value <u32>] [real <f32>]`.
 
 use core::marker::PhantomData;
 
 /// ANSI/ASHRAE 135 BACnet/IP Building Automation protocol specification.
 ///
-/// Syntax mapping: `bacnet [whois | iam | readproperty | writeproperty] [invokeid <u8>] [objecttype <u16>] [objectinstance <u32>] [propertyid <u32>] [value <u32>]`
+/// Syntax mapping: `bacnet [whois | iam | readproperty | writeproperty | complexack] [invokeid <u8>] [objecttype <u16>] [objectinstance <u32>] [propertyid <u32>] [value <u32>] [real <f32>]`
 #[doc(alias = "bacnet")]
 #[doc(alias = "ASHRAE 135")]
 #[doc(alias = "ISO 16484-5")]
@@ -22,11 +22,13 @@ use core::marker::PhantomData;
 #[doc(alias = "iam")]
 #[doc(alias = "readproperty")]
 #[doc(alias = "writeproperty")]
+#[doc(alias = "complexack")]
 #[doc(alias = "invokeid")]
 #[doc(alias = "objecttype")]
 #[doc(alias = "objectinstance")]
 #[doc(alias = "propertyid")]
 #[doc(alias = "value")]
+#[doc(alias = "real")]
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct BacnetSpec<'a> {
     /// Unconfirmed `Who-Is` (service choice 8) broadcast discovery flag (`whois`).
@@ -37,6 +39,8 @@ pub struct BacnetSpec<'a> {
     pub is_read_property: bool,
     /// Confirmed `WriteProperty` (service choice 15) flag (`writeproperty`).
     pub is_write_property: bool,
+    /// Confirmed `ComplexACK` response flag (`complexack`).
+    pub is_complex_ack: bool,
     /// 8-bit confirmed service Invoke ID (`invokeid <u8>`, default `1`).
     pub invoke_id: Option<u8>,
     /// 10-bit BACnet Object Type code (`objecttype <u16>`, e.g., `0` Analog Input, `8` Device).
@@ -47,6 +51,8 @@ pub struct BacnetSpec<'a> {
     pub property_id: Option<u32>,
     /// Property unsigned integer value for `WriteProperty` (`value <u32>`).
     pub value: Option<u32>,
+    /// IEEE 754 single-precision float bits (`f32::to_bits()`) for `real <f32>`.
+    pub real_value: Option<u32>,
     /// Lifetime marker preserving uniform `'a` parameterization across L7 specs.
     pub _marker: PhantomData<&'a ()>,
 }

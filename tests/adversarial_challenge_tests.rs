@@ -566,6 +566,27 @@ fn assert_semantic_error(script: &str, expected_substring: &str) {
     }
 }
 
+/// Asserts that a FASM script fails parsing with a `ParseError` matching a substring.
+fn assert_parse_error(script: &str, expected_substring: &str) {
+    let err = parse_program(script).expect_err("Script must fail parsing");
+    match err {
+        CompilerError::ParseError { message, span, .. } => {
+            assert!(
+                message.contains(expected_substring),
+                "Expected error message containing '{}', but got '{}'",
+                expected_substring,
+                message
+            );
+            assert!(
+                span.1 > 0,
+                "ParseError span length must be > 0 (got length {})",
+                span.1
+            );
+        }
+        other => panic!("Expected CompilerError::ParseError, got {:?}", other),
+    }
+}
+
 /// Tests rejection of mixed IPv4 and IPv6 endpoints in a single statement.
 #[test]
 pub fn test_adversarial_semantic_mixed_ipv4_ipv6() {
@@ -743,7 +764,7 @@ pub fn test_adversarial_semantic_duplicate_conflicting_payloads() {
     assert_semantic_error(both_pay_script, "cannot specify both 'payload' and 'hexpayload'");
 }
 
-/// Tests rejection of invalid cross-protocol modifiers across UDP, TCP, SNMP1, SNMP2, and SNMP3.
+/// Tests fail-closed `ParseError` and `SemanticError` rejections of invalid cross-protocol modifiers across UDP, TCP, SNMP1, SNMP2, and SNMP3.
 #[test]
 pub fn test_adversarial_semantic_invalid_cross_protocol_modifiers() {
     let script_udp_flags = r#"
@@ -765,14 +786,14 @@ pub fn test_adversarial_semantic_invalid_cross_protocol_modifiers() {
         host xp_s3 { ip 10.22.3.2 }
         flow xp_f3(a3, b3) { a3 -> b3 udp community "public" }
         compile { xp_f3(xp_c3, xp_s3) }"#;
-    assert_semantic_error(script_udp_snmp, "SNMP fields cannot be used with 'udp'");
+    assert_parse_error(script_udp_snmp, "unexpected modifier 'community' for protocol 'udp'");
 
     let script_tcp_snmp = r#"
         host xp_c4 { ip 10.22.4.1 }
         host xp_s4 { ip 10.22.4.2 }
         flow xp_f4(a4, b4) { a4 -> b4 tcp syn community "public" }
         compile { xp_f4(xp_c4, xp_s4) }"#;
-    assert_semantic_error(script_tcp_snmp, "SNMP fields cannot be used with 'tcp'");
+    assert_parse_error(script_tcp_snmp, "unexpected modifier 'community' for protocol 'tcp'");
 
     let script_snmp1_flags = r#"
         host xp_c5 { ip 10.22.5.1 }

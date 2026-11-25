@@ -11,8 +11,8 @@
 #   contrib/packaging/apt/build-deb.sh [VERSION] [BINARY_PATH] [ARCH] [OUTPUT_DIR]
 #
 # Examples:
-#   contrib/packaging/apt/build-deb.sh 3.2.2 target/release/frameassembly amd64 dist
-#   contrib/packaging/apt/build-deb.sh 3.2.2 target/aarch64-unknown-linux-musl/release/frameassembly arm64 dist
+#   contrib/packaging/apt/build-deb.sh 3.3.0 target/release/frameassembly amd64 dist
+#   contrib/packaging/apt/build-deb.sh 3.3.0 target/aarch64-unknown-linux-musl/release/frameassembly arm64 dist
 # ==============================================================================
 
 set -euo pipefail
@@ -20,7 +20,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 
-VERSION="${1:-3.2.2}"
+VERSION="${1:-3.3.0}"
 VERSION="${VERSION#v}" # strip leading 'v' if provided
 
 BINARY_PATH="${2:-}"
@@ -135,7 +135,7 @@ Maintainer: Steve Winschel <steve.winschel@users.noreply.github.com>
 Description: Compile .frasm network traffic code to .pcap/.pcapng and reverse captures
  FrameAssembly compiles .frasm network traffic code into nanosecond-precision
  .pcap and .pcapng packet captures and reverses captures back into .frasm code
- across 81 native Layer 2 through Layer 7 protocols for Wireshark, tcpreplay,
+ across 146 native Layer 2 through Layer 7 protocols for Wireshark, tcpreplay,
  Suricata, and Zeek.
 Homepage: https://github.com/SteveWinschel/FrameAssembly
 EOF

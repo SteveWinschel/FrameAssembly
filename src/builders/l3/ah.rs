@@ -19,20 +19,19 @@ pub fn build_ipsec_ah_payload(spec: &AhSpec, payload: &[u8]) -> (Vec<u8>, u8) {
     let seq = spec.seq.unwrap_or(1);
     let next_hdr = spec.next_header.unwrap_or(59);
 
-    let icv_bytes: &[u8] = if let Some(icv) = &spec.icv {
-        icv
-    } else {
-        &[0u8; 12]
-    };
-    let hdr_len_words = ((12 + icv_bytes.len()).div_ceil(4)).saturating_sub(2) as u8;
+    let raw_icv: &[u8] = spec.icv.as_deref().unwrap_or(&[0u8; 12]);
+    // Pad ICV to 4-octet boundary so Payload Len matches emitted wire bytes (RFC 4302 §2.2).
+    let padded_icv_len = raw_icv.len().next_multiple_of(4);
+    let hdr_len_words = ((12 + padded_icv_len) / 4).saturating_sub(2).min(255) as u8;
 
-    let mut ah = Vec::with_capacity(12 + icv_bytes.len() + payload.len());
+    let mut ah = Vec::with_capacity(12 + padded_icv_len + payload.len());
     ah.push(next_hdr);
     ah.push(hdr_len_words); // Payload Length in 4-byte words minus 2 (24 bytes total -> 4)
     ah.extend_from_slice(&[0, 0]); // Reserved
     ah.extend_from_slice(&spi.to_be_bytes());
     ah.extend_from_slice(&seq.to_be_bytes());
-    ah.extend_from_slice(icv_bytes);
+    ah.extend_from_slice(raw_icv);
+    ah.resize(12 + padded_icv_len, 0);
     ah.extend_from_slice(payload);
 
     (ah, 51)

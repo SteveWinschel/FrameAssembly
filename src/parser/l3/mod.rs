@@ -1,10 +1,11 @@
 //! Layer 3 network-layer, routing, tunneling, and control-plane field parsers for FrameAssembly.
 //!
 //! This module coordinates syntactic combinators for Layer 3 network headers (`dscp`, `ecn`,
-//! `ttl`, `flowlabel`, `ipid`, `df`, `mf`, `fragoffset`, `nextheader`) and 19 network-layer,
+//! `ttl`, `flowlabel`, `ipid`, `df`, `mf`, `fragoffset`, `nextheader`) and all 31 network-layer,
 //! tunneling, security, and routing protocols: `icmp`, `ndp`, `igmp`, `mld`, `gre`, `vxlan`,
 //! `geneve`, `ipsec`, `esp`, `ah`, `ikev2`, `wireguard`, `ospf`, `bgp`, `rip`, `vrrp`, `hsrp`,
-//! `pim`, `bfd`, and `openflow`.
+//! `pim`, `bfd`, `openflow`, `ipip`, `srv6`, `erspan`, `rsvp`, `ldp`, `bmp`, `rpkirtr`, `l2tp`,
+//! `lisp`, `glbp`, and `gtpu`.
 
 use winnow::ModalResult as PResult;
 use winnow::combinator::{alt, cut_err};
@@ -16,20 +17,31 @@ use crate::parser::{ParsedField, Stream, parse_u8, parse_u16, parse_u32, tag};
 pub(crate) mod ah;
 pub(crate) mod bfd;
 pub(crate) mod bgp;
+pub(crate) mod bmp;
+pub(crate) mod erspan;
 pub(crate) mod esp;
 pub(crate) mod geneve;
+pub(crate) mod glbp;
 pub(crate) mod gre;
+pub(crate) mod gtpu;
 pub(crate) mod hsrp;
 pub(crate) mod icmp;
 pub(crate) mod igmp;
 pub(crate) mod ikev2;
+pub(crate) mod ipip;
 pub(crate) mod ipsec;
+pub(crate) mod l2tp;
+pub(crate) mod ldp;
+pub(crate) mod lisp;
 pub(crate) mod mld;
 pub(crate) mod ndp;
 pub(crate) mod openflow;
 pub(crate) mod ospf;
 pub(crate) mod pim;
 pub(crate) mod rip;
+pub(crate) mod rpkirtr;
+pub(crate) mod rsvp;
+pub(crate) mod srv6;
 pub(crate) mod vrrp;
 pub(crate) mod vxlan;
 pub(crate) mod wireguard;
@@ -37,26 +49,37 @@ pub(crate) mod wireguard;
 pub(crate) use ah::*;
 pub(crate) use bfd::*;
 pub(crate) use bgp::*;
+pub(crate) use bmp::*;
+pub(crate) use erspan::*;
 pub(crate) use esp::*;
 pub(crate) use geneve::*;
+pub(crate) use glbp::*;
 pub(crate) use gre::*;
+pub(crate) use gtpu::*;
 pub(crate) use hsrp::*;
 pub(crate) use icmp::*;
 pub(crate) use igmp::*;
 pub(crate) use ikev2::*;
+pub(crate) use ipip::*;
 pub(crate) use ipsec::*;
+pub(crate) use l2tp::*;
+pub(crate) use ldp::*;
+pub(crate) use lisp::*;
 pub(crate) use mld::*;
 pub(crate) use ndp::*;
 pub(crate) use openflow::*;
 pub(crate) use ospf::*;
 pub(crate) use pim::*;
 pub(crate) use rip::*;
+pub(crate) use rpkirtr::*;
+pub(crate) use rsvp::*;
+pub(crate) use srv6::*;
 pub(crate) use vrrp::*;
 pub(crate) use vxlan::*;
 pub(crate) use wireguard::*;
 
-/// Parses a Layer 3 protocol or modifier field from a token stream.
-pub(crate) fn parse_l3_field<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<ParsedField<'a>> {
+/// Parses core Layer 3 protocol fields and generic IPv4/IPv6 header modifiers (`<= 8` `alt` arms).
+pub(crate) fn parse_legacy_l3_field<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<ParsedField<'a>> {
     alt((
         alt((
             parse_icmp_field,
@@ -104,4 +127,28 @@ pub(crate) fn parse_l3_field<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<Pars
             .map(|((_, s), v)| ParsedField::NextHeader(v, (s.start, s.end - s.start))),
     ))
     .parse_next(input)
+}
+
+/// Parses extended Layer 3 routing, MPLS signaling, and tunneling protocol fields (`<= 8` `alt` arms).
+pub(crate) fn parse_ext_l3_field<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<ParsedField<'a>> {
+    alt((
+        alt((
+            parse_ipip_field,
+            parse_srv6_field,
+            parse_erspan_field,
+            parse_rsvp_field,
+            parse_ldp_field,
+            parse_bmp_field,
+            parse_rpkirtr_field,
+            parse_l2tp_field,
+        )),
+        alt((parse_lisp_field, parse_glbp_field, parse_gtpu_field)),
+    ))
+    .parse_next(input)
+}
+
+/// Parses a Layer 3 protocol or modifier field from a token stream.
+#[allow(dead_code)]
+pub(crate) fn parse_l3_field<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<ParsedField<'a>> {
+    alt((parse_legacy_l3_field, parse_ext_l3_field)).parse_next(input)
 }

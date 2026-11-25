@@ -1,9 +1,9 @@
 [package]
 name = "frameassembly"
-version = "3.2.2"
+version = "3.3.0"
 edition = "2024"
 rust-version = "1.89"
-description = "A language to create or edit .pcap and .pcapng packet captures across 81 network protocols for Wireshark, tcpreplay, firewall, SNMP, and IDS testing."
+description = "A language to create or edit .pcap and .pcapng captures across 146 native L2-L7 protocols for Wireshark, tcpreplay, firewall, SNMP, and IDS testing."
 authors = ["Steve Winschel"]
 license = "MIT"
 documentation = "https://docs.rs/frameassembly"

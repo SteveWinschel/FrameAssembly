@@ -3,13 +3,53 @@
 //! This module implements [`build_nfs_payload`], which constructs an ONC RPC v2 (RFC 5531) Call
 //! message carrying an NFSv2, NFSv3, or NFSv4 procedure over TCP or UDP port 2049. It prepends the
 //! 4-byte XDR Record Marking header (with last-fragment bit `0x80000000`), serializes the 40-byte
-//! RPC Call header (XID `0x6E667301`, Call type `0`, RPC version `2`, Program `100003`, NFS version,
-//! procedure code, and `AUTH_NULL` credentials), and XDR-encodes optional compound `tag` and `path`
-//! strings with 4-byte zero padding.
+//! RPC Call header (default XID `0x12345678`, Call type `0`, RPC version `2`, Program `100003`,
+//! NFS version, procedure code, and `AUTH_NULL` credentials), and XDR-encodes optional compound
+//! `tag` and `path` strings with 4-byte zero padding.
 
 use crate::ast::*;
 use crate::builders::WireContext;
 use alloc::vec::Vec;
+
+/// Resolves an NFSv3/NFSv4 procedure name or numeric code to its ONC RPC procedure number.
+fn parse_nfs_proc(proc_norm: &str, raw: &str) -> u32 {
+    let trimmed = raw.trim();
+    if let Some(hex) = trimmed
+        .strip_prefix("0x")
+        .or_else(|| trimmed.strip_prefix("0X"))
+        && let Ok(val) = u32::from_str_radix(hex, 16)
+    {
+        return val;
+    }
+    if let Ok(val) = trimmed.parse::<u32>() {
+        return val;
+    }
+    match proc_norm {
+        "NULL" => 0,
+        "GETATTR" | "COMPOUND" => 1,
+        "SETATTR" => 2,
+        "LOOKUP" => 3,
+        "ACCESS" => 4,
+        "READLINK" => 5,
+        "READ" => 6,
+        "WRITE" => 7,
+        "CREATE" => 8,
+        "MKDIR" => 9,
+        "SYMLINK" => 10,
+        "MKNOD" => 11,
+        "REMOVE" => 12,
+        "RMDIR" => 13,
+        "RENAME" => 14,
+        "LINK" => 15,
+        "READDIR" => 16,
+        "READDIRPLUS" => 17,
+        "FSSTAT" => 18,
+        "FSINFO" => 19,
+        "PATHCONF" => 20,
+        "COMMIT" => 21,
+        _ => 3,
+    }
+}
 
 /// Builds an ONC RPC / NFS file system protocol packet payload.
 pub fn build_nfs_payload(
@@ -19,20 +59,9 @@ pub fn build_nfs_payload(
 ) -> Vec<u8> {
     let xid = spec.xid.unwrap_or(0x12345678);
     let vers = spec.vers.unwrap_or(4);
-    let proc_str = spec
-        .proc_name
-        .unwrap_or("lookup")
-        .to_ascii_uppercase()
-        .replace(['_', '-'], "");
-    let proc_num: u32 = match proc_str.as_str() {
-        "NULL" => 0,
-        "GETATTR" => 1,
-        "LOOKUP" => 3,
-        "READ" => 6,
-        "WRITE" => 7,
-        "COMPOUND" => 1,
-        _ => 3,
-    };
+    let raw_proc = spec.proc_name.unwrap_or("lookup");
+    let proc_str = raw_proc.to_ascii_uppercase().replace(['_', '-'], "");
+    let proc_num = parse_nfs_proc(&proc_str, raw_proc);
 
     let mut rpc_call = Vec::new();
     rpc_call.extend_from_slice(&xid.to_be_bytes());
@@ -48,7 +77,8 @@ pub fn build_nfs_payload(
 
     if spec.tag.is_some() || proc_str == "COMPOUND" {
         let tag_bytes = spec.tag.unwrap_or("").as_bytes();
-        rpc_call.extend_from_slice(&(tag_bytes.len() as u32).to_be_bytes());
+        let tag_len = u32::try_from(tag_bytes.len()).unwrap_or(u32::MAX);
+        rpc_call.extend_from_slice(&tag_len.to_be_bytes());
         rpc_call.extend_from_slice(tag_bytes);
         let pad = (4 - (tag_bytes.len() % 4)) % 4;
         rpc_call.resize(rpc_call.len() + pad, 0);
@@ -56,7 +86,8 @@ pub fn build_nfs_payload(
 
     if let Some(path) = spec.path {
         let path_bytes = path.as_bytes();
-        rpc_call.extend_from_slice(&(path_bytes.len() as u32).to_be_bytes());
+        let path_len = u32::try_from(path_bytes.len()).unwrap_or(u32::MAX);
+        rpc_call.extend_from_slice(&path_len.to_be_bytes());
         rpc_call.extend_from_slice(path_bytes);
         let pad = (4 - (path_bytes.len() % 4)) % 4;
         rpc_call.resize(rpc_call.len() + pad, 0);
@@ -71,8 +102,10 @@ pub fn build_nfs_payload(
     }
 
     // ONC RPC Record Marking header for TCP (4 bytes: 0x80000000 | length)
-    let length = rpc_call.len() as u32;
-    let mark = 0x80000000u32 | (length & 0x7FFFFFFF);
+    let length = u32::try_from(rpc_call.len())
+        .unwrap_or(0x7FFF_FFFF)
+        .min(0x7FFF_FFFF);
+    let mark = 0x8000_0000u32 | length;
     let mut pkt = Vec::with_capacity(4 + rpc_call.len());
     pkt.extend_from_slice(&mark.to_be_bytes());
     pkt.extend_from_slice(&rpc_call);

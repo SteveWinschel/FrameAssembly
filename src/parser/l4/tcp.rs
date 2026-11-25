@@ -3,7 +3,8 @@
 //! This module implements the winnow parser combinator for `tcp` segment modifiers, control flags,
 //! and RFC 7323 / RFC 2018 TCP header options. It parses receive window size (`win`/`window`),
 //! urgent pointer (`urgent`), Maximum Segment Size (`mss`), Window Scale (`wscale`), Selective
-//! Acknowledgment Permitted (`sackperm`), timestamps (`tsval`, `tsecr`), and all 8 control bits
+//! Selective Acknowledgment Permitted (`sackperm`), SACK blocks (`sackblock <u32> <u32>`),
+//! timestamps (`tsval`, `tsecr`), TCP MD5 (`tcpmd5 <hex>`), TCP Fast Open (`tfo <hex>`), and all 8 control bits
 //! (`syn`, `ack`, `fin`, `rst`, `psh`, `urg`, `ece`, `cwr`).
 
 use winnow::ModalResult as PResult;
@@ -12,7 +13,7 @@ use winnow::prelude::*;
 
 use crate::ast::*;
 use crate::lexer::Token;
-use crate::parser::{ParsedField, Stream, parse_u8, parse_u16, parse_u32, tag};
+use crate::parser::{ParsedField, Stream, parse_hex_payload, parse_u8, parse_u16, parse_u32, tag};
 
 /// Parses a TCP protocol declaration, flag, or option field.
 pub(crate) fn parse_tcp_field<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<ParsedField<'a>> {
@@ -32,10 +33,16 @@ pub(crate) fn parse_tcp_field<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<Par
             (tag(Token::Wscale), cut_err(parse_u8))
                 .map(|((_, s), v)| ParsedField::Wscale(v, (s.start, s.end - s.start))),
             tag(Token::SackPerm).map(|(_, s)| ParsedField::SackPerm((s.start, s.len()))),
+            (tag(Token::SackBlock), cut_err(parse_u32), cut_err(parse_u32))
+                .map(|((_, s), left, right)| ParsedField::SackBlock(left, right, (s.start, s.len()))),
             (tag(Token::Tsval), cut_err(parse_u32))
                 .map(|((_, s), v)| ParsedField::Tsval(v, (s.start, s.end - s.start))),
             (tag(Token::Tsecr), cut_err(parse_u32))
                 .map(|((_, s), v)| ParsedField::Tsecr(v, (s.start, s.end - s.start))),
+            (tag(Token::TcpMd5), cut_err(parse_hex_payload))
+                .map(|((_, s), v)| ParsedField::TcpMd5(v, (s.start, s.len()))),
+            (tag(Token::Tfo), cut_err(parse_hex_payload))
+                .map(|((_, s), v)| ParsedField::Tfo(v, (s.start, s.len()))),
         )),
         alt((
             tag(Token::Syn).map(|(_, s)| ParsedField::Flag(TcpFlag::Syn, (s.start, s.len()))),

@@ -5,7 +5,7 @@
 //! and [`crate::builders::l7_ot`]. For any Layer 7 [`Protocol`], [`build_l7_packet_payload`]
 //! extracts the typed [`ProtocolSpec`] from the AST statement (falling back to protocol defaults),
 //! determines whether the transport is stream-oriented TCP or datagram-oriented UDP via
-//! [`super::is_tcp_protocol`], and returns the serialized application-layer byte buffer.
+//! [`super::statement_uses_tcp`], and returns the serialized application-layer byte buffer.
 
 use alloc::vec::Vec;
 use core::net::IpAddr;
@@ -13,7 +13,7 @@ use core::net::IpAddr;
 use crate::ast::*;
 use crate::builders::WireContext;
 
-use super::is_tcp_protocol;
+use super::statement_uses_tcp;
 
 /// Encapsulates the serialized Layer 7 payload alongside dynamic transport ports and multicast target IPs returned by wire builders.
 #[derive(Debug, Clone)]
@@ -26,7 +26,7 @@ pub(crate) struct L7DispatchResult {
     pub src_port: Option<u16>,
     /// Optional builder-returned destination port override (e.g., DHCP `67`/`547`, mDNS `5353`, PTP `319`/`320`, RADIUS `1812`/`1813`).
     pub dst_port: Option<u16>,
-    /// Optional builder-returned multicast target IP override (e.g., mDNS `224.0.0.251` or `ff02::fb`).
+    /// Optional builder-returned multicast/broadcast target IP default (mDNS, SSDP, PTP, DHCP/DHCPv6).
     pub target_ip: Option<IpAddr>,
 }
 
@@ -36,10 +36,23 @@ pub(crate) fn build_l7_packet_payload(
     stmt: &FrameStatement,
     payload_bytes: &[u8],
 ) -> Option<L7DispatchResult> {
-    let is_tcp = is_tcp_protocol(&stmt.protocol, stmt.l4.transport);
+    let is_tcp = if matches!(stmt.protocol, Protocol::Mdns | Protocol::Ngap | Protocol::S1ap) {
+        false
+    } else {
+        statement_uses_tcp(stmt)
+    };
     let mut src_port_override = None;
     let mut dst_port_override = None;
     let mut target_ip_override = None;
+
+    macro_rules! build_spec {
+        ($variant:ident, $builder:path) => {{
+            match &stmt.protocol_spec {
+                Some(ProtocolSpec::$variant(spec)) => $builder(ctx, spec, payload_bytes),
+                _ => $builder(ctx, &Default::default(), payload_bytes),
+            }
+        }};
+    }
 
     let payload = match stmt.protocol {
         Protocol::Dns => {
@@ -69,6 +82,13 @@ pub(crate) fn build_l7_packet_payload(
                 crate::builders::l7_infra::build_dhcp_payload(ctx, &spec, payload_bytes);
             src_port_override = Some(sport);
             dst_port_override = Some(dport);
+            if dport == 67 || (dport == 68 && ctx.dst_ip.is_unspecified()) {
+                target_ip_override = Some(IpAddr::V4(core::net::Ipv4Addr::BROADCAST));
+            } else if dport == 547 || (dport == 546 && ctx.dst_ip.is_unspecified()) {
+                target_ip_override = Some(IpAddr::V6(core::net::Ipv6Addr::new(
+                    0xff02, 0, 0, 0, 0, 0, 1, 2,
+                )));
+            }
             p
         }
         Protocol::Ntp => {
@@ -90,6 +110,11 @@ pub(crate) fn build_l7_packet_payload(
             } else {
                 dst_port_override = Some(dport);
             }
+            target_ip_override = Some(if ctx.src_ip.is_ipv6() || ctx.dst_ip.is_ipv6() {
+                IpAddr::V6(core::net::Ipv6Addr::new(0xff0e, 0, 0, 0, 0, 0, 0, 0x0181))
+            } else {
+                IpAddr::V4(core::net::Ipv4Addr::new(224, 0, 1, 129))
+            });
             p
         }
         Protocol::Radius => {
@@ -187,10 +212,16 @@ pub(crate) fn build_l7_packet_payload(
             crate::builders::l7_app::build_grpc_payload(ctx, &spec, payload_bytes)
         }
         Protocol::Websocket => {
-            let spec = match &stmt.protocol_spec {
+            let mut spec = match &stmt.protocol_spec {
                 Some(ProtocolSpec::Websocket(s)) => s.clone(),
                 _ => WebsocketSpec::default(),
             };
+            if spec.payload.is_none()
+                && (stmt.payload.as_deref() == Some("")
+                    || stmt.hex_payload.as_deref() == Some(&[][..]))
+            {
+                spec.payload = Some("");
+            }
             crate::builders::l7_app::build_websocket_payload(ctx, &spec, payload_bytes)
         }
         Protocol::Tls => {
@@ -338,6 +369,11 @@ pub(crate) fn build_l7_packet_payload(
                 Some(ProtocolSpec::Ssdp(s)) => s.clone(),
                 _ => SsdpSpec::default(),
             };
+            target_ip_override = Some(if ctx.src_ip.is_ipv6() || ctx.dst_ip.is_ipv6() {
+                IpAddr::V6(core::net::Ipv6Addr::new(0xff02, 0, 0, 0, 0, 0, 0, 0x000c))
+            } else {
+                IpAddr::V4(core::net::Ipv4Addr::new(239, 255, 255, 250))
+            });
             crate::builders::l7_app::build_ssdp_payload(ctx, &spec, payload_bytes)
         }
         Protocol::Whois => {
@@ -396,6 +432,82 @@ pub(crate) fn build_l7_packet_payload(
             };
             crate::builders::l7_ot::build_opcua_payload(ctx, &spec, payload_bytes)
         }
+        Protocol::Dcerpc => build_spec!(Dcerpc, crate::builders::l7::build_dcerpc_payload),
+        Protocol::Ntlm => build_spec!(Ntlm, crate::builders::l7::build_ntlm_payload),
+        Protocol::Rdp => build_spec!(Rdp, crate::builders::l7::build_rdp_payload),
+        Protocol::Llmnr => {
+            let spec = match &stmt.protocol_spec {
+                Some(ProtocolSpec::Llmnr(s)) => s.clone(),
+                _ => LlmnrSpec::default(),
+            };
+            let (p, target_ip, dport) =
+                crate::builders::l7::build_llmnr_payload(ctx, &spec, payload_bytes, is_tcp);
+            dst_port_override = Some(dport);
+            target_ip_override = target_ip;
+            p
+        }
+        Protocol::Nbns => build_spec!(Nbns, crate::builders::l7::build_nbns_payload),
+        Protocol::Socks => build_spec!(Socks, crate::builders::l7::build_socks_payload),
+        Protocol::Vnc => build_spec!(Vnc, crate::builders::l7::build_vnc_payload),
+        Protocol::Doh => build_spec!(Doh, crate::builders::l7::build_doh_payload),
+        Protocol::Wsdiscovery => {
+            target_ip_override = Some(if ctx.src_ip.is_ipv6() || ctx.dst_ip.is_ipv6() {
+                IpAddr::V6(core::net::Ipv6Addr::new(0xff02, 0, 0, 0, 0, 0, 0, 0x000c))
+            } else {
+                IpAddr::V4(core::net::Ipv4Addr::new(239, 255, 255, 250))
+            });
+            build_spec!(Wsdiscovery, crate::builders::l7::build_wsdiscovery_payload)
+        }
+        Protocol::Irc => build_spec!(Irc, crate::builders::l7::build_irc_payload),
+        Protocol::Iec104 => build_spec!(Iec104, crate::builders::l7::build_iec104_payload),
+        Protocol::Mms => build_spec!(Mms, crate::builders::l7::build_mms_payload),
+        Protocol::S7commplus => {
+            build_spec!(S7commplus, crate::builders::l7::build_s7commplus_payload)
+        }
+        Protocol::Synchrophasor => {
+            build_spec!(
+                Synchrophasor,
+                crate::builders::l7::build_synchrophasor_payload
+            )
+        }
+        Protocol::Hartip => build_spec!(Hartip, crate::builders::l7::build_hartip_payload),
+        Protocol::Fins => build_spec!(Fins, crate::builders::l7::build_fins_payload),
+        Protocol::Melsec => build_spec!(Melsec, crate::builders::l7::build_melsec_payload),
+        Protocol::Someip => build_spec!(Someip, crate::builders::l7::build_someip_payload),
+        Protocol::Doip => build_spec!(Doip, crate::builders::l7::build_doip_payload),
+        Protocol::C1222 => build_spec!(C1222, crate::builders::l7::build_c1222_payload),
+        Protocol::Gesrtp => build_spec!(Gesrtp, crate::builders::l7::build_gesrtp_payload),
+        Protocol::Rocplus => build_spec!(Rocplus, crate::builders::l7::build_rocplus_payload),
+        Protocol::Bsap => build_spec!(Bsap, crate::builders::l7::build_bsap_payload),
+        Protocol::Knxnetip => build_spec!(Knxnetip, crate::builders::l7::build_knxnetip_payload),
+        Protocol::Rocev2 => build_spec!(Rocev2, crate::builders::l7::build_rocev2_payload),
+        Protocol::Ipmi => build_spec!(Ipmi, crate::builders::l7::build_ipmi_payload),
+        Protocol::Twamp => build_spec!(Twamp, crate::builders::l7::build_twamp_payload),
+        Protocol::Netconf => build_spec!(Netconf, crate::builders::l7::build_netconf_payload),
+        Protocol::Gtpc => build_spec!(Gtpc, crate::builders::l7::build_gtpc_payload),
+        Protocol::Pfcp => build_spec!(Pfcp, crate::builders::l7::build_pfcp_payload),
+        Protocol::Diameter => build_spec!(Diameter, crate::builders::l7::build_diameter_payload),
+        Protocol::Ngap => build_spec!(Ngap, crate::builders::l7::build_ngap_payload),
+        Protocol::S1ap => build_spec!(S1ap, crate::builders::l7::build_s1ap_payload),
+        Protocol::Mssql => build_spec!(Mssql, crate::builders::l7::build_mssql_payload),
+        Protocol::Kafka => build_spec!(Kafka, crate::builders::l7::build_kafka_payload),
+        Protocol::Mongodb => build_spec!(Mongodb, crate::builders::l7::build_mongodb_payload),
+        Protocol::Tns => build_spec!(Tns, crate::builders::l7::build_tns_payload),
+        Protocol::Iscsi => build_spec!(Iscsi, crate::builders::l7::build_iscsi_payload),
+        Protocol::Nvmetcp => build_spec!(Nvmetcp, crate::builders::l7::build_nvmetcp_payload),
+        Protocol::Rtcp => build_spec!(Rtcp, crate::builders::l7::build_rtcp_payload),
+        Protocol::Turn => build_spec!(Turn, crate::builders::l7::build_turn_payload),
+        Protocol::H323 => {
+            let spec = match &stmt.protocol_spec {
+                Some(ProtocolSpec::H323(s)) => s.clone(),
+                _ => H323Spec::default(),
+            };
+            let (p, dport) = crate::builders::l7::build_h323_payload(ctx, &spec, payload_bytes);
+            dst_port_override = Some(dport);
+            p
+        }
+        Protocol::Sccp => build_spec!(Sccp, crate::builders::l7::build_sccp_payload),
+        Protocol::Mgcp => build_spec!(Mgcp, crate::builders::l7::build_mgcp_payload),
         _ => return None,
     };
     Some(L7DispatchResult {

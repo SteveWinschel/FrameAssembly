@@ -1,15 +1,50 @@
 //! Terminal Access Controller Access-Control System Plus (TACACS+) (RFC 8907) Layer 7 wire packet builder.
 //!
 //! This module synthesizes deterministic on-the-wire Terminal Access Controller Access-Control System Plus (TACACS+) frames over TCP port 49.
-//! The wire encoder constructs a 12-byte fixed TACACS+ header (8-bit Version byte: 4-bit major 0xC + 4-bit minor 0x0/0x1; 8-bit Type: 1 AUTHEN, 2 AUTHOR, 3 ACCT; 8-bit seq_no; 8-bit flags bitmask e.g. 0x01 TAC_PLUS_UNENCRYPTED_FLAG; 32-bit big-endian session_id; 32-bit big-endian body length) followed by Authentication START/REPLY/CONTINUE, Authorization REQUEST/RESPONSE, or Accounting START/STOP/WATCHDOG body. When optional fields in [`TacacsSpec`]
-//! are omitted in the `.frasm` source, RFC-compliant default values are automatically populated.
+//! The wire encoder constructs a 12-byte fixed TACACS+ header (8-bit Version byte: `0xC1` minor version 1 for Authentication or `0xC0` for Authorization/Accounting; 8-bit Type: 1 AUTHEN, 2 AUTHOR, 3 ACCT; 8-bit seq_no; 8-bit flags bitmask e.g. `0x01` `TAC_PLUS_UNENCRYPTED_FLAG`; 32-bit big-endian session_id; 32-bit big-endian body length) followed by Authentication START, Authorization REQUEST, or Accounting START body with optional RFC 8907 §4.5 MD5 body obfuscation when `TAC_PLUS_UNENCRYPTED_FLAG` is cleared.
 //!
 //! Canonical `.frasm` syntax:
-//! `a -> b tacacs [type authen | type author | type acct | authen | author | acct] [seq <u8>] [flags <u8>] [sessionid <u32>] [user <str>] [payload <str>]`
+//! `a -> b tacacs [type authen | type author | type acct | authen | author | acct] [seq <u8>] [flags <u8>] [sessionid <u32>] [user <str>] [data <str>] [payload <str>]`
 
 use crate::ast::*;
 use crate::builders::WireContext;
 use alloc::vec::Vec;
+use md5::Md5;
+use sha2::Digest;
+
+/// Deterministic fallback shared secret used for RFC 8907 §4.5 MD5 body obfuscation.
+pub(crate) const DEFAULT_TACACS_KEY: &[u8] = b"tacacs";
+
+/// Applies symmetric RFC 8907 §4.5 MD5 pseudo-random pad XOR obfuscation to a TACACS+ body.
+pub(crate) fn obfuscate_tacacs_body(
+    body: &mut [u8],
+    session_id: u32,
+    key: &[u8],
+    version: u8,
+    seq_no: u8,
+) {
+    let mut prev_hash = [0u8; 16];
+    let mut offset = 0usize;
+    while offset < body.len() {
+        let mut hasher = Md5::default();
+        hasher.update(session_id.to_be_bytes());
+        hasher.update(key);
+        hasher.update([version, seq_no]);
+        if offset > 0 {
+            hasher.update(prev_hash);
+        }
+        let digest = hasher.finalize();
+        prev_hash.copy_from_slice(&digest);
+        let chunk_len = (body.len() - offset).min(16);
+        for (byte, pad) in body[offset..offset + chunk_len]
+            .iter_mut()
+            .zip(&digest[..chunk_len])
+        {
+            *byte ^= *pad;
+        }
+        offset += chunk_len;
+    }
+}
 
 /// Builds an RFC 8907 TACACS+ packet payload.
 /// Syntax mapping: `tacacs [type authen | type author | type acct | authen | author | acct] [seq <u8>] [flags <u8>] [sessionid <u32>] [user <str>] [payload <str>]`
@@ -103,9 +138,14 @@ pub fn build_tacacs_payload(
         body.extend_from_slice(payload_bytes);
     }
 
+    let version = if type_code == 1 { 0xC1u8 } else { 0xC0u8 };
+    if (flags & 0x01) == 0 {
+        obfuscate_tacacs_body(&mut body, session_id, DEFAULT_TACACS_KEY, version, seq_no);
+    }
+
     let length = body.len() as u32;
     let mut pkt = Vec::with_capacity(12 + body.len());
-    pkt.push(0xC0); // major_version = 12, minor_version = 0
+    pkt.push(version); // major_version = 12, minor_version = 1 (AUTHEN) / 0 (AUTHOR, ACCT)
     pkt.push(type_code);
     pkt.push(seq_no);
     pkt.push(flags);

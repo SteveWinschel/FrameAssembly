@@ -3,8 +3,9 @@
 //! This module implements fuzz-safe IPv4 header parsing ([`extract_ipv4_l3`]) and `.frasm` Layer 3
 //! modifier emission for FrameAssembly's PCAP and PCAPNG decompiler. It validates the IPv4 version
 //! nibble (`4`) and Internet Header Length (`IHL >= 20`), clamps the packet slice to Total Length,
-//! and extracts `src_ip`, `dst_ip`, encapsulated `protocol`, `ttl`, `dscp`, `ecn`, `ipid`, `df`,
-//! `mf`, and `fragoffset` alongside the upper-layer payload slice.
+//! inspects IP options for RFC 2113 Router Alert (`0x94`), and extracts `src_ip`, `dst_ip`,
+//! encapsulated `protocol`, `ttl`, `dscp`, `ecn`, `ipid`, `df`, `mf`, and `fragoffset` alongside
+//! the upper-layer payload slice.
 
 use alloc::string::String;
 use core::net::Ipv4Addr;
@@ -34,13 +35,15 @@ pub(crate) struct Ipv4HeaderFields<'a> {
     pub(crate) mf: bool,
     /// 13-bit Fragment Offset field (`frag_offset`, `bytes 6..8 & 0x1FFF`).
     pub(crate) frag_offset: u16,
+    /// RFC 2113 Router Alert IPv4 option (`routeralert`, type `0x94` length `4`).
+    pub(crate) router_alert: bool,
     /// Encapsulated upper-layer payload slice following the IPv4 header and options.
     pub(crate) payload: &'a [u8],
 }
 
 impl<'a> Ipv4HeaderFields<'a> {
     /// Appends non-default `.frasm` IPv4 Layer 3 modifiers (`ttl`, `dscp`, `ecn`, `ipid`, `df`,
-    /// `mf`, `fragoffset`) to the statement token buffer.
+    /// `mf`, `fragoffset`, `routeralert`) to the statement token buffer.
     pub(crate) fn append_fasm_modifiers(&self, out: &mut String, default_ttl: u8) {
         push_if(out, "ttl", self.ttl, default_ttl);
         push_if(out, "dscp", self.dscp, 0);
@@ -53,6 +56,9 @@ impl<'a> Ipv4HeaderFields<'a> {
             out.push_str(" mf");
         }
         push_if(out, "fragoffset", self.frag_offset, 0);
+        if self.router_alert {
+            out.push_str(" routeralert");
+        }
     }
 
     /// Returns `true` when all IPv4 header fields match FrameAssembly's zeroed overlay inner stub.
@@ -67,6 +73,7 @@ impl<'a> Ipv4HeaderFields<'a> {
             || self.df
             || self.mf
             || self.frag_offset != 0
+            || self.router_alert
         {
             return false;
         }
@@ -77,7 +84,7 @@ impl<'a> Ipv4HeaderFields<'a> {
 }
 
 /// Extracts RFC 791 IPv4 Layer 3 header fields (`ttl`, `dscp`, `ecn`, `ipid`, `df`, `mf`,
-/// `frag_offset`), endpoint addresses, protocol number, and upper-layer payload from `b`.
+/// `frag_offset`, `router_alert`), endpoint addresses, protocol number, and upper-layer payload.
 pub(crate) fn extract_ipv4_l3(b: &[u8]) -> Option<Ipv4HeaderFields<'_>> {
     if b.len() < 20 || (b[0] >> 4) != 4 {
         return None;
@@ -85,6 +92,29 @@ pub(crate) fn extract_ipv4_l3(b: &[u8]) -> Option<Ipv4HeaderFields<'_>> {
     let ihl = ((b[0] & 0x0F) as usize) * 4;
     if ihl < 20 || ihl > b.len() {
         return None;
+    }
+    let mut router_alert = false;
+    let mut opt_off = 20usize;
+    while opt_off < ihl {
+        let opt = b[opt_off];
+        if opt == 0 {
+            break;
+        }
+        if opt == 1 {
+            opt_off += 1;
+            continue;
+        }
+        if opt_off + 2 > ihl {
+            break;
+        }
+        let opt_len = usize::from(b[opt_off + 1]);
+        if opt_len < 2 || opt_off + opt_len > ihl {
+            break;
+        }
+        if opt == 0x94 && opt_len >= 4 {
+            router_alert = true;
+        }
+        opt_off += opt_len;
     }
     let total_len = be_u16(b, 2) as usize;
     let pkt_end = if total_len >= ihl && total_len <= b.len() {
@@ -104,6 +134,7 @@ pub(crate) fn extract_ipv4_l3(b: &[u8]) -> Option<Ipv4HeaderFields<'_>> {
         df: (flags_frag & 0x4000) != 0,
         mf: (flags_frag & 0x2000) != 0,
         frag_offset: flags_frag & 0x1FFF,
+        router_alert,
         payload: &b[ihl..pkt_end],
     })
 }

@@ -26,8 +26,9 @@ fn sem_err<T>(src: &str, span: (usize, usize), message: impl Into<String>) -> Re
 }
 
 /// Returns `true` if `protocol` requires both endpoints to declare an `ip` address in `host`,
-/// or `false` for Layer 2 protocols that can operate over MAC-only endpoints (`lldp`, `stp`,
-/// `lacp`, `eapol`, `vlan`, `qinq`, `mpls`, `arp`).
+/// or `false` for all 18 Layer 2 protocols that can operate over MAC-only endpoints (`lldp`,
+/// `stp`, `lacp`, `eapol`, `vlan`, `qinq`, `mpls`, `arp`, `cdp`, `isis`, `macsec`, `pfc`,
+/// `pppoe`, `nsh`, `profinet`, `goose`, `sv`, `ethercat`).
 pub fn protocol_requires_ip(protocol: &Protocol) -> bool {
     !matches!(
         protocol,
@@ -39,12 +40,22 @@ pub fn protocol_requires_ip(protocol: &Protocol) -> bool {
             | Protocol::Qinq
             | Protocol::Mpls
             | Protocol::Arp
+            | Protocol::Cdp
+            | Protocol::Isis
+            | Protocol::Macsec
+            | Protocol::Pfc
+            | Protocol::Pppoe
+            | Protocol::Nsh
+            | Protocol::Profinet
+            | Protocol::Goose
+            | Protocol::Sv
+            | Protocol::Ethercat
     )
 }
 
-/// Returns `true` if `protocol` supports the explicit `transport tcp|udp` modifier.
-fn supports_transport_override(protocol: &Protocol) -> bool {
-    matches!(
+/// Returns `true` if `protocol` supports an explicit `transport tcp|udp|sctp` modifier.
+fn supports_transport_override(protocol: &Protocol, tp: TransportProto) -> bool {
+    let dual_tcp_udp = matches!(
         protocol,
         Protocol::Dns
             | Protocol::Sip
@@ -55,34 +66,221 @@ fn supports_transport_override(protocol: &Protocol) -> bool {
             | Protocol::Modbus
             | Protocol::Dnp3
             | Protocol::Ethernetip
-    )
-}
-
-/// Formats an internal modifier key (`SACK_PERM`, `INNER_VLAN`, `TTL`) as a lowercase `.frasm` keyword.
-fn format_modifier_key(mod_name: &str) -> String {
-    match mod_name {
-        "PDUTYPE" => "PDU type".to_string(),
-        "ARP_OPCODE" => "arp opcode".to_string(),
-        "ICMP_TYPE" => "icmp type".to_string(),
-        "NDP_TYPE" => "ndp type".to_string(),
-        "IGMP_TYPE" => "igmp type".to_string(),
-        "IKE_EXCHANGE" => "ikev2 exchange".to_string(),
-        "WG_TYPE" => "wireguard type".to_string(),
-        "OSPF_TYPE" => "ospf type".to_string(),
-        "BGP_TYPE" => "bgp type".to_string(),
-        "OPENFLOW_TYPE" => "openflow type".to_string(),
-        "GRE_KEY" => "key".to_string(),
-        "GRE_SEQ" => "seq".to_string(),
-        "GRE_PROTO" => "proto".to_string(),
-        other => other
-            .chars()
-            .filter(|&c| c != '_')
-            .map(|c| c.to_ascii_lowercase())
-            .collect(),
+            | Protocol::Ldap
+            | Protocol::Snmp1
+            | Protocol::Snmp2
+            | Protocol::Snmp3
+            | Protocol::Radius
+            | Protocol::Coap
+            | Protocol::Mqtt
+            | Protocol::Rtsp
+            | Protocol::Ntp
+            | Protocol::Ldp
+            | Protocol::Llmnr
+            | Protocol::Twamp
+            | Protocol::Rocplus
+            | Protocol::Bsap
+            | Protocol::Synchrophasor
+            | Protocol::Hartip
+            | Protocol::Fins
+            | Protocol::Melsec
+            | Protocol::Someip
+            | Protocol::Doip
+            | Protocol::C1222
+            | Protocol::Turn
+            | Protocol::H323
+            | Protocol::Mgcp
+            | Protocol::Mssql
+            | Protocol::Kafka
+    );
+    match tp {
+        TransportProto::Tcp => dual_tcp_udp,
+        TransportProto::Udp => {
+            dual_tcp_udp
+                || matches!(
+                    protocol,
+                    Protocol::Profinet | Protocol::Ethercat | Protocol::L2tp
+                )
+        }
+        TransportProto::Sctp => is_l7_protocol(protocol),
     }
 }
 
-/// Validates RFC 1035 §2.3.4 domain label (`<= 63` octets) and total domain length (`<= 253` octets).
+/// Returns `true` if `protocol` is an L7 application protocol capable of running over `transport sctp`.
+fn is_l7_protocol(protocol: &Protocol) -> bool {
+    !matches!(
+        protocol,
+        Protocol::Arp
+            | Protocol::Lldp
+            | Protocol::Stp
+            | Protocol::Lacp
+            | Protocol::Eapol
+            | Protocol::Vlan
+            | Protocol::Qinq
+            | Protocol::Mpls
+            | Protocol::Cdp
+            | Protocol::Isis
+            | Protocol::Macsec
+            | Protocol::Pfc
+            | Protocol::Pppoe
+            | Protocol::Nsh
+            | Protocol::Profinet
+            | Protocol::Goose
+            | Protocol::Sv
+            | Protocol::Ethercat
+            | Protocol::Icmp
+            | Protocol::Ndp
+            | Protocol::Igmp
+            | Protocol::Mld
+            | Protocol::Gre
+            | Protocol::Vxlan
+            | Protocol::Geneve
+            | Protocol::Ipsec
+            | Protocol::Esp
+            | Protocol::Ah
+            | Protocol::Ikev2
+            | Protocol::Wireguard
+            | Protocol::Ospf
+            | Protocol::Bgp
+            | Protocol::Rip
+            | Protocol::Vrrp
+            | Protocol::Hsrp
+            | Protocol::Pim
+            | Protocol::Bfd
+            | Protocol::Openflow
+            | Protocol::Ipip
+            | Protocol::Srv6
+            | Protocol::Erspan
+            | Protocol::Rsvp
+            | Protocol::Ldp
+            | Protocol::Bmp
+            | Protocol::Rpkirtr
+            | Protocol::L2tp
+            | Protocol::Lisp
+            | Protocol::Glbp
+            | Protocol::Gtpu
+            | Protocol::Tcp
+            | Protocol::Udp
+            | Protocol::Sctp
+    )
+}
+
+/// Returns `true` if the frame resolves to a UDP header on the wire (explicit `udp`, UDP tunnel, or UDP L7).
+fn is_udp_packet(protocol: &Protocol, transport: Option<TransportProto>) -> bool {
+    if matches!(transport, Some(TransportProto::Tcp | TransportProto::Sctp))
+        || matches!(protocol, Protocol::Ngap | Protocol::S1ap)
+    {
+        return false;
+    }
+    if matches!(
+        protocol,
+        Protocol::Udp
+            | Protocol::Vxlan
+            | Protocol::Geneve
+            | Protocol::Ikev2
+            | Protocol::Wireguard
+            | Protocol::Rip
+            | Protocol::Hsrp
+            | Protocol::Bfd
+            | Protocol::L2tp
+            | Protocol::Lisp
+            | Protocol::Glbp
+            | Protocol::Gtpu
+    ) {
+        return true;
+    }
+    if transport == Some(TransportProto::Udp)
+        && matches!(
+            protocol,
+            Protocol::Profinet | Protocol::Ethercat | Protocol::Ldp
+        )
+    {
+        return true;
+    }
+    is_l7_protocol(protocol) && !crate::backend::is_tcp_protocol(protocol, transport)
+}
+
+/// Formats an internal modifier key (`SACK_PERM`, `CDP_NATIVE_VLAN`, `origin_host`) as a canonical `.frasm` keyword.
+fn format_modifier_key(mod_name: &str) -> String {
+    const PROTO_PREFIXES: &[&str] = &[
+        "RPKIRTR_", "SOMEIP_", "DCERPC_", "GESRTP_", "MACSEC_", "LLMNR_", "PPPOE_", "SOCKS_",
+        "ERSPAN_", "S7PLUS_", "MELSEC_", "C1222_", "ISCSI_", "TWAMP_", "L2TP_", "GLBP_",
+        "GTPU_", "IPIP_", "SRV6_", "RSVP_", "NTLM_", "NBNS_", "HART_", "FINS_", "DOIP_",
+        "ROCE_", "IPMI_", "NVME_", "TURN_", "H323_", "ISIS_", "CDP_", "PFC_", "NSH_", "LDP_",
+        "BMP_", "LISP_", "RDP_", "WSD_", "IRC_", "SYN_", "ROC_", "BSAP_", "KNX_", "ECAT_",
+        "VNC_", "PN_",
+    ];
+    match mod_name {
+        "PDUTYPE" => return "PDU type".to_string(),
+        "ARP_OPCODE" => return "arp opcode".to_string(),
+        "ICMP_TYPE" => return "icmp type".to_string(),
+        "NDP_TYPE" => return "ndp type".to_string(),
+        "IGMP_TYPE" => return "igmp type".to_string(),
+        "IKE_EXCHANGE" => return "ikev2 exchange".to_string(),
+        "WG_TYPE" => return "wireguard type".to_string(),
+        "OSPF_TYPE" => return "ospf type".to_string(),
+        "BGP_TYPE" => return "bgp type".to_string(),
+        "OPENFLOW_TYPE" => return "openflow type".to_string(),
+        "GRE_KEY" => return "key".to_string(),
+        "GRE_SEQ" => return "seq".to_string(),
+        "GRE_PROTO" => return "proto".to_string(),
+        "PN_DIR" => return "direction".to_string(),
+        "GESRTP_PTYPE" | "ISIS_PDU_TYPE" | "PPPOE_STAGE" | "DCERPC_PDU" => {
+            return "type".to_string()
+        }
+        "pdu_type" => return "msgtype".to_string(),
+        "SOMEIP_SD_FLAGS" => return "flags".to_string(),
+        "MMS_INVOKE_ID" => return "invokeid".to_string(),
+        "TURN_XOR_RELAYED" => return "xorrelayedaddr".to_string(),
+        "TURN_XOR_PEER" => return "xorpeeraddr".to_string(),
+        "H323_RAS_ADDR" => return "rasaddr".to_string(),
+        "ROCE_PSN" => return "seqnum".to_string(),
+        "ROCE_MSN" => return "msgid".to_string(),
+        "ROCE_VA" => return "addr".to_string(),
+        "ROCE_SYNDROME" => return "status".to_string(),
+        "RKEY" => return "key".to_string(),
+        "DMA_LEN" => return "count".to_string(),
+        "ICRC" => return "crc".to_string(),
+        "WSD_ADDR" => return "addr".to_string(),
+        "IRC_PREFIX" => return "prefix".to_string(),
+        "IRC_TARGET" => return "target".to_string(),
+        "IRC_JOIN_ARG" | "IRC_NICK_ARG" | "IRC_PRIVMSG_ARG" => return "cmd".to_string(),
+        "IEC_DAT_SET" => return "datset".to_string(),
+        "IEC_CONF_REV" => return "confrev".to_string(),
+        "IEC_SIMULATION" => return "simulation".to_string(),
+        "IEC_APPID" => return "appid".to_string(),
+        "NUM_DAT_SET_ENTRIES" => return "numdatsetentries".to_string(),
+        "TIME_TO_LIVE" => return "timetolive".to_string(),
+        "NVME_COUNT" => return "count".to_string(),
+        "TWAMP_TIMESTAMP" => return "timestamp".to_string(),
+        "TWAMP_MODE" => return "mode".to_string(),
+        "TWAMP_COUNT" => return "count".to_string(),
+        "IPMI_CMD" => return "cmd".to_string(),
+        "IPMI_REQUEST" => return "request".to_string(),
+        "OBJECT_ID" | "SYN_ID" => return "id".to_string(),
+        "ORIGIN_HOST" | "origin_host" => return "originhost".to_string(),
+        "ORIGIN_REALM" | "origin_realm" => return "realm".to_string(),
+        "api_version" => return "version".to_string(),
+        "api" => return "apikey".to_string(),
+        "REAL_VALUE" => return "real".to_string(),
+        _ => {}
+    }
+
+    let mut stripped = mod_name;
+    for &pfx in PROTO_PREFIXES {
+        if let Some(rest) = stripped.strip_prefix(pfx) {
+            stripped = rest;
+            break;
+        }
+    }
+    stripped
+        .chars()
+        .filter(|&c| c != '_')
+        .map(|c| c.to_ascii_lowercase())
+        .collect()
+}
+
+/// Validates RFC 1035 §2.3.4 domain label (`1..=63` octets) and total domain length (`<= 253` octets).
 fn validate_dns_domain(
     domain: &str,
     field_name: &str,
@@ -104,6 +302,15 @@ fn validate_dns_domain(
         );
     }
     for label in trimmed.split('.') {
+        if label.is_empty() {
+            return sem_err(
+                src,
+                span,
+                alloc::format!(
+                    "DNS {field_name} '{domain}' contains an empty RFC 1035 label (expected 1..=63 octets per label)"
+                ),
+            );
+        }
         if label.len() > 63 {
             return sem_err(
                 src,
@@ -154,7 +361,8 @@ fn validate_frame_statement(stmt: &FrameStatement, src: &str) -> Result<(), Comp
 
     // 2. Recorded numeric field bounds (0..=255 u8, 0..=65535 u16, protocol-scoped ranges)
     if let Some((label, val, min, max, span)) = stmt.raw_bounds.first() {
-        let pretty = if label.chars().all(|c| c.is_ascii_uppercase() || c == '_')
+        let pretty = if !label.contains(' ')
+            && !label.contains('-')
             && !matches!(*label, "PCP" | "DEI" | "DSCP" | "ECN" | "TTL")
         {
             format_modifier_key(label)
@@ -243,7 +451,60 @@ fn validate_frame_statement(stmt: &FrameStatement, src: &str) -> Result<(), Comp
         }
     }
 
-    if let Some(mpls) = &stmt.l2.mpls {
+    if stmt.l2.qinq.is_some() && stmt.l2.vlan.is_some() {
+        return sem_err(
+            src,
+            stmt.raw_vlan
+                .map(|(_, s)| s)
+                .or(stmt.raw_qinq_span)
+                .unwrap_or(stmt.span),
+            "Invalid L2 combination: cannot specify both 'qinq' and 'vlan' on the same frame — use 'qinq <outer> innervlan <inner>'",
+        );
+    }
+
+    if let Some(span) = stmt.raw_inner_vlan_span
+        && stmt.l2.qinq.is_none()
+    {
+        return sem_err(
+            src,
+            span,
+            "Orphan 'innervlan' modifier requires 'qinq <outer>' on the same frame",
+        );
+    }
+
+    if let Some(span) = stmt.raw_pcp_span
+        && stmt.l2.vlan.is_none()
+        && stmt.l2.qinq.is_none()
+    {
+        return sem_err(
+            src,
+            span,
+            "Orphan 'pcp' modifier requires 'vlan <id>' or 'qinq <outer>' on the same frame",
+        );
+    }
+
+    if let Some(span) = stmt.raw_dei_span
+        && stmt.l2.vlan.is_none()
+        && stmt.l2.qinq.is_none()
+    {
+        return sem_err(
+            src,
+            span,
+            "Orphan 'dei' modifier requires 'vlan <id>' or 'qinq <outer>' on the same frame",
+        );
+    }
+
+    if let Some(span) = stmt.raw_mpls_sub_span
+        && stmt.l2.mpls_stack.is_empty()
+    {
+        return sem_err(
+            src,
+            span,
+            "Orphan MPLS modifier ('exp'/'bos'/'mplsttl') requires 'mpls <label>' on the same frame",
+        );
+    }
+
+    for mpls in &stmt.l2.mpls_stack {
         if mpls.label > 0xF_FFFF {
             return sem_err(
                 src,
@@ -274,6 +535,16 @@ fn validate_frame_statement(stmt: &FrameStatement, src: &str) -> Result<(), Comp
         }
     }
 
+    if let Some((fo, span)) = stmt.raw_frag_offset
+        && fo > 8191
+    {
+        return sem_err(
+            src,
+            span,
+            alloc::format!("fragoffset {fo} out of range (0..=8191)"),
+        );
+    }
+
     if let Some((dscp, span)) = stmt.raw_dscp
         && dscp > 63
     {
@@ -297,6 +568,14 @@ fn validate_frame_statement(stmt: &FrameStatement, src: &str) -> Result<(), Comp
                     src,
                     span,
                     alloc::format!("LLDP ttl {ttl} out of range (0..=65535)"),
+                );
+            }
+        } else if stmt.protocol == Protocol::Nsh {
+            if ttl > 63 {
+                return sem_err(
+                    src,
+                    span,
+                    alloc::format!("NSH ttl {ttl} out of range (0..=63)"),
                 );
             }
         } else if ttl > 255 {
@@ -357,23 +636,68 @@ fn validate_frame_statement(stmt: &FrameStatement, src: &str) -> Result<(), Comp
             }
         }
         Some(ProtocolSpec::Dns(dns) | ProtocolSpec::Mdns(dns)) => {
-            if let Some(qn) = dns.qname {
-                validate_dns_domain(qn, "qname", src, stmt.span)?;
-            }
-            if let Some(rd) = dns.rdata {
-                let qt = dns.qtype.unwrap_or("A");
-                if qt.eq_ignore_ascii_case("NS")
-                    || qt.eq_ignore_ascii_case("CNAME")
-                    || qt.eq_ignore_ascii_case("PTR")
-                {
-                    validate_dns_domain(rd, "rdata", src, stmt.span)?;
-                } else if qt.eq_ignore_ascii_case("MX") {
-                    let target = rd.split_whitespace().last().unwrap_or(rd);
-                    validate_dns_domain(target, "rdata", src, stmt.span)?;
-                }
-            }
+            validate_dns_record_domains(
+                dns.qname,
+                dns.qtype,
+                dns.rdata,
+                &dns.rdata_list,
+                src,
+                stmt.span,
+            )?;
+        }
+        Some(ProtocolSpec::Doh(doh)) => {
+            validate_dns_record_domains(
+                doh.qname,
+                doh.qtype,
+                doh.rdata,
+                &doh.rdata_list,
+                src,
+                stmt.span,
+            )?;
+        }
+        Some(ProtocolSpec::Llmnr(llmnr)) => {
+            validate_dns_record_domains(
+                llmnr.qname,
+                llmnr.qtype,
+                llmnr.rdata,
+                &llmnr.rdata_list,
+                src,
+                stmt.span,
+            )?;
         }
         _ => {}
+    }
+
+    /// Validates `qname` and domain-valued `rdata` targets for DNS-family specs.
+    fn validate_dns_record_domains(
+        qname: Option<&str>,
+        qtype: Option<&str>,
+        rdata: Option<&str>,
+        rdata_list: &[&str],
+        src: &str,
+        span: (usize, usize),
+    ) -> Result<(), CompilerError> {
+        if let Some(qn) = qname {
+            validate_dns_domain(qn, "qname", src, span)?;
+        }
+        let qt = qtype.unwrap_or("A");
+        let rdatas: &[&str] = if !rdata_list.is_empty() {
+            rdata_list
+        } else {
+            rdata.as_slice()
+        };
+        for &rd in rdatas {
+            if qt.eq_ignore_ascii_case("NS")
+                || qt.eq_ignore_ascii_case("CNAME")
+                || qt.eq_ignore_ascii_case("PTR")
+            {
+                validate_dns_domain(rd, "rdata", src, span)?;
+            } else if qt.eq_ignore_ascii_case("MX") {
+                let target = rd.split_whitespace().last().unwrap_or(rd);
+                validate_dns_domain(target, "rdata", src, span)?;
+            }
+        }
+        Ok(())
     }
 
     // 3. Duplicate TCP flags & payload exclusivity
@@ -399,13 +723,27 @@ fn validate_frame_statement(stmt: &FrameStatement, src: &str) -> Result<(), Comp
         );
     }
 
-    // 4. Cross-protocol transport, TCP-only flags/options, nop, and SNMP checks
-    if stmt.l4.transport.is_some() && !supports_transport_override(&stmt.protocol) {
+    // 4. Cross-protocol transport, TCP-only flags/options, nop, UDP nochecksum, and SNMP checks
+    if let Some(tp) = stmt.l4.transport
+        && !supports_transport_override(&stmt.protocol, tp)
+    {
+        let msg = match tp {
+            TransportProto::Sctp => alloc::format!(
+                "Invalid cross-protocol modifier: 'transport sctp' is only supported on Layer 7 application protocols, not '{proto_name}'"
+            ),
+            TransportProto::Tcp | TransportProto::Udp => alloc::format!(
+                "Invalid cross-protocol modifier: 'transport' is only supported on multi-transport protocols (dns, sip, syslog, kerberos, nfs, memcached, modbus, dnp3, ethernetip, ldap, snmp1, snmp2, snmp3, radius, coap, mqtt, rtsp, ntp, ldp, llmnr, twamp, rocplus, bsap, synchrophasor, hartip, fins, melsec, someip, doip, c1222, turn, h323, mgcp, mssql, kafka; and 'transport udp' on profinet, ethercat, l2tp), not '{proto_name}'"
+            ),
+        };
+        return sem_err(src, stmt.span, msg);
+    }
+
+    if stmt.l4.no_checksum && !is_udp_packet(&stmt.protocol, stmt.l4.transport) {
         return sem_err(
             src,
-            stmt.span,
+            stmt.raw_no_checksum_span.unwrap_or(stmt.span),
             alloc::format!(
-                "Invalid cross-protocol modifier: 'transport' is only supported on dual-transport protocols (dns, sip, syslog, kerberos, nfs, memcached, modbus, dnp3, ethernetip), not '{proto_name}'"
+                "Invalid cross-protocol modifier: 'nochecksum' is only supported on UDP packets, not '{proto_name}'"
             ),
         );
     }
@@ -420,7 +758,9 @@ fn validate_frame_statement(stmt: &FrameStatement, src: &str) -> Result<(), Comp
         );
     }
 
-    let is_tcp = crate::backend::is_tcp_protocol(&stmt.protocol, stmt.l4.transport);
+    let is_tcp = stmt.l4.transport != Some(TransportProto::Sctp)
+        && !matches!(stmt.protocol, Protocol::Ngap | Protocol::S1ap)
+        && crate::backend::is_tcp_protocol(&stmt.protocol, stmt.l4.transport);
     if !is_tcp {
         if !stmt.flags.is_empty() {
             return sem_err(
@@ -440,19 +780,22 @@ fn validate_frame_statement(stmt: &FrameStatement, src: &str) -> Result<(), Comp
                 ),
             );
         }
-        let allows_seq = matches!(
-            stmt.protocol,
-            Protocol::Sctp
-                | Protocol::Icmp
-                | Protocol::Gre
-                | Protocol::Ipsec
-                | Protocol::Esp
-                | Protocol::Ah
-                | Protocol::Rtp
-                | Protocol::Sflow
-                | Protocol::Netflow
-                | Protocol::Ipfix
-        );
+        let allows_seq = stmt.l4.transport == Some(TransportProto::Sctp)
+            || matches!(
+                stmt.protocol,
+                Protocol::Sctp
+                    | Protocol::Ngap
+                    | Protocol::S1ap
+                    | Protocol::Icmp
+                    | Protocol::Gre
+                    | Protocol::Ipsec
+                    | Protocol::Esp
+                    | Protocol::Ah
+                    | Protocol::Rtp
+                    | Protocol::Sflow
+                    | Protocol::Netflow
+                    | Protocol::Ipfix
+            );
         if stmt.ack_num.is_some()
             || stmt.win.is_some()
             || stmt.urgent.is_some()
@@ -584,7 +927,10 @@ fn validate_statement_endpoints(
     src: &str,
 ) -> Result<(), CompilerError> {
     let proto_name = alloc::format!("{:?}", stmt.protocol).to_ascii_lowercase();
-    if protocol_requires_ip(&stmt.protocol) {
+    if protocol_requires_ip(&stmt.protocol)
+        || (matches!(stmt.protocol, Protocol::Profinet | Protocol::Ethercat)
+            && stmt.l4.transport == Some(TransportProto::Udp))
+    {
         for h in [caller_host, callee_host] {
             if h.ip.is_none() {
                 return sem_err(
@@ -614,6 +960,36 @@ fn validate_statement_endpoints(
     }
 
     if let Some(ip1) = caller_host.ip {
+        if stmt.l3.df && ip1.is_ipv6() {
+            return sem_err(
+                src,
+                stmt.raw_df_span.unwrap_or(stmt.span),
+                alloc::format!(
+                    "Invalid L3 modifier: 'df' (Don't Fragment) only applies to IPv4, not IPv6 host '{}'",
+                    caller_host.name
+                ),
+            );
+        }
+        if stmt.raw_flowlabel.is_some() && ip1.is_ipv4() {
+            return sem_err(
+                src,
+                stmt.raw_flowlabel.map(|(_, s)| s).unwrap_or(stmt.span),
+                alloc::format!(
+                    "Invalid L3 modifier: 'flowlabel' only applies to IPv6, not IPv4 host '{}'",
+                    caller_host.name
+                ),
+            );
+        }
+        if stmt.l3.bad_ip_checksum && ip1.is_ipv6() {
+            return sem_err(
+                src,
+                stmt.raw_bad_ip_checksum_span.unwrap_or(stmt.span),
+                alloc::format!(
+                    "Invalid L3 modifier: 'badipchecksum' only applies to IPv4 (IPv6 headers have no IP checksum) on host '{}'",
+                    caller_host.name
+                ),
+            );
+        }
         match stmt.protocol {
             Protocol::Igmp if ip1.is_ipv6() => {
                 return sem_err(
@@ -645,6 +1021,16 @@ fn validate_statement_endpoints(
                     ),
                 );
             }
+            Protocol::Srv6 if ip1.is_ipv4() => {
+                return sem_err(
+                    src,
+                    stmt.span,
+                    alloc::format!(
+                        "Protocol 'srv6' requires IPv6 endpoints ('{}' is IPv4 {ip1})",
+                        caller_host.name
+                    ),
+                );
+            }
             _ => {}
         }
     }
@@ -669,8 +1055,8 @@ fn validate_statement_endpoints(
     Ok(())
 }
 
-/// Validates that an endpoint inside a `flow` matches one of the flow's declared parameters,
-/// emitting a helpful parameter-passing hint when the identifier matches a declared `host`.
+/// Validates that an endpoint inside a `flow` matches one of the flow's declared parameters
+/// or an unshadowed global `host` declaration.
 fn validate_flow_endpoint(
     role: &str,
     ep: &Spanned<&str>,
@@ -681,20 +1067,8 @@ fn validate_flow_endpoint(
     src: &str,
 ) -> Result<(), CompilerError> {
     let key = ep.node.to_ascii_lowercase();
-    if seen_params.contains(&key) {
+    if seen_params.contains(&key) || host_map.contains_key(&key) {
         return Ok(());
-    }
-    if host_map.contains_key(&key) {
-        return sem_err(
-            src,
-            stmt_span,
-            alloc::format!(
-                "Unknown {role} endpoint '{}' in flow '{flow_name}' — '{}' is a declared host; pass '{}' as a flow parameter: flow {flow_name}(a, b) {{ ... }}",
-                ep.node,
-                ep.node,
-                ep.node
-            ),
-        );
     }
     sem_err(
         src,
@@ -703,14 +1077,297 @@ fn validate_flow_endpoint(
     )
 }
 
+/// Validates statements inside a [`FlowDef::body`] recursively (frames, nested flow calls, and `repeat`).
+fn validate_flow_body(
+    items: &[FlowStatement],
+    flow_name: &str,
+    seen_params: &HashSet<String>,
+    host_map: &HashMap<String, &HostDef>,
+    flow_map: &HashMap<String, &FlowDef>,
+    src: &str,
+) -> Result<(), CompilerError> {
+    for item in items {
+        match item {
+            FlowStatement::Frame(stmt) => {
+                validate_frame_statement(stmt, src)?;
+                validate_flow_endpoint(
+                    "caller",
+                    &stmt.caller,
+                    flow_name,
+                    seen_params,
+                    host_map,
+                    stmt.span,
+                    src,
+                )?;
+                validate_flow_endpoint(
+                    "callee",
+                    &stmt.callee,
+                    flow_name,
+                    seen_params,
+                    host_map,
+                    stmt.span,
+                    src,
+                )?;
+            }
+            FlowStatement::Invocation(inv) => {
+                let Some(callee_flow) = flow_map.get(&inv.name.to_ascii_lowercase()) else {
+                    return sem_err(
+                        src,
+                        inv.span,
+                        alloc::format!("Undefined flow: '{}'", inv.name),
+                    );
+                };
+                if callee_flow.params.len() != inv.args.len() {
+                    return sem_err(
+                        src,
+                        inv.span,
+                        alloc::format!(
+                            "Flow '{}' expects {} arguments, got {}",
+                            callee_flow.name,
+                            callee_flow.params.len(),
+                            inv.args.len()
+                        ),
+                    );
+                }
+                for Argument::Variable(arg_name) in &inv.args {
+                    let arg_key = arg_name.to_ascii_lowercase();
+                    if !seen_params.contains(&arg_key) && !host_map.contains_key(&arg_key) {
+                        return sem_err(
+                            src,
+                            inv.span,
+                            alloc::format!(
+                                "Undefined host or parameter '{}' passed to flow '{}' inside flow '{}'",
+                                arg_name,
+                                callee_flow.name,
+                                flow_name
+                            ),
+                        );
+                    }
+                }
+            }
+            FlowStatement::Repeat { body, .. } => {
+                validate_flow_body(body, flow_name, seen_params, host_map, flow_map, src)?;
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Recursively checks [`FlowStatement`] slices for DFS cycles in `flow -> flow` invocations.
+fn detect_flow_cycles_in_body(
+    flow_key: &str,
+    items: &[FlowStatement],
+    flow_map: &HashMap<String, &FlowDef>,
+    state: &mut HashMap<String, u8>,
+    src: &str,
+) -> Result<(), CompilerError> {
+    for item in items {
+        match item {
+            FlowStatement::Invocation(inv) => {
+                let target_key = inv.name.to_ascii_lowercase();
+                match state.get(&target_key).copied().unwrap_or(0) {
+                    1 => {
+                        return sem_err(
+                            src,
+                            inv.span,
+                            alloc::format!(
+                                "Cyclic flow invocation detected: '{}' recursively calls '{}'",
+                                flow_key,
+                                inv.name
+                            ),
+                        );
+                    }
+                    0 => {
+                        if let Some(target_flow) = flow_map.get(&target_key) {
+                            state.insert(target_key.clone(), 1);
+                            detect_flow_cycles_in_body(
+                                target_flow.name,
+                                &target_flow.body,
+                                flow_map,
+                                state,
+                                src,
+                            )?;
+                            state.insert(target_key, 2);
+                        }
+                    }
+                    _ => {}
+                }
+            }
+            FlowStatement::Repeat { body, .. } => {
+                detect_flow_cycles_in_body(flow_key, body, flow_map, state, src)?;
+            }
+            FlowStatement::Frame(_) => {}
+        }
+    }
+    Ok(())
+}
+
+/// Validates endpoint host binding rules across nested `flow` calls and `repeat` blocks.
+fn validate_invocation_with_env(
+    inv: &TemplateInvocation,
+    caller_env: &HashMap<String, &HostDef>,
+    host_map: &HashMap<String, &HostDef>,
+    flow_map: &HashMap<String, &FlowDef>,
+    src: &str,
+) -> Result<(), CompilerError> {
+    let Some(flow) = flow_map.get(&inv.name.to_ascii_lowercase()) else {
+        return sem_err(src, inv.span, alloc::format!("Undefined flow: '{}'", inv.name));
+    };
+
+    if flow.params.len() != inv.args.len() {
+        return sem_err(
+            src,
+            inv.span,
+            alloc::format!(
+                "Flow '{}' expects {} arguments, got {}",
+                flow.name,
+                flow.params.len(),
+                inv.args.len()
+            ),
+        );
+    }
+
+    let mut param_to_host: HashMap<String, &HostDef> = HashMap::new();
+    for (i, param_name) in flow.params.iter().enumerate() {
+        let Argument::Variable(var_name) = &inv.args[i];
+        let var_key = var_name.to_ascii_lowercase();
+        let host = caller_env
+            .get(&var_key)
+            .or_else(|| host_map.get(&var_key))
+            .copied()
+            .ok_or_else(|| CompilerError::SemanticError {
+                message: alloc::format!("Undefined host: '{var_name}'"),
+                src: src.to_string(),
+                span: inv.span,
+            })?;
+        param_to_host.insert(param_name.to_ascii_lowercase(), host);
+    }
+
+    if flow.body.is_empty() && !flow.statements.is_empty() {
+        for stmt in &flow.statements {
+            let caller_key = stmt.caller.node.to_ascii_lowercase();
+            let callee_key = stmt.callee.node.to_ascii_lowercase();
+            let caller_host = param_to_host
+                .get(&caller_key)
+                .or_else(|| host_map.get(&caller_key))
+                .copied()
+                .ok_or_else(|| CompilerError::SemanticError {
+                    message: alloc::format!("Undefined host: '{}'", stmt.caller.node),
+                    src: src.to_string(),
+                    span: stmt.caller.span,
+                })?;
+            let callee_host = param_to_host
+                .get(&callee_key)
+                .or_else(|| host_map.get(&callee_key))
+                .copied()
+                .ok_or_else(|| CompilerError::SemanticError {
+                    message: alloc::format!("Undefined host: '{}'", stmt.callee.node),
+                    src: src.to_string(),
+                    span: stmt.callee.span,
+                })?;
+            validate_statement_endpoints(stmt, caller_host, callee_host, src)?;
+        }
+        return Ok(());
+    }
+
+    validate_flow_body_endpoints(&flow.body, &param_to_host, host_map, flow_map, src)
+}
+
+/// Validates endpoint host compatibility recursively over [`FlowStatement`] items.
+fn validate_flow_body_endpoints(
+    items: &[FlowStatement],
+    param_env: &HashMap<String, &HostDef>,
+    host_map: &HashMap<String, &HostDef>,
+    flow_map: &HashMap<String, &FlowDef>,
+    src: &str,
+) -> Result<(), CompilerError> {
+    for item in items {
+        match item {
+            FlowStatement::Frame(stmt) => {
+                let caller_key = stmt.caller.node.to_ascii_lowercase();
+                let callee_key = stmt.callee.node.to_ascii_lowercase();
+                let caller_host = param_env
+                    .get(&caller_key)
+                    .or_else(|| host_map.get(&caller_key))
+                    .copied()
+                    .ok_or_else(|| CompilerError::SemanticError {
+                        message: alloc::format!("Undefined host: '{}'", stmt.caller.node),
+                        src: src.to_string(),
+                        span: stmt.caller.span,
+                    })?;
+                let callee_host = param_env
+                    .get(&callee_key)
+                    .or_else(|| host_map.get(&callee_key))
+                    .copied()
+                    .ok_or_else(|| CompilerError::SemanticError {
+                        message: alloc::format!("Undefined host: '{}'", stmt.callee.node),
+                        src: src.to_string(),
+                        span: stmt.callee.span,
+                    })?;
+                validate_statement_endpoints(stmt, caller_host, callee_host, src)?;
+            }
+            FlowStatement::Invocation(inv) => {
+                validate_invocation_with_env(inv, param_env, host_map, flow_map, src)?;
+            }
+            FlowStatement::Repeat { body, .. } => {
+                validate_flow_body_endpoints(body, param_env, host_map, flow_map, src)?;
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Recursively validates `compile` block [`RunStatement`] entries (`Invocation`, `Frame`, and `Repeat`).
+fn validate_run_statements(
+    items: &[RunStatement],
+    host_map: &HashMap<String, &HostDef>,
+    flow_map: &HashMap<String, &FlowDef>,
+    src: &str,
+) -> Result<(), CompilerError> {
+    let empty_env = HashMap::new();
+    for run_stmt in items {
+        match run_stmt {
+            RunStatement::Invocation(inv) => {
+                validate_invocation_with_env(inv, &empty_env, host_map, flow_map, src)?;
+            }
+            RunStatement::Frame(stmt) => {
+                validate_frame_statement(stmt, src)?;
+                let Some(caller_host) =
+                    host_map.get(&stmt.caller.node.to_ascii_lowercase()).copied()
+                else {
+                    return sem_err(
+                        src,
+                        stmt.caller.span,
+                        alloc::format!("Undefined host: '{}'", stmt.caller.node),
+                    );
+                };
+                let Some(callee_host) =
+                    host_map.get(&stmt.callee.node.to_ascii_lowercase()).copied()
+                else {
+                    return sem_err(
+                        src,
+                        stmt.callee.span,
+                        alloc::format!("Undefined host: '{}'", stmt.callee.node),
+                    );
+                };
+                validate_statement_endpoints(stmt, caller_host, callee_host, src)?;
+            }
+            RunStatement::Repeat { body, .. } => {
+                validate_run_statements(body, host_map, flow_map, src)?;
+            }
+        }
+    }
+    Ok(())
+}
+
 /// Performs semantic validation on a parsed AST, emitting spanned [`CompilerError::SemanticError`].
 ///
 /// # Checks
 /// * Mixed IPv4 and IPv6 endpoints in any statement, IP-version rules (`igmp` vs `mld`, `ndp`), and required `ip` fields for L3–L7 protocols.
-/// * Out-of-range fields (`0..=255` `<u8>`, `0..=65535` `<u16>`, `vlan`/`qinq`/`innervlan` `0..=4095`, `pcp`/`exp` `0..=7`, `dei`/`bos` `0..=1`, `mpls`, `dscp`, `ecn`, `ttl`, `flowlabel`, `gentrap`, `hellotime`, `syslog` `facility`/`severity`).
-/// * Duplicate `host`, `flow`, or parameter declarations (case-insensitive).
+/// * Out-of-range fields (`0..=255` `<u8>`, `0..=65535` `<u16>`, `vlan`/`qinq`/`innervlan` `0..=4095`, `pcp`/`exp` `0..=7`, `dei`/`bos` `0..=1`, `mpls`, `dscp`, `ecn`, `ttl`, `flowlabel`, `fragoffset` `0..=8191`, `gentrap`, `hellotime`, `syslog` `facility`/`severity`).
+/// * Duplicate `host`, `flow`, or parameter declarations (case-insensitive) and acyclic `flow -> flow` calls.
 /// * Duplicate statement modifiers and L4+L7 protocol collisions.
-/// * Invalid cross-protocol modifiers (`transport`, TCP flags/options, `nop`, SNMP version fields).
+/// * Invalid cross-protocol modifiers (`transport`, `nochecksum`, `df` on IPv6, `flowlabel` on IPv4, `badipchecksum` on IPv6, orphan VLAN/QinQ/MPLS modifiers, TCP flags/options, `nop`, SNMP version fields).
 pub fn validate_semantics(program: &Program, src: &str) -> Result<(), CompilerError> {
     // 1. Check duplicate host definitions (case-insensitive)
     let mut seen_hosts: HashMap<String, (usize, usize)> = HashMap::new();
@@ -732,13 +1389,12 @@ pub fn validate_semantics(program: &Program, src: &str) -> Result<(), CompilerEr
         .map(|h| (h.name.to_ascii_lowercase(), h))
         .collect();
 
-    // 2. Check duplicate flow definitions, parameters, statement bounds, and flow endpoint bindings
+    // 2. Check duplicate flow definitions and parameters before inspecting nested calls
     let mut seen_flows: HashMap<String, (usize, usize)> = HashMap::new();
+    let mut flow_params_map: HashMap<String, HashSet<String>> = HashMap::new();
     for flow in &program.flows {
-        if seen_flows
-            .insert(flow.name.to_ascii_lowercase(), flow.span)
-            .is_some()
-        {
+        let fkey = flow.name.to_ascii_lowercase();
+        if seen_flows.insert(fkey.clone(), flow.span).is_some() {
             return sem_err(
                 src,
                 flow.span,
@@ -756,98 +1412,58 @@ pub fn validate_semantics(program: &Program, src: &str) -> Result<(), CompilerEr
                 );
             }
         }
-
-        for stmt in &flow.statements {
-            validate_frame_statement(stmt, src)?;
-            validate_flow_endpoint(
-                "caller",
-                &stmt.caller,
-                flow.name,
-                &seen_params,
-                &host_map,
-                stmt.span,
-                src,
-            )?;
-            validate_flow_endpoint(
-                "callee",
-                &stmt.callee,
-                flow.name,
-                &seen_params,
-                &host_map,
-                stmt.span,
-                src,
-            )?;
-        }
+        flow_params_map.insert(fkey, seen_params);
     }
 
-    // 3. Check compile block invocations, inline frame statements, and endpoint IP rules
     let flow_map: HashMap<String, &FlowDef> = program
         .flows
         .iter()
         .map(|f| (f.name.to_ascii_lowercase(), f))
         .collect();
 
-    let check_invocation = |inv: &TemplateInvocation| -> Result<(), CompilerError> {
-        let Some(flow) = flow_map.get(&inv.name.to_ascii_lowercase()) else {
-            return sem_err(src, inv.span, alloc::format!("Undefined flow: '{}'", inv.name));
-        };
-
-        if flow.params.len() != inv.args.len() {
-            return sem_err(
-                src,
-                inv.span,
-                alloc::format!(
-                    "Flow '{}' expects {} arguments, got {}",
-                    flow.name,
-                    flow.params.len(),
-                    inv.args.len()
-                ),
-            );
-        }
-
-        let mut param_to_host: HashMap<String, &HostDef> = HashMap::new();
-        for (i, param_name) in flow.params.iter().enumerate() {
-            let Argument::Variable(var_name) = &inv.args[i];
-            let Some(host) = host_map.get(&var_name.to_ascii_lowercase()) else {
-                return sem_err(src, inv.span, alloc::format!("Undefined host: '{var_name}'"));
-            };
-            param_to_host.insert(param_name.to_ascii_lowercase(), *host);
-        }
-
-        for stmt in &flow.statements {
-            let caller_host = param_to_host[&stmt.caller.node.to_ascii_lowercase()];
-            let callee_host = param_to_host[&stmt.callee.node.to_ascii_lowercase()];
-            validate_statement_endpoints(stmt, caller_host, callee_host, src)?;
-        }
-
-        Ok(())
-    };
-
-    for run_stmt in &program.compile_block {
-        match run_stmt {
-            RunStatement::Invocation(inv) => check_invocation(inv)?,
-            RunStatement::Frame(stmt) => {
+    // 3. Validate flow bodies (frames, nested invocations, `repeat`, unshadowed global host refs)
+    for flow in &program.flows {
+        let seen_params = &flow_params_map[&flow.name.to_ascii_lowercase()];
+        if flow.body.is_empty() && !flow.statements.is_empty() {
+            for stmt in &flow.statements {
                 validate_frame_statement(stmt, src)?;
-                let Some(caller_host) = host_map.get(&stmt.caller.node.to_ascii_lowercase()).copied()
-                else {
-                    return sem_err(
-                        src,
-                        stmt.caller.span,
-                        alloc::format!("Undefined host: '{}'", stmt.caller.node),
-                    );
-                };
-                let Some(callee_host) = host_map.get(&stmt.callee.node.to_ascii_lowercase()).copied()
-                else {
-                    return sem_err(
-                        src,
-                        stmt.callee.span,
-                        alloc::format!("Undefined host: '{}'", stmt.callee.node),
-                    );
-                };
-                validate_statement_endpoints(stmt, caller_host, callee_host, src)?;
+                validate_flow_endpoint(
+                    "caller",
+                    &stmt.caller,
+                    flow.name,
+                    seen_params,
+                    &host_map,
+                    stmt.span,
+                    src,
+                )?;
+                validate_flow_endpoint(
+                    "callee",
+                    &stmt.callee,
+                    flow.name,
+                    seen_params,
+                    &host_map,
+                    stmt.span,
+                    src,
+                )?;
             }
+        } else {
+            validate_flow_body(&flow.body, flow.name, seen_params, &host_map, &flow_map, src)?;
         }
     }
+
+    // 4. Detect cyclic `flow -> flow` calls via DFS
+    let mut dfs_state: HashMap<String, u8> = HashMap::new();
+    for flow in &program.flows {
+        let key = flow.name.to_ascii_lowercase();
+        if dfs_state.get(&key).copied().unwrap_or(0) == 0 {
+            dfs_state.insert(key.clone(), 1);
+            detect_flow_cycles_in_body(flow.name, &flow.body, &flow_map, &mut dfs_state, src)?;
+            dfs_state.insert(key, 2);
+        }
+    }
+
+    // 5. Check compile block invocations, inline frame statements, `repeat` blocks, and endpoint rules
+    validate_run_statements(&program.compile_block, &host_map, &flow_map, src)?;
 
     Ok(())
 }

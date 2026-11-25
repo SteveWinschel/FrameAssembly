@@ -15,7 +15,7 @@
 //!    arguments on `update` with exit code `2`, while `check_legacy_cli_args` rejects `-o` and
 //!    `--output` with exit code `1` and migration guidance.
 //! 4. **Bootstrap Installer Verification**: Verifies `install.sh` and `install.ps1` MSRV `1.89`,
-//!    `v3.2.2` pins, atomic temp-file staging, `--help`, `--dry-run`, and fail-closed `--offline`
+//!    `v3.3.0` pins, atomic temp-file staging, `--help`, `--dry-run`, and fail-closed `--offline`
 //!    `SHA256SUMS.txt` verification.
 //! 5. **Shell Completion & Hermetic Self-Update Execution**: Verifies all four completion scripts
 //!    complete `update` alongside `show`, `reverse`, `version`, and `help`, validates `bash -n`
@@ -27,7 +27,7 @@ use std::fs;
 use std::path::Path;
 use std::process::{Command, Output};
 
-/// Canonical five top-level subcommands exposed by FrameAssembly v3.2.2.
+/// Canonical five top-level subcommands exposed by FrameAssembly v3.3.0.
 const EXPECTED_SUBCOMMANDS: [&str; 5] = ["show", "reverse", "update", "version", "help"];
 
 /// Returns the compiled `frameassembly` binary path injected by Cargo (`CARGO_BIN_EXE_frameassembly`).
@@ -168,7 +168,7 @@ fn test_update_rejects_unknown_flags_and_extra_positional_args_via_clap() {
         assert!(String::from_utf8_lossy(&out.stderr).contains(bad_flag));
     }
 
-    for extra_arg in ["extra_positional_arg", "v3.2.2", "capture.pcap"] {
+    for extra_arg in ["extra_positional_arg", "v3.3.0", "capture.pcap"] {
         let out = run_frameassembly(&["update", extra_arg]);
         assert_eq!(
             out.status.code(),
@@ -218,10 +218,10 @@ fn test_update_rejects_legacy_output_show_and_reverse_flags_with_migration_hints
 // 4. Cross-Platform Installer Invariants (`install.sh` & `install.ps1`)
 // ============================================================================
 
-/// Verifies static version lockstep (`3.2.2`), MSRV `1.89`, fail-closed `SHA256SUMS.txt` checks,
+/// Verifies static version lockstep (`3.3.0`), MSRV `1.89`, fail-closed `SHA256SUMS.txt` checks,
 /// and OS-safe atomic binary staging across both `install.sh` and `install.ps1`.
 #[test]
-fn test_installers_static_invariants_msrv_1_89_version_3_2_2_and_atomic_staging() {
+fn test_installers_static_invariants_msrv_1_89_version_3_3_0_and_atomic_staging() {
     let pkg_ver = env!("CARGO_PKG_VERSION");
 
     let install_sh =
@@ -291,12 +291,12 @@ fn test_all_four_shell_completion_scripts_complete_five_subcommands_including_up
 
     let bash_src = fs::read_to_string(completions_dir.join("frameassembly.bash")).unwrap();
     assert!(bash_src.contains("compgen -W \"show reverse update version help\""));
-    assert!(bash_src.contains("update|version|-*)"));
+    assert!(bash_src.contains("update|version|-?*)"));
 
     let zsh_src = fs::read_to_string(completions_dir.join("_frameassembly")).unwrap();
     assert!(zsh_src.starts_with("#compdef frameassembly"));
     assert!(zsh_src.contains("'update:Update frameassembly to the newest release'"));
-    assert!(zsh_src.contains("update|version|-*)"));
+    assert!(zsh_src.contains("update|version|-?*)"));
 
     let fish_src = fs::read_to_string(completions_dir.join("frameassembly.fish")).unwrap();
     assert!(fish_src.contains("not contains -- \"$tokens[2]\" show reverse update version help"));
@@ -563,7 +563,7 @@ esac
         fs::copy(repo_root().join("install.sh"), &temp_installer).unwrap();
         write_executable_script(
             &bundle_src.join("frameassembly"),
-            "#!/bin/sh\necho \"frameassembly 3.2.2\"\n",
+            "#!/bin/sh\necho \"frameassembly 3.3.0\"\n",
         );
 
         let archive_name = "frameassembly-linux-x64.tar.gz";

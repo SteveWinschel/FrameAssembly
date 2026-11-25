@@ -1,8 +1,8 @@
-# FrameAssembly (`.frasm` v3.2.2) — Syntax Highlighting & Live Linter
+# FrameAssembly (`.frasm` v3.3.0) — Syntax Highlighting & Live Linter
 
 [**CLI & Releases (`GitHub`)**](https://github.com/SteveWinschel/FrameAssembly) • [**Crates.io (`cargo install frameassembly`)**](https://crates.io/crates/frameassembly) • [**Documentation**](https://frameassembly-lang.dev/docs) • [**Use Cases**](https://frameassembly-lang.dev/use-cases)
 
-Official syntax highlighting and live error linting for [**FrameAssembly**](https://github.com/SteveWinschel/FrameAssembly) (`.frasm` v3.2.2) **Packets as Code** files across all 81 Layer 2 through Layer 7 network protocols.
+Official syntax highlighting and live error linting for [**FrameAssembly**](https://github.com/SteveWinschel/FrameAssembly) (`.frasm` v3.3.0) **Packets as Code** files across all 146 Layer 2 through Layer 7 network protocols.
 
 Built for network engineers, firewall administrators, SOC/NDR analysts, pentesters, and OT/SCADA integrators writing `.frasm` traffic scenarios for **Wireshark**, **`tshark`**, **`tcpreplay`**, **Suricata**, **Zeek**, **Checkmk**, and **Zabbix**.
 
@@ -10,23 +10,23 @@ Built for network engineers, firewall administrators, SOC/NDR analysts, penteste
 
 ## What This Extension Does
 
-This extension stays out of your way—no toolbar buttons, side panels, or startup popups—and focuses strictly on two jobs:
+This extension adds zero toolbar buttons, side panels, or startup popups and focuses on three capabilities:
 
 1. **Syntax Highlighting (`.frasm` & Markdown Runbooks):**
-   * Highlights `host`, `flow`, and `compile` blocks, all 81 protocol keywords, protocol modifiers, IPv4/IPv6 addresses, IEEE/Cisco MAC formats (`00:1a:2b:3c:4d:5e`, `00-1A-2B-3C-4D-5E`, `001a.2b3c.4d5e`), SNMP OIDs, hex values, and post-packet `wait` durations (`ns`, `us`, `ms`, `s`, `m`) using the dedicated `source.frameassembly` (`text/vnd.frameassembly`) grammar so x86 Flat Assembler (`;` comments) and FPGA bitstream (`#` comments) extensions never collide with your packet files.
+   * Highlights `host`, `flow`, `repeat`, and `compile` blocks, all 146 protocol keywords, protocol modifiers, IPv4/IPv6 addresses, IEEE/Cisco MAC formats (`00:1a:2b:3c:4d:5e`, `00-1A-2B-3C-4D-5E`, `001a.2b3c.4d5e`), SNMP OIDs, hex values, and post-packet `wait` durations (`ns`, `us`, `ms`, `s`, `m`) using the dedicated `source.frameassembly` (`text/vnd.frameassembly`) grammar so x86 Flat Assembler (`;` comments) and FPGA bitstream (`#` comments) extensions never collide with your packet files.
    * Highlights fenced ```` ```frameassembly ```` and ```` ```frasm ```` code blocks inside Markdown documentation and incident runbooks (`markdown.frameassembly.codeblock`).
-   * Configures `//` line-comment toggling (`Ctrl+/` / `Cmd+/`) and safe `{...}`, `(...)`, and `"..."` auto-closing pairs without inserting unsupported `'single quotes'` or `[brackets]`.
+   * Configures `//` line-comment toggling (`Ctrl+/` / `Cmd+/`), hyphen-aware identifier selection (`fw-dmz-01`), and `{...}`, `(...)`, `"..."` auto-closing pairs without inserting unsupported `'single quotes'` or `[brackets]`.
    * Displays the `.frasm` Explorer and editor-tab language file icon (`icons/frasm.svg`) alongside the `256x256` rounded-square FrameAssembly brand icon (`icon.png`).
 
 2. **Live In-Editor Linting & 1-Click Typo Quick Fixes:**
-   * Validates `.frasm` code in memory as you type using the embedded WebAssembly validator—flagging unknown keywords, out-of-range ports or VLAN IDs, mixed IPv4/IPv6 endpoints, invalid transport modifiers, and missing host declarations with red squiggles in the Problems panel.
+   * Validates `.frasm` code in memory as you type using the embedded WebAssembly validator. It flags unknown keywords, out-of-range ports or VLAN IDs, mixed IPv4/IPv6 endpoints, invalid transport modifiers, and missing host declarations with red squiggles in the Problems panel.
    * Pasted an older snippet with uppercase or underscored keywords such as `ECHO_REQUEST`, `inner_vlan`, or `sport`? Press `Ctrl+.` / `Cmd+.` (or click the lightbulb) for a **1-click Quick Fix** to replace it with the valid lowercase keyword (`echorequest`, `innervlan`, `srcport`).
 
 3. **Restricted Mode & Browser Editor Ready:**
-   * Runs strictly read-only in memory—it never writes files, spawns shell processes, or opens network connections.
+   * Runs read-only in memory: it never writes files, spawns shell processes, or opens network connections.
    * Works immediately in **VS Code Restricted Mode** (untrusted folders of downloaded captures), **VS Code for the Web (`vscode.dev` / `github.dev`)**, **Cursor**, **Windsurf**, **VSCodium**, and **Antigravity IDE**.
 
-> **Upgrading from FrameAssembly 2.x?** FrameAssembly 3.x uses the `.frasm` file extension instead of `.fasm`. Rename existing files to `.frasm`.
+> **Upgrading from `.fasm` files?** FrameAssembly 3.x uses the `.frasm` file extension instead of `.fasm`. Rename existing files to `.frasm`.
 
 ---
 
@@ -45,11 +45,12 @@ Prebuilt standalone archives, Debian/Ubuntu `.deb` packages, and `install.sh` / 
 Once installed, run `frameassembly` from your terminal:
 
 ```sh
-# Compile demo.frasm -> demo.pcap (classic libpcap) or pass demo.pcapng for nanosecond PCAPNG
+# Compile demo.frasm into demo.pcap (classic libpcap), demo.pcapng, or stream PCAPNG to stdout
 frameassembly demo.frasm
 frameassembly demo.frasm demo.pcapng
+frameassembly demo.frasm - | tshark -r -
 
-# Print the packet ladder table in the terminal without writing a file
+# Print the packet ladder table for a .frasm file or capture without writing files
 frameassembly show demo.frasm
 
 # Reverse an existing .pcap or .pcapng capture into .frasm code
@@ -87,7 +88,7 @@ compile { link_down_alert(core_sw, zabbix) }
 
 ### Testing Shadow IT, NDR Policies & Stateful IDS Rules (`Suricata`, `Zeek`, `Snort`)
 
-Stateful firewalls and IDS sensors ignore mid-stream packets without a valid 3-way TCP handshake and advancing sequence numbers. FrameAssembly tracks 4-tuple `seq` and `acknum` counters automatically across `tcp` and Layer 7 frames:
+Stateful firewalls and IDS sensors ignore mid-stream packets without a valid 3-way TCP handshake and advancing sequence numbers. FrameAssembly advances 4-tuple `seq` and `acknum` counters across `tcp` and Layer 7 frames:
 
 ```frameassembly
 // Stateful DNS lookup + Shadow IT TLS SNI policy test
@@ -130,21 +131,39 @@ flow ot_conduit_audit(hmi, plc) {
 compile { ot_conduit_audit(scada_hmi, field_plc) }
 ```
 
+### Testing 5G Mobile Core Signaling (`NGAP`, `PFCP`)
+
+Build 5G N2 SCTP control-plane signaling and N4 PFCP session setup frames in a few lines:
+
+```frameassembly
+// 5G N2 NGAP InitialUEMessage + N4 PFCP Session Establishment
+host gnb { ip 10.60.1.10 mac 00:1a:2b:60:01:10 }
+host amf { ip 10.60.1.20 mac 00:1a:2b:60:01:20 }
+host smf { ip 10.60.2.10 mac 00:1a:2b:60:02:10 }
+host upf { ip 10.60.2.20 mac 00:1a:2b:60:02:20 }
+
+compile {
+    gnb -> amf ngap initialuemessage amfueid 101 ranueid 202 plmn "310410" tac 7 wait 2ms
+    smf -> upf pfcp sessionestablishmentrequest seid 1001 seqnum 1 nodeid "10.60.2.10"
+}
+```
+
 ---
 
-## Protocol Coverage (81 Native Protocols)
+## Protocol Coverage (146 Native Protocols)
 
-All built-in keywords, protocols, modifiers, and duration units (`ns`, `us`, `ms`, `s`, `m`) in FrameAssembly 3.2.2 use lowercase without `_` or `-` (`echorequest`, `innervlan`, `clienthello`, `readholdingregisters`):
+All built-in keywords, protocols, modifiers, and duration units (`ns`, `us`, `ms`, `s`, `m`) in FrameAssembly 3.3.0 use lowercase without `_` or `-` (`echorequest`, `innervlan`, `clienthello`, `readholdingregisters`):
 
 | OSI Layer | Count | Native Protocol Keywords |
 | :--- | :---: | :--- |
-| **Layer 2 (Switching & Data Link)** | 8 | `arp`, `vlan` (802.1Q), `qinq` (802.1ad), `mpls`, `lldp`, `stp`, `lacp`, `eapol` (802.1X) |
-| **Layer 3 (Control, Tunnel, VPN, Routing)** | 20 | `icmp`, `ndp`, `igmp`, `mld`, `gre`, `vxlan`, `geneve`, `ipsec`, `esp`, `ah`, `ikev2`, `wireguard`, `ospf`, `bgp`, `rip`, `vrrp`, `hsrp`, `pim`, `bfd`, `openflow` |
+| **Layer 2 (Switching, Discovery & Industrial Link)** | 18 | `arp`, `vlan` (802.1Q), `qinq` (802.1ad), `mpls`, `lldp`, `stp`, `lacp`, `eapol` (802.1X), `cdp`, `isis`, `macsec`, `pfc`, `pppoe`, `nsh`, `profinet`, `goose`, `sv`, `ethercat` |
+| **Layer 3 (Control, Tunnel, VPN & Routing)** | 31 | `icmp`, `ndp`, `igmp`, `mld`, `gre`, `vxlan`, `geneve`, `ipsec`, `esp`, `ah`, `ikev2`, `wireguard`, `ospf`, `bgp`, `rip`, `vrrp`, `hsrp`, `pim`, `bfd`, `openflow`, `ipip`, `srv6`, `erspan`, `rsvp`, `ldp`, `bmp`, `rpkirtr`, `l2tp`, `lisp`, `glbp`, `gtpu` |
 | **Layer 4 (Transport)** | 3 | `tcp`, `udp`, `sctp` |
-| **Layer 7 (SNMP, Infra, AAA, Telemetry)** | 14 | `snmp1`, `snmp2`, `snmp3`, `dns`, `mdns`, `dhcp`, `ntp`, `ptp`, `radius`, `tacacs`, `syslog`, `netflow`, `ipfix`, `sflow` |
-| **Layer 7 (Web, Cloud, TLS, VoIP, Access)** | 16 | `http`, `http2`, `grpc`, `websocket`, `tls`, `quic`, `tftp`, `ftp`, `ssh`, `telnet`, `whois`, `sip`, `rtp`, `rtsp`, `stun`, `ssdp` |
-| **Layer 7 (Mail, Auth, Storage, DB, Brokers)** | 14 | `smtp`, `imap`, `pop3`, `kerberos`, `ldap`, `smb`, `nfs`, `redis`, `memcached`, `mysql`, `postgres`, `mqtt`, `coap`, `amqp` |
-| **Layer 7 (Industrial ICS / SCADA / OT)** | 6 | `modbus`, `bacnet`, `dnp3`, `s7comm`, `ethernetip`, `opcua` |
+| **Layer 7 (SNMP, Infra, Naming, AAA & Telemetry)** | 21 | `snmp1`, `snmp2`, `snmp3`, `dns`, `mdns`, `llmnr`, `nbns`, `doh`, `dhcp`, `ntp`, `ptp`, `radius`, `tacacs`, `syslog`, `netflow`, `ipfix`, `sflow`, `twamp`, `netconf`, `ipmi`, `wsdiscovery` |
+| **Layer 7 (Web, Cloud, Remote Access & VoIP/Media)** | 27 | `http`, `http2`, `grpc`, `websocket`, `tls`, `quic`, `tftp`, `ftp`, `ssh`, `telnet`, `whois`, `ssdp`, `rdp`, `vnc`, `socks`, `dcerpc`, `ntlm`, `irc`, `stun`, `turn`, `sip`, `rtp`, `rtcp`, `rtsp`, `h323`, `sccp`, `mgcp` |
+| **Layer 7 (Telecom & Mobile Core)** | 5 | `diameter`, `gtpc`, `pfcp`, `ngap`, `s1ap` |
+| **Layer 7 (Mail, Auth, Storage, Databases & Brokers)** | 21 | `smtp`, `imap`, `pop3`, `kerberos`, `ldap`, `smb`, `nfs`, `iscsi`, `nvmetcp`, `rocev2`, `redis`, `memcached`, `mysql`, `postgres`, `mssql`, `mongodb`, `tns`, `kafka`, `mqtt`, `coap`, `amqp` |
+| **Layer 7 (Industrial OT, Grid, Building & Automotive)** | 20 | `modbus`, `bacnet`, `dnp3`, `s7comm`, `s7commplus`, `ethernetip`, `opcua`, `iec104`, `mms`, `synchrophasor`, `hartip`, `fins`, `melsec`, `someip`, `doip`, `c1222`, `gesrtp`, `rocplus`, `bsap`, `knxnetip` |
 
 ## License
 

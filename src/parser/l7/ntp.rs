@@ -12,7 +12,7 @@ use winnow::prelude::*;
 
 use crate::ast::*;
 use crate::lexer::Token;
-use crate::parser::{parse_i32, parse_str_val, parse_u32, parse_u64, tag, ParsedField, Stream};
+use crate::parser::{parse_i8, parse_str_val, parse_u32, parse_u64, tag, ParsedField, Stream};
 
 /// Parses an NTP protocol declaration or time synchronization field.
 pub(crate) fn parse_ntp_field<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<ParsedField<'a>> {
@@ -32,8 +32,8 @@ pub(crate) fn parse_ntp_field<'i, 'a>(input: &mut Stream<'i, 'a>) -> PResult<Par
         alt((
             (tag(Token::Poll), cut_err(parse_u32))
                 .map(|((_, s), v)| ParsedField::L7U32Field("POLL", v, (s.start, s.end - s.start))),
-            (tag(Token::Precision), cut_err(parse_i32)).map(|((_, s), v)| {
-                ParsedField::L7U32Field("PRECISION", v as u32, (s.start, s.end - s.start))
+            (tag(Token::Precision), cut_err(parse_i8)).map(|((_, s), v)| {
+                ParsedField::L7I32Field("PRECISION", i32::from(v), (s.start, s.end - s.start))
             }),
             (tag(Token::RefId), cut_err(parse_str_val)).map(|((_, s), v)| {
                 ParsedField::L7StringField("REFID", v, (s.start, s.end - s.start))

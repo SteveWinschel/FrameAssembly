@@ -5,13 +5,13 @@
 //! `srcport`, 16-bit `dstport`, 32-bit `seq`, 32-bit `acknum`, 4-bit Data Offset, 8-bit
 //! Control Flags (`cwr`, `ece`, `urg`, `ack`, `psh`, `rst`, `syn`, `fin`), 16-bit `win`,
 //! 16-bit one's complement pseudo-header Checksum, and 16-bit `urgent` pointer, followed by
-//! 32-bit aligned TLV options (`mss`, `wscale`, `sackperm`, `tsval`, `tsecr`).
+//! 32-bit aligned TLV options (`mss`, `wscale`, `sackperm`, `tsval`, `tsecr`, `sackblock`,
+//! `tcpmd5`, `tfo`).
 //!
 //! Canonical `.frasm` syntax:
 //! `a -> b tcp [syn] [ack] [fin] [rst] [psh] [urg] [ece] [cwr] [srcport <u16>] [dstport <u16>] [seq <u32>] [acknum <u32>] [win <u16>] [mss <u16>] [wscale <u8>] [sackperm] [tsval <u32>] [tsecr <u32>]`
 
-use crate::ast::{TcpFlag, TcpOptions};
-use alloc::vec::Vec;
+use crate::ast::TcpFlag;
 
 /// Encodes a slice of [`TcpFlag`] variants into the 8-bit RFC 9293 TCP control flags byte.
 pub fn encode_tcp_flags(flags: &[TcpFlag]) -> u8 {
@@ -29,37 +29,5 @@ pub fn encode_tcp_flags(flags: &[TcpFlag]) -> u8 {
         }
     }
     byte
-}
-
-/// Encodes [`TcpOptions`] into 32-bit aligned RFC 9293 / RFC 7323 TCP option TLV bytes.
-pub fn encode_tcp_options(opts: &TcpOptions) -> Vec<u8> {
-    let mut tcp_opts = Vec::new();
-    if let Some(mss) = opts.mss {
-        tcp_opts.push(2); // Kind 2: MSS
-        tcp_opts.push(4); // Length 4
-        tcp_opts.extend_from_slice(&mss.to_be_bytes());
-    }
-    if let Some(ws) = opts.wscale {
-        tcp_opts.push(1); // NOP for alignment
-        tcp_opts.push(3); // Kind 3: Window Scale
-        tcp_opts.push(3); // Length 3
-        tcp_opts.push(ws);
-    }
-    if opts.sack_perm {
-        tcp_opts.push(4); // Kind 4: SACK Permitted
-        tcp_opts.push(2); // Length 2
-    }
-    if opts.tsval.is_some() || opts.tsecr.is_some() {
-        let ts_val = opts.tsval.unwrap_or(0);
-        let ts_ecr = opts.tsecr.unwrap_or(0);
-        tcp_opts.push(8); // Kind 8: Timestamps
-        tcp_opts.push(10); // Length 10
-        tcp_opts.extend_from_slice(&ts_val.to_be_bytes());
-        tcp_opts.extend_from_slice(&ts_ecr.to_be_bytes());
-    }
-    while !tcp_opts.len().is_multiple_of(4) {
-        tcp_opts.push(0); // EOL padding
-    }
-    tcp_opts
 }
 

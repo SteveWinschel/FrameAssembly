@@ -147,6 +147,26 @@ pub enum Protocol {
     Eapol,
     /// RFC 3032 Multi-Protocol Label Switching
     Mpls,
+    /// Cisco Discovery Protocol v2 (802.3 LLC/SNAP)
+    Cdp,
+    /// ISO/IEC 10589 Intermediate System to Intermediate System
+    Isis,
+    /// IEEE 802.1AE Media Access Control Security
+    Macsec,
+    /// IEEE 802.1Qbb Priority-based Flow Control
+    Pfc,
+    /// RFC 2516 Point-to-Point Protocol over Ethernet
+    Pppoe,
+    /// RFC 8300 Network Service Header
+    Nsh,
+    /// IEC 61158-6-10 PROFINET IO Real-Time and Context Manager
+    Profinet,
+    /// IEC 61850-8-1 Generic Object Oriented Substation Event
+    Goose,
+    /// IEC 61850-9-2LE Sampled Values
+    Sv,
+    /// IEC 61158-4-12 EtherCAT Industrial Real-Time Protocol
+    Ethercat,
     /// RFC 792 / RFC 4443 Internet Control Message Protocol (v4/v6)
     Icmp,
     /// RFC 4861 IPv6 Neighbor Discovery Protocol
@@ -187,6 +207,28 @@ pub enum Protocol {
     Bfd,
     /// OpenFlow Switch Specification
     Openflow,
+    /// RFC 2003 / RFC 2473 / RFC 4213 IP-in-IP Encapsulation
+    Ipip,
+    /// RFC 8754 Segment Routing over IPv6
+    Srv6,
+    /// Encapsulated Remote Switch Port Analyzer (Type II & III)
+    Erspan,
+    /// RFC 2205 / RFC 3209 Resource Reservation Protocol
+    Rsvp,
+    /// RFC 5036 Label Distribution Protocol
+    Ldp,
+    /// RFC 7854 BGP Monitoring Protocol
+    Bmp,
+    /// RFC 6810 / RFC 8210 RPKI to Router Protocol
+    Rpkirtr,
+    /// RFC 2661 / RFC 3931 Layer 2 Tunneling Protocol
+    L2tp,
+    /// RFC 9300 / RFC 9301 Locator/ID Separation Protocol
+    Lisp,
+    /// Cisco Gateway Load Balancing Protocol
+    Glbp,
+    /// 3GPP TS 29.281 GPRS Tunneling Protocol User Plane
+    Gtpu,
     /// RFC 1035 Domain Name System
     Dns,
     /// RFC 6762 Multicast DNS
@@ -281,6 +323,94 @@ pub enum Protocol {
     Ethernetip,
     /// OPC Unified Architecture Binary Protocol
     Opcua,
+    /// Distributed Computing Environment / Remote Procedure Call
+    Dcerpc,
+    /// NT LAN Manager Authentication over HTTP
+    Ntlm,
+    /// Remote Desktop Protocol (MS-RDPBCGR over TPKT/X.224)
+    Rdp,
+    /// RFC 4795 Link-Local Multicast Name Resolution
+    Llmnr,
+    /// RFC 1001 / RFC 1002 NetBIOS Name Service
+    Nbns,
+    /// RFC 1928 / RFC 1929 SOCKS Version 5 Proxy Protocol
+    Socks,
+    /// Virtual Network Computing Remote Framebuffer Protocol
+    Vnc,
+    /// RFC 8484 DNS over HTTPS
+    Doh,
+    /// OASIS Web Services Dynamic Discovery
+    Wsdiscovery,
+    /// RFC 1459 / RFC 2812 Internet Relay Chat Protocol
+    Irc,
+    /// IEC 60870-5-104 Telecontrol Protocol
+    Iec104,
+    /// ISO 9506 / IEC 61850 Manufacturing Message Specification
+    Mms,
+    /// Siemens S7 Communication Plus
+    S7commplus,
+    /// IEEE C37.118 Synchrophasor Telemetry Protocol
+    Synchrophasor,
+    /// HCF Spec 085 HART-IP Protocol
+    Hartip,
+    /// Omron Factory Interface Network Service
+    Fins,
+    /// Mitsubishi MELSEC MC Protocol / SLMP
+    Melsec,
+    /// AUTOSAR SOME/IP and Service Discovery
+    Someip,
+    /// ISO 13400-2 Diagnostics over Internet Protocol
+    Doip,
+    /// ANSI C12.22 / IEEE 1703 Smart Grid Metering Protocol
+    C1222,
+    /// GE Fanuc Service Request Transport Protocol
+    Gesrtp,
+    /// Emerson ROC Plus SCADA Protocol
+    Rocplus,
+    /// Bristol Standard Asynchronous Protocol over IP
+    Bsap,
+    /// ISO/IEC 14543-3 KNXnet/IP Building Automation Protocol
+    Knxnetip,
+    /// RDMA over Converged Ethernet v2
+    Rocev2,
+    /// Intelligent Platform Management Interface (RMCP / IPMI)
+    Ipmi,
+    /// RFC 5357 / RFC 6038 Two-Way Active Measurement Protocol
+    Twamp,
+    /// RFC 6241 / RFC 6242 Network Configuration Protocol
+    Netconf,
+    /// 3GPP TS 29.274 GPRS Tunneling Protocol Control Plane v2
+    Gtpc,
+    /// 3GPP TS 29.244 Packet Forwarding Control Protocol
+    Pfcp,
+    /// RFC 6733 Diameter Base Protocol
+    Diameter,
+    /// 3GPP TS 38.413 5G NG Application Protocol
+    Ngap,
+    /// 3GPP TS 36.413 4G LTE S1 Application Protocol
+    S1ap,
+    /// Microsoft SQL Server Tabular Data Stream
+    Mssql,
+    /// Apache Kafka Binary Wire Protocol
+    Kafka,
+    /// MongoDB Wire Protocol
+    Mongodb,
+    /// Oracle Transparent Network Substrate
+    Tns,
+    /// RFC 7143 Internet Small Computer Systems Interface
+    Iscsi,
+    /// NVM Express over Fabrics TCP Transport
+    Nvmetcp,
+    /// RFC 3550 Real-time Transport Control Protocol
+    Rtcp,
+    /// RFC 8656 / RFC 5766 Traversal Using Relays around NAT
+    Turn,
+    /// ITU-T H.323 / H.225.0 Call Signaling and RAS
+    H323,
+    /// Cisco Skinny Client Control Protocol
+    Sccp,
+    /// RFC 3435 Media Gateway Control Protocol
+    Mgcp,
 }
 
 impl Protocol {
@@ -301,6 +431,16 @@ impl Protocol {
             Self::Lacp => "LACP",
             Self::Eapol => "EAPOL",
             Self::Mpls => "MPLS",
+            Self::Cdp => "CDP",
+            Self::Isis => "ISIS",
+            Self::Macsec => "MACSEC",
+            Self::Pfc => "PFC",
+            Self::Pppoe => "PPPOE",
+            Self::Nsh => "NSH",
+            Self::Profinet => "PROFINET",
+            Self::Goose => "GOOSE",
+            Self::Sv => "SV",
+            Self::Ethercat => "ETHERCAT",
             Self::Icmp => "ICMP",
             Self::Ndp => "NDP",
             Self::Igmp => "IGMP",
@@ -321,6 +461,17 @@ impl Protocol {
             Self::Pim => "PIM",
             Self::Bfd => "BFD",
             Self::Openflow => "OPENFLOW",
+            Self::Ipip => "IPIP",
+            Self::Srv6 => "SRV6",
+            Self::Erspan => "ERSPAN",
+            Self::Rsvp => "RSVP",
+            Self::Ldp => "LDP",
+            Self::Bmp => "BMP",
+            Self::Rpkirtr => "RPKIRTR",
+            Self::L2tp => "L2TP",
+            Self::Lisp => "LISP",
+            Self::Glbp => "GLBP",
+            Self::Gtpu => "GTPU",
             Self::Dns => "DNS",
             Self::Mdns => "MDNS",
             Self::Dhcp => "DHCP",
@@ -368,6 +519,50 @@ impl Protocol {
             Self::S7comm => "S7COMM",
             Self::Ethernetip => "ETHERNETIP",
             Self::Opcua => "OPCUA",
+            Self::Dcerpc => "DCERPC",
+            Self::Ntlm => "NTLM",
+            Self::Rdp => "RDP",
+            Self::Llmnr => "LLMNR",
+            Self::Nbns => "NBNS",
+            Self::Socks => "SOCKS",
+            Self::Vnc => "VNC",
+            Self::Doh => "DOH",
+            Self::Wsdiscovery => "WSDISCOVERY",
+            Self::Irc => "IRC",
+            Self::Iec104 => "IEC104",
+            Self::Mms => "MMS",
+            Self::S7commplus => "S7COMMPLUS",
+            Self::Synchrophasor => "SYNCHROPHASOR",
+            Self::Hartip => "HARTIP",
+            Self::Fins => "FINS",
+            Self::Melsec => "MELSEC",
+            Self::Someip => "SOMEIP",
+            Self::Doip => "DOIP",
+            Self::C1222 => "C1222",
+            Self::Gesrtp => "GESRTP",
+            Self::Rocplus => "ROCPLUS",
+            Self::Bsap => "BSAP",
+            Self::Knxnetip => "KNXNETIP",
+            Self::Rocev2 => "ROCEV2",
+            Self::Ipmi => "IPMI",
+            Self::Twamp => "TWAMP",
+            Self::Netconf => "NETCONF",
+            Self::Gtpc => "GTPC",
+            Self::Pfcp => "PFCP",
+            Self::Diameter => "DIAMETER",
+            Self::Ngap => "NGAP",
+            Self::S1ap => "S1AP",
+            Self::Mssql => "MSSQL",
+            Self::Kafka => "KAFKA",
+            Self::Mongodb => "MONGODB",
+            Self::Tns => "TNS",
+            Self::Iscsi => "ISCSI",
+            Self::Nvmetcp => "NVMETCP",
+            Self::Rtcp => "RTCP",
+            Self::Turn => "TURN",
+            Self::H323 => "H323",
+            Self::Sccp => "SCCP",
+            Self::Mgcp => "MGCP",
         }
     }
 }
@@ -403,6 +598,26 @@ pub enum ProtocolSpec<'a> {
     Eapol(EapolSpec<'a>),
     /// RFC 3032 MPLS label stack.
     Mpls(MplsSpec),
+    /// Cisco Discovery Protocol v2.
+    Cdp(CdpSpec<'a>),
+    /// ISO/IEC 10589 IS-IS protocol.
+    Isis(IsisSpec<'a>),
+    /// IEEE 802.1AE MACsec protocol.
+    Macsec(MacsecSpec),
+    /// IEEE 802.1Qbb Priority Flow Control.
+    Pfc(PfcSpec),
+    /// RFC 2516 PPPoE protocol.
+    Pppoe(PppoeSpec<'a>),
+    /// RFC 8300 Network Service Header.
+    Nsh(NshSpec),
+    /// IEC 61158-6-10 PROFINET protocol.
+    Profinet(ProfinetSpec<'a>),
+    /// IEC 61850-8-1 GOOSE protocol.
+    Goose(GooseSpec<'a>),
+    /// IEC 61850-9-2LE Sampled Values protocol.
+    Sv(SvSpec<'a>),
+    /// IEC 61158-4-12 EtherCAT protocol.
+    Ethercat(EthercatSpec<'a>),
     /// RFC 792 / RFC 4443 ICMP protocol.
     Icmp(IcmpSpec<'a>),
     /// RFC 4861 NDP protocol.
@@ -443,6 +658,28 @@ pub enum ProtocolSpec<'a> {
     Bfd(BfdSpec<'a>),
     /// OpenFlow protocol.
     Openflow(OpenflowSpec<'a>),
+    /// RFC 2003 / RFC 2473 / RFC 4213 IP-in-IP protocol.
+    Ipip(IpipSpec<'a>),
+    /// RFC 8754 SRv6 Segment Routing Header.
+    Srv6(Srv6Spec<'a>),
+    /// ERSPAN Type II & III protocol.
+    Erspan(ErspanSpec<'a>),
+    /// RFC 2205 / RFC 3209 RSVP protocol.
+    Rsvp(RsvpSpec<'a>),
+    /// RFC 5036 LDP protocol.
+    Ldp(LdpSpec<'a>),
+    /// RFC 7854 BMP protocol.
+    Bmp(BmpSpec<'a>),
+    /// RFC 6810 / RFC 8210 RPKI-RTR protocol.
+    Rpkirtr(RpkirtrSpec<'a>),
+    /// RFC 2661 / RFC 3931 L2TP protocol.
+    L2tp(L2tpSpec<'a>),
+    /// RFC 9300 / RFC 9301 LISP protocol.
+    Lisp(LispSpec<'a>),
+    /// Cisco GLBP protocol.
+    Glbp(GlbpSpec<'a>),
+    /// 3GPP TS 29.281 GTPv1-U protocol.
+    Gtpu(GtpuSpec<'a>),
     /// RFC 1035 DNS protocol.
     Dns(DnsSpec<'a>),
     /// RFC 6762 mDNS protocol.
@@ -537,6 +774,94 @@ pub enum ProtocolSpec<'a> {
     Ethernetip(EthernetipSpec<'a>),
     /// OPC UA protocol.
     Opcua(OpcuaSpec<'a>),
+    /// DCE/RPC protocol.
+    Dcerpc(DcerpcSpec<'a>),
+    /// NTLM over HTTP protocol.
+    Ntlm(NtlmSpec<'a>),
+    /// Remote Desktop Protocol.
+    Rdp(RdpSpec<'a>),
+    /// RFC 4795 LLMNR protocol.
+    Llmnr(LlmnrSpec<'a>),
+    /// RFC 1001 / RFC 1002 NetBIOS Name Service.
+    Nbns(NbnsSpec<'a>),
+    /// RFC 1928 / RFC 1929 SOCKS v5 protocol.
+    Socks(SocksSpec<'a>),
+    /// VNC / RFB protocol.
+    Vnc(VncSpec<'a>),
+    /// RFC 8484 DNS over HTTPS protocol.
+    Doh(DohSpec<'a>),
+    /// OASIS WS-Discovery protocol.
+    Wsdiscovery(WsdiscoverySpec<'a>),
+    /// RFC 1459 / RFC 2812 IRC protocol.
+    Irc(IrcSpec<'a>),
+    /// IEC 60870-5-104 protocol.
+    Iec104(Iec104Spec<'a>),
+    /// ISO 9506 / IEC 61850 MMS protocol.
+    Mms(MmsSpec<'a>),
+    /// Siemens S7commPlus protocol.
+    S7commplus(S7commplusSpec<'a>),
+    /// IEEE C37.118 Synchrophasor protocol.
+    Synchrophasor(SynchrophasorSpec<'a>),
+    /// HART-IP protocol.
+    Hartip(HartipSpec<'a>),
+    /// Omron FINS protocol.
+    Fins(FinsSpec<'a>),
+    /// Mitsubishi MELSEC MC / SLMP protocol.
+    Melsec(MelsecSpec<'a>),
+    /// AUTOSAR SOME/IP and SOME/IP-SD protocol.
+    Someip(SomeipSpec<'a>),
+    /// ISO 13400-2 DoIP protocol.
+    Doip(DoipSpec<'a>),
+    /// ANSI C12.22 / IEEE 1703 protocol.
+    C1222(C1222Spec<'a>),
+    /// GE-SRTP protocol.
+    Gesrtp(GesrtpSpec<'a>),
+    /// Emerson ROC Plus protocol.
+    Rocplus(RocplusSpec<'a>),
+    /// BSAP-IP protocol.
+    Bsap(BsapSpec<'a>),
+    /// KNXnet/IP protocol.
+    Knxnetip(KnxnetipSpec<'a>),
+    /// RoCEv2 protocol.
+    Rocev2(Rocev2Spec<'a>),
+    /// RMCP / IPMI protocol.
+    Ipmi(IpmiSpec<'a>),
+    /// RFC 5357 / RFC 6038 TWAMP protocol.
+    Twamp(TwampSpec<'a>),
+    /// RFC 6241 / RFC 6242 NETCONF protocol.
+    Netconf(NetconfSpec<'a>),
+    /// 3GPP TS 29.274 GTPv2-C protocol.
+    Gtpc(GtpcSpec<'a>),
+    /// 3GPP TS 29.244 PFCP protocol.
+    Pfcp(PfcpSpec<'a>),
+    /// RFC 6733 Diameter protocol.
+    Diameter(DiameterSpec<'a>),
+    /// 3GPP TS 38.413 NGAP protocol.
+    Ngap(NgapSpec<'a>),
+    /// 3GPP TS 36.413 S1AP protocol.
+    S1ap(S1apSpec<'a>),
+    /// Microsoft SQL Server MS-TDS protocol.
+    Mssql(MssqlSpec<'a>),
+    /// Apache Kafka binary protocol.
+    Kafka(KafkaSpec<'a>),
+    /// MongoDB wire protocol.
+    Mongodb(MongodbSpec<'a>),
+    /// Oracle TNS protocol.
+    Tns(TnsSpec<'a>),
+    /// RFC 7143 iSCSI protocol.
+    Iscsi(IscsiSpec<'a>),
+    /// NVMe/TCP protocol.
+    Nvmetcp(NvmetcpSpec<'a>),
+    /// RFC 3550 RTCP protocol.
+    Rtcp(RtcpSpec<'a>),
+    /// RFC 8656 / RFC 5766 TURN protocol.
+    Turn(TurnSpec<'a>),
+    /// ITU-T H.323 / H.225.0 protocol.
+    H323(H323Spec<'a>),
+    /// Cisco SCCP protocol.
+    Sccp(SccpSpec<'a>),
+    /// RFC 3435 MGCP protocol.
+    Mgcp(MgcpSpec<'a>),
     /// Raw payload.
     Raw(Vec<u8>),
 }
@@ -578,12 +903,24 @@ pub struct FrameStatement<'a> {
     pub payload_bytes: Option<Vec<u8>>,
     /// Optional raw binary hex payload.
     pub hex_payload: Option<Vec<u8>>,
+    /// Optional per-frame PCAPNG Enhanced Packet Block comment (`comment <str>`).
+    pub comment: Option<String>,
     /// Optional wait time before sending the packet (in nanoseconds).
     pub wait: Option<u64>,
     /// Source span of this statement.
     pub span: (usize, usize),
     /// Raw parsed VLAN ID and span for semantic range validation.
     pub raw_vlan: Option<(u32, (usize, usize))>,
+    /// Raw parsed `qinq` modifier span for semantic conflict checks.
+    pub raw_qinq_span: Option<(usize, usize)>,
+    /// Raw parsed `innervlan` modifier span for semantic parent checks.
+    pub raw_inner_vlan_span: Option<(usize, usize)>,
+    /// Raw parsed `pcp` modifier span for semantic parent checks.
+    pub raw_pcp_span: Option<(usize, usize)>,
+    /// Raw parsed `dei` modifier span for semantic parent checks.
+    pub raw_dei_span: Option<(usize, usize)>,
+    /// Raw parsed MPLS sub-modifier (`exp`/`bos`/`mplsttl`) span for semantic parent checks.
+    pub raw_mpls_sub_span: Option<(usize, usize)>,
     /// Raw parsed DSCP and span for semantic range validation.
     pub raw_dscp: Option<(u32, (usize, usize))>,
     /// Raw parsed ECN and span for semantic range validation.
@@ -592,6 +929,14 @@ pub struct FrameStatement<'a> {
     pub raw_ttl: Option<(u32, (usize, usize))>,
     /// Raw parsed FLOWLABEL and span for semantic range validation.
     pub raw_flowlabel: Option<(u32, (usize, usize))>,
+    /// Raw parsed `df` modifier span for IPv6 incompatibility checks.
+    pub raw_df_span: Option<(usize, usize)>,
+    /// Raw parsed `fragoffset` modifier value and span for range/family validation.
+    pub raw_frag_offset: Option<(u32, (usize, usize))>,
+    /// Raw parsed `nochecksum` modifier span for non-UDP incompatibility checks.
+    pub raw_no_checksum_span: Option<(usize, usize)>,
+    /// Raw parsed `badipchecksum` modifier span for IPv6 incompatibility checks.
+    pub raw_bad_ip_checksum_span: Option<(usize, usize)>,
     /// Raw parsed GENTRAP span for semantic range validation.
     pub raw_gentrap_span: Option<(usize, usize)>,
     /// Raw parsed `hellotime` value and span for HSRP semantic range validation (`0..=255`).
@@ -674,6 +1019,28 @@ impl<'a> FrameStatement<'a> {
     }
 }
 
+/// A statement inside a `flow` definition body.
+///
+/// Syntax mapping: `flow <name>(<params>) { <frame | invocation | repeat> ... }`
+#[doc(alias = "flow")]
+#[doc(alias = "repeat")]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum FlowStatement<'a> {
+    /// A directional packet statement inside the flow body.
+    Frame(alloc::boxed::Box<FrameStatement<'a>>),
+    /// A nested flow invocation inside the flow body.
+    Invocation(TemplateInvocation<'a>),
+    /// A `repeat <count> { ... }` block inside the flow body.
+    Repeat {
+        /// Number of loop iterations (`u64`).
+        count: u64,
+        /// Nested flow statements repeated `count` times.
+        body: Vec<FlowStatement<'a>>,
+        /// Source span of the `repeat` block.
+        span: (usize, usize),
+    },
+}
+
 /// A flow definition in the form `flow name(arg1, arg2) { statements }`
 ///
 /// Syntax mapping: `flow <name>(<param1>, <param2>) { <statements> }`
@@ -691,8 +1058,10 @@ pub struct FlowDef<'a> {
     pub name: &'a str,
     /// The parameters of the flow.
     pub params: Vec<&'a str>,
-    /// The statements inside the flow.
+    /// Top-level frame statements inside the flow (backwards-compatibility projection).
     pub statements: Vec<FrameStatement<'a>>,
+    /// Structured statements inside the flow body (frames, nested invocations, and `repeat` blocks).
+    pub body: Vec<FlowStatement<'a>>,
     /// Source span of this flow definition.
     pub span: (usize, usize),
 }
@@ -721,14 +1090,24 @@ pub struct TemplateInvocation<'a> {
     pub span: (usize, usize),
 }
 
-/// A statement in the `compile` block, which can be a flow invocation or an inline frame statement.
+/// A statement in the `compile` block, which can be a flow invocation, an inline frame statement, or a `repeat` block.
 #[doc(alias = "compile")]
+#[doc(alias = "repeat")]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RunStatement<'a> {
     /// A single template invocation directly in the block.
     Invocation(TemplateInvocation<'a>),
     /// An inline directional frame statement directly inside `compile`.
     Frame(alloc::boxed::Box<FrameStatement<'a>>),
+    /// A `repeat <count> { ... }` block inside `compile`.
+    Repeat {
+        /// Number of loop iterations (`u64`).
+        count: u64,
+        /// Nested compile statements repeated `count` times.
+        body: Vec<RunStatement<'a>>,
+        /// Source span of the `repeat` block.
+        span: (usize, usize),
+    },
 }
 
 /// The root of the AST containing all assignments, flows, and the compile block.
@@ -749,21 +1128,103 @@ pub struct Program<'a> {
 }
 
 impl<'a> Program<'a> {
+    /// Maximum number of protocols collected in [`Self::emitted_protocols`] to bound cyclic/large `repeat` expansion.
+    const MAX_COLLECTED_PROTOCOLS: usize = 100_000;
+
     /// Returns the ordered sequence of [`Protocol`] variants emitted by evaluating [`Self::compile_block`].
     pub fn emitted_protocols(&self) -> Vec<Protocol> {
         let mut out = Vec::new();
-        for item in &self.compile_block {
+        let mut visiting = Vec::new();
+        self.collect_run_protocols(&self.compile_block, &mut visiting, &mut out);
+        out
+    }
+
+    /// Recursively collects emitted [`Protocol`] variants from `compile` block [`RunStatement`] items.
+    fn collect_run_protocols(
+        &self,
+        items: &[RunStatement<'a>],
+        visiting: &mut Vec<&'a str>,
+        out: &mut Vec<Protocol>,
+    ) {
+        for item in items {
+            if out.len() >= Self::MAX_COLLECTED_PROTOCOLS {
+                break;
+            }
             match item {
                 RunStatement::Frame(stmt) => out.push(stmt.protocol.clone()),
                 RunStatement::Invocation(inv) => {
-                    if let Some(flow) = self.flows.iter().find(|f| f.name == inv.name) {
-                        for stmt in &flow.statements {
-                            out.push(stmt.protocol.clone());
+                    self.collect_flow_by_name(inv.name, visiting, out);
+                }
+                RunStatement::Repeat { count, body, .. } => {
+                    let cap = (*count).min(Self::MAX_COLLECTED_PROTOCOLS as u64) as usize;
+                    for _ in 0..cap {
+                        if out.len() >= Self::MAX_COLLECTED_PROTOCOLS || body.is_empty() {
+                            break;
                         }
+                        self.collect_run_protocols(body, visiting, out);
                     }
                 }
             }
         }
-        out
+    }
+
+    /// Resolves a flow definition by name and collects its emitted [`Protocol`] variants while avoiding cycles.
+    fn collect_flow_by_name(
+        &self,
+        name: &str,
+        visiting: &mut Vec<&'a str>,
+        out: &mut Vec<Protocol>,
+    ) {
+        let Some(flow) = self
+            .flows
+            .iter()
+            .find(|f| f.name.eq_ignore_ascii_case(name))
+        else {
+            return;
+        };
+        if visiting.iter().any(|&v| v.eq_ignore_ascii_case(flow.name)) {
+            return;
+        }
+        visiting.push(flow.name);
+        if flow.body.is_empty() && !flow.statements.is_empty() {
+            for stmt in &flow.statements {
+                if out.len() >= Self::MAX_COLLECTED_PROTOCOLS {
+                    break;
+                }
+                out.push(stmt.protocol.clone());
+            }
+        } else {
+            self.collect_flow_statements(&flow.body, visiting, out);
+        }
+        visiting.pop();
+    }
+
+    /// Recursively collects emitted [`Protocol`] variants from [`FlowStatement`] items inside a flow body.
+    fn collect_flow_statements(
+        &self,
+        items: &[FlowStatement<'a>],
+        visiting: &mut Vec<&'a str>,
+        out: &mut Vec<Protocol>,
+    ) {
+        for item in items {
+            if out.len() >= Self::MAX_COLLECTED_PROTOCOLS {
+                break;
+            }
+            match item {
+                FlowStatement::Frame(stmt) => out.push(stmt.protocol.clone()),
+                FlowStatement::Invocation(inv) => {
+                    self.collect_flow_by_name(inv.name, visiting, out);
+                }
+                FlowStatement::Repeat { count, body, .. } => {
+                    let cap = (*count).min(Self::MAX_COLLECTED_PROTOCOLS as u64) as usize;
+                    for _ in 0..cap {
+                        if out.len() >= Self::MAX_COLLECTED_PROTOCOLS || body.is_empty() {
+                            break;
+                        }
+                        self.collect_flow_statements(body, visiting, out);
+                    }
+                }
+            }
+        }
     }
 }

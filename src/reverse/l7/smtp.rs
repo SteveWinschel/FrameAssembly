@@ -1,11 +1,11 @@
 //! Simple Mail Transfer Protocol (SMTP, RFC 5321) Layer 7 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements fuzz-safe wire-to-AST dissection for `smtp` client commands and server
-//! reply frames carried over TCP ports `25`, `465`, `587`, and `2525`. It validates CRLF line
-//! framing, decodes three-digit numeric status replies (`code`, `reply`), standard verbs (`ehlo`,
-//! `helo`, `mailfrom`, `rcptto`, `quit`, and generic `cmd`/`param` pairs), and optional
-//! `\r\n.\r\n`-terminated message `body` sections while eliding default `EHLO localhost` / `OK`
-//! values and routing unparsed trailing bytes into `residual_payload`.
+//! reply frames carried over TCP or SCTP ports `25`, `465`, `587`, and `2525`. It validates CRLF
+//! line framing, decodes three-digit numeric status replies (`code`, `reply`), standard verbs
+//! (`ehlo`, `helo`, `mailfrom` via `MAIL FROM:<...>`, `rcptto` via `RCPT TO:<...>`, `data`,
+//! `quit`, and generic `cmd`/`param` pairs), and standalone or attached `\r\n.\r\n`-terminated
+//! message `body` sections without inserting unwanted `EHLO localhost` prefixes.
 
 use alloc::format;
 use alloc::string::String;
@@ -14,25 +14,25 @@ use alloc::vec::Vec;
 use crate::ast::{Protocol, TransportProto};
 use crate::reverse::ProtocolDissection;
 
-/// Checks whether `s` can be emitted inside `"..."` for a parser field that uses
-/// `parse_raw_string_lit` (which strips outer quotes without unescaping).
-fn is_valid_raw_str(s: &str) -> bool {
-    !s.contains('"')
-        && s.chars().all(|c| !c.is_control())
-        && (s.bytes().rev().take_while(|&b| b == b'\\').count() % 2 == 0)
-}
+use super::is_valid_raw_string_body;
 
 /// Finds the first `\r\n` sequence in `bytes` and returns `(line_str, remainder)`.
 fn split_crlf_line(bytes: &[u8]) -> Option<(&str, &[u8])> {
     let pos = bytes.windows(2).position(|w| w == b"\r\n")?;
     let line = core::str::from_utf8(&bytes[..pos]).ok()?;
-    if !is_valid_raw_str(line) {
+    if !is_valid_raw_string_body(line) {
         return None;
     }
     Some((line, &bytes[pos + 2..]))
 }
 
-/// Dissects an `smtp` command or reply payload over TCP ports `25`, `465`, `587`, or `2525`.
+/// Parses an RFC 5321 envelope parameter (`:<addr>`) from `MAIL FROM:` or `RCPT TO:`.
+fn parse_envelope_addr(raw: &str) -> Option<&str> {
+    let inner = raw.strip_prefix('<')?.strip_suffix('>')?;
+    is_valid_raw_string_body(inner).then_some(inner)
+}
+
+/// Dissects an `smtp` command, reply, or standalone message body over TCP/SCTP ports `25`/`465`/`587`/`2525`.
 pub(crate) fn dissect_smtp(
     transport: TransportProto,
     src_port: u16,
@@ -40,14 +40,32 @@ pub(crate) fn dissect_smtp(
     payload: &[u8],
 ) -> Option<ProtocolDissection> {
     if payload.is_empty()
-        || !matches!(transport, TransportProto::Tcp)
+        || !matches!(transport, TransportProto::Tcp | TransportProto::Sctp)
         || !(matches!(dst_port, 25 | 465 | 587 | 2525)
             || matches!(src_port, 25 | 465 | 587 | 2525))
     {
         return None;
     }
 
+    let explicit_transport =
+        matches!(transport, TransportProto::Sctp).then_some(TransportProto::Sctp);
+
     let (line, rem) = split_crlf_line(payload)?;
+    let has_attached_body = rem.ends_with(b"\r\n.\r\n");
+
+    if (line.is_empty() || !has_attached_body)
+        && let Some(full_body) = payload.strip_suffix(b"\r\n.\r\n")
+        && let Ok(body_str) = core::str::from_utf8(full_body)
+        && is_valid_raw_string_body(body_str)
+    {
+        return Some(ProtocolDissection {
+            protocol: Protocol::Smtp,
+            tokens: format!("smtp body \"{body_str}\""),
+            residual_payload: Vec::new(),
+            explicit_transport,
+        });
+    }
+
     if line.is_empty() {
         return None;
     }
@@ -63,43 +81,44 @@ pub(crate) fn dissect_smtp(
         } else {
             return None;
         };
-        if !is_valid_raw_str(reply) {
+        if !is_valid_raw_string_body(reply) {
             return None;
         }
         tokens.push_str(&format!(" code {code}"));
         if reply != "OK" {
             tokens.push_str(&format!(" reply \"{reply}\""));
         }
-    } else if line == "EHLO localhost" {
-        // Default command; no modifiers required unless body is attached.
+    } else if line == "EHLO localhost" && !has_attached_body && rem.is_empty() {
+        // Default client greeting with zero payload.
     } else if line == "QUIT" {
         tokens.push_str(" quit");
+    } else if line == "DATA" {
+        tokens.push_str(" data");
     } else if line == "EHLO" {
         tokens.push_str(" ehlo");
     } else if line == "HELO" {
         tokens.push_str(" helo");
     } else if let Some(dom) = line.strip_prefix("EHLO ") {
-        if !is_valid_raw_str(dom) {
+        if !is_valid_raw_string_body(dom) {
             return None;
         }
         tokens.push_str(&format!(" ehlo \"{dom}\""));
     } else if let Some(dom) = line.strip_prefix("HELO ") {
-        if !is_valid_raw_str(dom) {
+        if !is_valid_raw_string_body(dom) {
             return None;
         }
         tokens.push_str(&format!(" helo \"{dom}\""));
-    } else if let Some(addr) = line.strip_prefix("MAIL FROM ") {
-        if !is_valid_raw_str(addr) {
-            return None;
-        }
+    } else if let Some(rest) = line.strip_prefix("MAIL FROM:") {
+        let addr = parse_envelope_addr(rest)?;
         tokens.push_str(&format!(" mailfrom \"{addr}\""));
-    } else if let Some(addr) = line.strip_prefix("RCPT TO ") {
-        if !is_valid_raw_str(addr) {
-            return None;
-        }
+    } else if let Some(rest) = line.strip_prefix("RCPT TO:") {
+        let addr = parse_envelope_addr(rest)?;
         tokens.push_str(&format!(" rcptto \"{addr}\""));
     } else if let Some((cmd, param)) = line.split_once(' ') {
-        if cmd.is_empty() || !is_valid_raw_str(cmd) || !is_valid_raw_str(param) {
+        if cmd.is_empty()
+            || !is_valid_raw_string_body(cmd)
+            || !is_valid_raw_string_body(param)
+        {
             return None;
         }
         if cmd != "EHLO" {
@@ -107,7 +126,7 @@ pub(crate) fn dissect_smtp(
         }
         tokens.push_str(&format!(" param \"{param}\""));
     } else {
-        if !is_valid_raw_str(line) {
+        if !is_valid_raw_string_body(line) {
             return None;
         }
         tokens.push_str(&format!(" cmd \"{line}\""));
@@ -115,7 +134,7 @@ pub(crate) fn dissect_smtp(
 
     let residual_payload = if let Some(body_bytes) = rem.strip_suffix(b"\r\n.\r\n") {
         if let Ok(body_str) = core::str::from_utf8(body_bytes)
-            && is_valid_raw_str(body_str)
+            && is_valid_raw_string_body(body_str)
         {
             tokens.push_str(&format!(" body \"{body_str}\""));
             Vec::new()
@@ -130,6 +149,6 @@ pub(crate) fn dissect_smtp(
         protocol: Protocol::Smtp,
         tokens,
         residual_payload,
-        explicit_transport: None,
+        explicit_transport,
     })
 }

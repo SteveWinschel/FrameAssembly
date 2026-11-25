@@ -56,6 +56,12 @@ pub(crate) fn dissect_stun(payload: &[u8]) -> Option<ProtocolDissection> {
         };
 
         if atype == 0x0020 && !seen_xma && !seen_sw {
+            let xport = if alen >= 4 {
+                checked_be_u16(aval, 2)? ^ 0x2112
+            } else {
+                residual = attrs.get(pos..)?.to_vec();
+                break;
+            };
             let ip = if alen == 8 && aval.get(1) == Some(&1) {
                 IpAddr::V4(Ipv4Addr::from(
                     (checked_be_u32(aval, 4)? ^ 0x2112A442).to_be_bytes(),
@@ -69,7 +75,11 @@ pub(crate) fn dissect_stun(payload: &[u8]) -> Option<ProtocolDissection> {
                 residual = attrs.get(pos..)?.to_vec();
                 break;
             };
-            let _ = write!(tokens, " xormappedaddr {ip}");
+            if xport == 12345 {
+                let _ = write!(tokens, " xormappedaddr {ip}");
+            } else {
+                let _ = write!(tokens, " xormappedaddr {ip} {xport}");
+            }
             seen_xma = true;
         } else if atype == 0x8022
             && !seen_sw

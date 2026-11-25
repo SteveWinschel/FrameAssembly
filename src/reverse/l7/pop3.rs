@@ -1,10 +1,10 @@
 //! Post Office Protocol Version 3 (POP3, RFC 1939) Layer 7 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements fuzz-safe wire-to-AST dissection for `pop3` client commands and server
-//! status responses over TCP ports `110`, `995`, and `2110`. It decodes CRLF-terminated `+OK` and
-//! `-ERR` response banners (`ok`, `err`, `response`) as well as `USER`, `PASS`, `STAT`, `LIST`,
-//! `RETR`, `DELE`, `QUIT`, and custom POP3 commands (`cmd`, `arg`) while eliding default `USER`,
-//! `OK`, and `Error` values and preserving any multiline trailing data in `residual_payload`.
+//! status responses over TCP or SCTP ports `110`, `995`, and `2110`. It decodes CRLF-terminated
+//! `+OK` and `-ERR` response banners (`ok`, `err`, `response`) as well as `USER`, `PASS`, `STAT`,
+//! `LIST`, `RETR`, `DELE`, `QUIT`, and custom commands (`cmd`, `arg`) while eliding default `USER`,
+//! `OK`, and `Error` values and validating raw string literal safety.
 
 use alloc::format;
 use alloc::string::String;
@@ -12,25 +12,19 @@ use alloc::string::String;
 use crate::ast::{Protocol, TransportProto};
 use crate::reverse::ProtocolDissection;
 
-/// Checks whether `s` can be emitted inside `"..."` for a parser field that uses
-/// `parse_raw_string_lit` (which strips outer quotes without unescaping).
-fn is_valid_raw_str(s: &str) -> bool {
-    !s.contains('"')
-        && s.chars().all(|c| !c.is_control())
-        && (s.bytes().rev().take_while(|&b| b == b'\\').count() % 2 == 0)
-}
+use super::is_valid_raw_string_body;
 
 /// Finds the first `\r\n` sequence in `bytes` and returns `(line_str, remainder)`.
 fn split_crlf_line(bytes: &[u8]) -> Option<(&str, &[u8])> {
     let pos = bytes.windows(2).position(|w| w == b"\r\n")?;
     let line = core::str::from_utf8(&bytes[..pos]).ok()?;
-    if !is_valid_raw_str(line) {
+    if !is_valid_raw_string_body(line) {
         return None;
     }
     Some((line, &bytes[pos + 2..]))
 }
 
-/// Dissects a `pop3` command or `+OK` / `-ERR` status response over TCP ports `110`, `995`, or `2110`.
+/// Dissects a `pop3` command or `+OK` / `-ERR` status response over TCP or SCTP ports `110`, `995`, or `2110`.
 pub(crate) fn dissect_pop3(
     transport: TransportProto,
     src_port: u16,
@@ -38,7 +32,7 @@ pub(crate) fn dissect_pop3(
     payload: &[u8],
 ) -> Option<ProtocolDissection> {
     if payload.is_empty()
-        || !matches!(transport, TransportProto::Tcp)
+        || !matches!(transport, TransportProto::Tcp | TransportProto::Sctp)
         || !(matches!(dst_port, 110 | 995 | 2110) || matches!(src_port, 110 | 995 | 2110))
     {
         return None;
@@ -51,7 +45,7 @@ pub(crate) fn dissect_pop3(
 
     let mut tokens = String::from("pop3");
     if let Some(resp) = line.strip_prefix("+OK ") {
-        if !is_valid_raw_str(resp) {
+        if !is_valid_raw_string_body(resp) {
             return None;
         }
         tokens.push_str(" ok");
@@ -61,7 +55,7 @@ pub(crate) fn dissect_pop3(
     } else if line == "+OK" {
         tokens.push_str(" ok response \"\"");
     } else if let Some(resp) = line.strip_prefix("-ERR ") {
-        if !is_valid_raw_str(resp) {
+        if !is_valid_raw_string_body(resp) {
             return None;
         }
         tokens.push_str(" err");
@@ -71,7 +65,7 @@ pub(crate) fn dissect_pop3(
     } else if line == "-ERR" {
         tokens.push_str(" err response \"\"");
     } else if let Some((cmd, arg)) = line.split_once(' ') {
-        if cmd.is_empty() || !is_valid_raw_str(cmd) || !is_valid_raw_str(arg) {
+        if cmd.is_empty() || !is_valid_raw_string_body(cmd) || !is_valid_raw_string_body(arg) {
             return None;
         }
         if cmd != "USER" {
@@ -79,7 +73,7 @@ pub(crate) fn dissect_pop3(
         }
         tokens.push_str(&format!(" arg \"{arg}\""));
     } else {
-        if !is_valid_raw_str(line) {
+        if !is_valid_raw_string_body(line) {
             return None;
         }
         if line != "USER" {
@@ -91,6 +85,6 @@ pub(crate) fn dissect_pop3(
         protocol: Protocol::Pop3,
         tokens,
         residual_payload: rem.to_vec(),
-        explicit_transport: None,
+        explicit_transport: matches!(transport, TransportProto::Sctp).then_some(TransportProto::Sctp),
     })
 }

@@ -40,11 +40,17 @@ export interface ReversePcapError {
 
 /**
  * Compiles `.frasm` source into a standards-compliant PCAPNG byte array (`compileFasm` 2.x alias).
+ *
+ * # Errors
+ * Returns a JavaScript `Error` if `source` exceeds [`MAX_WASM_SOURCE_BYTES`] or compilation fails.
  */
 export function compileFasm(source: string): Uint8Array;
 
 /**
  * Compiles `.frasm` source into a standards-compliant PCAPNG byte array (`compileFrasm` alias).
+ *
+ * # Errors
+ * Returns a JavaScript `Error` if `source` exceeds [`MAX_WASM_SOURCE_BYTES`] or compilation fails.
  */
 export function compileFrasm(source: string): Uint8Array;
 
@@ -52,12 +58,16 @@ export function compileFrasm(source: string): Uint8Array;
  * Compiles `.frasm` source into a classic libpcap (`.pcap`) byte array (`compileFrasmToPcap` JS `Uint8Array`).
  *
  * # Errors
- * Returns a JavaScript `JsValue` error if parsing, validation, or serialization fails.
+ * Returns a JavaScript `JsValue` error if `source` exceeds [`MAX_WASM_SOURCE_BYTES`] or if
+ * parsing, validation, or serialization fails.
  */
 export function compileFrasmToPcap(source: string): Uint8Array;
 
 /**
- * Compiles `.frasm` source into a standards-compliant PCAPNG byte array (JS `Uint8Array`).
+ * Compiles `.frasm` source into a standards-compliant PCAPNG byte array (`compile_fasm_to_pcapng` 2.x alias).
+ *
+ * # Errors
+ * Returns a JavaScript `Error` if `source` exceeds [`MAX_WASM_SOURCE_BYTES`] or compilation fails.
  */
 export function compile_fasm_to_pcapng(source: string): Uint8Array;
 
@@ -65,27 +75,43 @@ export function compile_fasm_to_pcapng(source: string): Uint8Array;
  * Compiles `.frasm` source into a classic libpcap (`.pcap`) byte array (`compile_frasm_to_pcap` JS alias).
  *
  * # Errors
- * Returns a JavaScript `JsValue` error if parsing, validation, or serialization fails.
+ * Returns a JavaScript `JsValue` error if `source` exceeds [`MAX_WASM_SOURCE_BYTES`] or if
+ * parsing, validation, or serialization fails.
  */
 export function compile_frasm_to_pcap(source: string): Uint8Array;
 
 /**
  * Compiles `.frasm` source into a standards-compliant PCAPNG byte array (JS `Uint8Array`).
+ *
+ * # Errors
+ * Returns a JavaScript `Error` if `source` exceeds [`MAX_WASM_SOURCE_BYTES`] or compilation fails.
  */
 export function compile_frasm_to_pcapng(source: string): Uint8Array;
 
 /**
  * Returns decoded frame metadata for `.frasm` source (`inspectFrasm` camelCase alias).
+ *
+ * # Errors
+ * Returns a JavaScript `Error` if `source` exceeds [`MAX_WASM_SOURCE_BYTES`], compilation fails,
+ * or JS serialization fails.
  */
 export function inspectFrasm(source: string): PacketPreview[];
 
 /**
- * Returns decoded frame metadata, endpoint/protocol summaries, and hex strings for packet ladder inspectors.
+ * Returns decoded frame metadata, endpoint/protocol summaries, and hex strings (`inspect_fasm` 2.x alias).
+ *
+ * # Errors
+ * Returns a JavaScript `Error` if `source` exceeds [`MAX_WASM_SOURCE_BYTES`], compilation fails,
+ * or JS serialization fails.
  */
 export function inspect_fasm(source: string): PacketPreview[];
 
 /**
  * Returns decoded frame metadata, endpoint/protocol summaries, and hex strings for `.frasm` source.
+ *
+ * # Errors
+ * Returns a JavaScript `Error` if `source` exceeds [`MAX_WASM_SOURCE_BYTES`], compilation fails,
+ * or JS serialization fails.
  */
 export function inspect_frasm(source: string): PacketPreview[];
 
@@ -93,8 +119,8 @@ export function inspect_frasm(source: string): PacketPreview[];
  * Decompiles an in-memory `.pcap` or `.pcapng` capture (`reversePcap` camelCase alias).
  *
  * # Errors
- * Returns a structured `JsValue` error object (`{ success: false, error, message }`) if
- * `pcap_bytes` is not a valid `.pcap` or `.pcapng` capture.
+ * Returns a structured plain `JsValue` error object (`{ success: false, error, message }`) if
+ * `pcap_bytes` exceeds [`MAX_WASM_PCAP_BYTES`] or is not a valid `.pcap` or `.pcapng` capture.
  */
 export function reversePcap(pcap_bytes: Uint8Array | number[]): ReversePcapResult;
 
@@ -103,28 +129,40 @@ export function reversePcap(pcap_bytes: Uint8Array | number[]): ReversePcapResul
  * source code and summary counts (`{ success: true, frasm, fasm, packetCount, hostCount }`).
  *
  * # Errors
- * Returns a structured `JsValue` error object (`{ success: false, error, message }`) if
- * `pcap_bytes` is not a valid `.pcap` or `.pcapng` capture.
+ * Returns a structured plain `JsValue` error object (`{ success: false, error, message }`) if
+ * `pcap_bytes` exceeds [`MAX_WASM_PCAP_BYTES`] or is not a valid `.pcap` or `.pcapng` capture.
  */
 export function reverse_pcap(pcap_bytes: Uint8Array | number[]): ReversePcapResult;
 
 /**
  * Validates `.frasm` source and returns UTF-16 line/column diagnostics (`validateFasm` 2.x alias).
+ *
+ * # Errors
+ * Returns a JavaScript `Error` if diagnostic serialization fails.
  */
 export function validateFasm(source: string): IdeDiagnostic[];
 
 /**
  * Validates `.frasm` source and returns UTF-16 line/column diagnostics (`validateFrasm` camelCase alias).
+ *
+ * # Errors
+ * Returns a JavaScript `Error` if diagnostic serialization fails.
  */
 export function validateFrasm(source: string): IdeDiagnostic[];
 
 /**
- * Validates `.frasm` source and returns UTF-16 line/column diagnostics for Monaco, CodeMirror, and VS Code.
+ * Validates `.frasm` source and returns UTF-16 line/column diagnostics (`validate_fasm` 2.x alias).
+ *
+ * # Errors
+ * Returns a JavaScript `Error` if diagnostic serialization fails.
  */
 export function validate_fasm(source: string): IdeDiagnostic[];
 
 /**
  * Validates `.frasm` source and returns UTF-16 line/column diagnostics for Monaco, CodeMirror, and VS Code.
+ *
+ * # Errors
+ * Returns a JavaScript `Error` if diagnostic serialization fails.
  */
 export function validate_frasm(source: string): IdeDiagnostic[];
 

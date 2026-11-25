@@ -9,7 +9,9 @@
 //! `sackperm`, `tsval`, `tsecr`).
 //!
 //! Canonical `.frasm` syntax:
-//! `a -> b tcp [syn] [ack] [fin] [rst] [psh] [urg] [ece] [cwr] [srcport <u16>] [dstport <u16>] [seq <u32>] [acknum <u32>] [win <u16>] [mss <u16>] [wscale <u8>] [sackperm] [tsval <u32>] [tsecr <u32>]`
+//! `a -> b tcp [syn] [ack] [fin] [rst] [psh] [urg] [ece] [cwr] [srcport <u16>] [dstport <u16>] [seq <u32>] [acknum <u32>] [win <u16>] [mss <u16>] [wscale <u8>] [sackperm] [sackblock <u32> <u32>] [tsval <u32>] [tsecr <u32>] [tcpmd5 <hex>] [tfo <hex>]`
+
+use alloc::vec::Vec;
 
 /// TCP 8-bit control flags in byte 13 of the RFC 9293 TCP header (`cwr`, `ece`, `urg`, `ack`, `psh`, `rst`, `syn`, `fin`).
 ///
@@ -65,8 +67,11 @@ pub enum TcpFlag {
 #[doc(alias = "mss")]
 #[doc(alias = "wscale")]
 #[doc(alias = "sackperm")]
+#[doc(alias = "sackblock")]
 #[doc(alias = "tsval")]
 #[doc(alias = "tsecr")]
+#[doc(alias = "tcpmd5")]
+#[doc(alias = "tfo")]
 #[doc(alias = "seq")]
 #[doc(alias = "acknum")]
 #[doc(alias = "win")]
@@ -83,17 +88,26 @@ pub struct TcpOptions {
     pub tsval: Option<u32>,
     /// TCP Timestamps Echo Reply (`tsecr <u32>`, Kind `8`, Length `10`, RFC 7323).
     pub tsecr: Option<u32>,
+    /// Selective Acknowledgment block `(left_edge, right_edge)` ranges (`sackblock <u32> <u32>`, Kind `5`, RFC 2018).
+    pub sack_blocks: Vec<(u32, u32)>,
+    /// TCP MD5 Signature digest option (`tcpmd5 <hex>`, Kind `19`, Length `18`, RFC 2385).
+    pub tcp_md5: Option<Vec<u8>>,
+    /// TCP Fast Open cookie bytes (`tfo <hex>`, Kind `34`, RFC 7413).
+    pub tfo: Option<Vec<u8>>,
 }
 
 /// Type alias for Transmission Control Protocol (RFC 9293 / RFC 7323) specification ([`TcpOptions`]).
 ///
-/// Syntax mapping: `tcp [syn] [ack] [fin] [rst] [psh] [urg] [ece] [cwr] [srcport <u16>] [dstport <u16>] [seq <u32>] [acknum <u32>] [win <u16>] [urgent <u16>] [mss <u16>] [wscale <u8>] [sackperm] [tsval <u32>] [tsecr <u32>]`
+/// Syntax mapping: `tcp [syn] [ack] [fin] [rst] [psh] [urg] [ece] [cwr] [srcport <u16>] [dstport <u16>] [seq <u32>] [acknum <u32>] [win <u16>] [urgent <u16>] [mss <u16>] [wscale <u8>] [sackperm] [sackblock <u32> <u32>] [tsval <u32>] [tsecr <u32>] [tcpmd5 <hex>] [tfo <hex>]`
 #[doc(alias = "tcp")]
 #[doc(alias = "RFC 9293")]
 #[doc(alias = "RFC 7323")]
 #[doc(alias = "mss")]
 #[doc(alias = "wscale")]
 #[doc(alias = "sackperm")]
+#[doc(alias = "sackblock")]
 #[doc(alias = "tsval")]
 #[doc(alias = "tsecr")]
+#[doc(alias = "tcpmd5")]
+#[doc(alias = "tfo")]
 pub type TcpSpec = TcpOptions;

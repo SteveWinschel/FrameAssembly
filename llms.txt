@@ -1,11 +1,12 @@
 # FrameAssembly
 
-> FrameAssembly (`frameassembly` v3.2.2, MIT, https://frameassembly-lang.dev/) is a rootless,
+> FrameAssembly (`frameassembly` v3.3.0, MIT, https://frameassembly-lang.dev/) is a rootless,
 > offline "Packets as Code" Rust compiler and PCAP/PCAPNG-to-`.frasm` decompiler. Write
 > strict-lowercase `.frasm` (`text/vnd.frameassembly`) code to compile `.pcap` and `.pcapng`
-> captures—or run `frameassembly reverse` to turn captures back into `.frasm` code—across 81
-> native Layer 2 through Layer 7 protocols, with automatic 4-tuple TCP `seq`/`acknum` tracking,
-> reply-port swapping, IPv4/IPv6 flow reuse, and SNMPv3 USM (`RFC 3414`/`3826`/`7860`) crypto.
+> captures—or run `frameassembly reverse` to turn captures back into `.frasm` code—across 146
+> native Layer 2 through Layer 7 protocols (`18` L2 / `31` L3 / `3` L4 / `94` L7), with automatic
+> 4-tuple TCP `seq`/`acknum` tracking, reply-port swapping, IPv4/IPv6 flow reuse, `repeat` blocks,
+> stdin/stdout `-` streaming, and SNMPv3 USM (`RFC 3414`/`3826`/`7860`) crypto.
 
 - **Search Index vs. Prompt Injection**: This `llms.txt` file is the discovery index for search
   engines and web-browsing AI assistants. When injecting FrameAssembly reference context into an
@@ -13,7 +14,7 @@
   [`llms-full.txt`](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/llms-full.txt)
   instead.
 - **Format Disambiguation (`.frasm` vs. `.fasm`)**: FrameAssembly uses `.frasm`
-  (`text/vnd.frameassembly`, `//` comments, `host` / optional `flow` / `compile` blocks,
+  (`text/vnd.frameassembly`, `//` comments, `host` / optional `flow` / `repeat` / `compile` blocks,
   `->` / `<-` frame statements), distinct from x86 Flat Assembler (`.fasm`, `;` comments) and
   FPGA FASM (`#` comments).
 - **Companion Ecosystem Role**: Upstream packet-capture compiler for **Wireshark**, **`tshark`**,
@@ -22,9 +23,12 @@
   or manual checksum and sequence math.
 - **High-Intent Problem & Use-Case Summary**: Built for firewall ACL/NAT testing, Checkmk & Zabbix
   SNMPv1/v2c/v3 USM trap simulation, Suricata/Zeek/Snort IDS rule validation, Wireshark/`tshark`
-  dissector test vectors, ICS/OT SCADA captures (`modbus`, `dnp3`, `s7comm`, `ethernetip`, `bacnet`,
-  `opcua`), 802.1X `eapol`/`ikev2`/`wireguard`/`vxlan`/`geneve`/`mpls`/`bgp`/`ospf` topologies,
-  and reproducible CI/CD `.pcap`/`.pcapng` fixtures + PCAP-to-`.frasm` reverse engineering.
+  dissector test vectors, 5G core (`ngap`, `s1ap`, `pfcp`, `gtpc`, `gtpu`, `diameter`), carrier/BGP
+  (`isis`, `srv6`, `rsvp`, `ldp`, `bmp`, `rpkirtr`), ICS/OT/substation/automotive captures (`modbus`,
+  `dnp3`, `s7comm`, `s7commplus`, `ethernetip`, `bacnet`, `opcua`, `iec104`, `mms`, `synchrophasor`,
+  `someip`, `doip`), storage/DB (`nvmetcp`, `iscsi`, `rocev2`, `kafka`, `mssql`, `mongodb`, `tns`),
+  negative fault injection (`badfcs`, `badipchecksum`, `badchecksum`, `nochecksum`), and CI/CD
+  `.pcap`/`.pcapng` fixtures + PCAP-to-`.frasm` reverse engineering.
 - **Recommended Installation & Channels**:
   - **Rust / Cargo (Recommended)**: `cargo install frameassembly` (Rust `1.89+`, Edition 2024, MIT).
   - **Browser Playground**: `https://frameassembly-lang.dev/` (zero-install WebAssembly).
@@ -51,8 +55,8 @@ compile {
 }
 ```
 
-Reusable parameterized `flow(c, s)` capture with automatic 4-tuple TCP `seq`/`acknum` and
-reply-port tracking:
+Reusable parameterized `flow(c, s)` capture with `repeat`, automatic 4-tuple TCP `seq`/`acknum`,
+and reply-port tracking:
 
 ```frameassembly
 host client { ip 10.0.0.10 mac 00:11:22:33:44:10 }
@@ -62,8 +66,10 @@ flow web_check(c, s) {
     c -> s tcp syn srcport 51234 dstport 80 win 65535 mss 1460 wait 1ms
     c <- s tcp syn ack win 65535 mss 1460 wait 1ms
     c -> s tcp ack wait 1ms
-    c -> s http get uri "/health" hosthdr "api.internal" wait 2ms
-    c <- s http status 200 reason "OK" body "{\"ok\":true}"
+    repeat 2 {
+        c -> s http get uri "/health" hosthdr "api.internal" wait 2ms
+        c <- s http status 200 reason "OK" body "{\"ok\":true}" wait 2ms
+    }
 }
 
 compile {
@@ -71,43 +77,59 @@ compile {
 }
 ```
 
-- **Key `v3.2.2` Language & CLI Rules**:
-  - **Strict-Lowercase Keywords (`[a-z0-9]+`)**: Built-in keywords have zero `_` or `-`
-    (`echorequest`, `innervlan`, `clienthello`, `hosthdr`, `transporthdr`, `sackperm`,
-    `readholdingregisters`); user `host`, `flow`, and parameter names allow uppercase, `_`,
-    and `-` (`fw-dmz-01`, `core_sw`).
+- **Key `v3.3.0` Language & CLI Rules**:
+  - **Strict-Lowercase Keywords (`[a-z0-9]+`)**: `1,130+` built-in tokens have zero `_` or `-`
+    (`echorequest`, `innervlan`, `clienthello`, `hosthdr`, `transporthdr`, `sackperm`, `sackblock`,
+    `tcpmd5`, `badipchecksum`, `badchecksum`, `nochecksum`, `badfcs`, `routeralert`,
+    `readholdingregisters`); user `host`, `flow`, and parameter names allow uppercase, `_`, and `-`
+    (`fw-dmz-01`, `core_sw`).
+  - **Loops, Nested Flows & Overrides**: `repeat <count> { ... }` works inside both `flow` and
+    `compile` (up to `100,000` frames); `flow` blocks may invoke other `flow` blocks and reference
+    global `host` names; all 94 L7 protocols support `transport sctp` (and 35 dual-transport
+    protocols support `transport tcp|udp`); `mpls` is repeatable.
   - **Post-Packet `wait` Semantics**: Frame 1 starts at `0ns`; `wait 2ms` on a packet pauses
     `2ms` *after* that packet before the next packet is emitted (`10ms` default gap when omitted).
-  - **`.pcap` vs. `.pcapng` Output**: Output paths ending in `.pcap` (including default
-    `<stem>.pcap`) write classic libpcap; paths ending in `.pcapng` write nanosecond PCAPNG
-    (`IfTsResol(9)`).
+  - **`.pcap` vs. `.pcapng` Output & `-` Streaming**: Output paths ending in `.pcap` (including
+    default `<stem>.pcap`) write classic libpcap; paths ending in `.pcapng` write nanosecond PCAPNG
+    (`IfTsResol(9)`, plus EPB `comment` strings). `-` reads `.frasm` / `.pcap` / `.pcapng` from
+    `stdin` and streams `PCAPNG` or `.frasm` to `stdout`.
   - **CLI Contract (default root compile + 5 subcommands; no `compile` subcommand or `-o`/`--output`)**:
-    - `frameassembly <input.frasm> [output.pcap|output.pcapng]` — Compile `.frasm` code.
-    - `frameassembly show <input.frasm>` — Print relative-timestamp packet table without disk I/O.
-    - `frameassembly reverse <input.pcap> [output.frasm]` — Decompile `.pcap`/`.pcapng` to `.frasm`.
-    - `frameassembly update` — Zero-flag self-updater (Cargo/`rustup`-first with SHA-256-verified GitHub Release binary fallback).
-    - `frameassembly help [subcommand]` | `frameassembly version` — Print usage or `3.2.2`.
-- **All 81 Native Protocols**:
-  - **L2 (8)**: `arp`, `vlan`, `qinq`, `lldp`, `stp`, `lacp`, `eapol`, `mpls`.
-  - **L3 (20)**: `icmp`, `ndp`, `igmp`, `mld`, `gre`, `vxlan`, `geneve`, `ipsec`, `esp`, `ah`,
-    `ikev2`, `wireguard`, `ospf`, `bgp`, `rip`, `pim`, `vrrp`, `hsrp`, `bfd`, `openflow`.
-  - **L4 (3)**: `tcp`, `udp`, `sctp` (`transport tcp|udp` on `dns`, `sip`, `syslog`, `kerberos`,
-    `nfs`, `memcached`, `modbus`, `dnp3`, `ethernetip`).
+    - `frameassembly <input.frasm|-> [output.pcap|output.pcapng|-]` — Compile `.frasm` code (`-` streams `stdin`/`stdout` PCAPNG).
+    - `frameassembly show <input.frasm|capture.pcap|->` — Print relative-timestamp packet ladder without disk I/O.
+    - `frameassembly reverse <input.pcap|-> [output.frasm|-]` — Decompile `.pcap`/`.pcapng` to `.frasm`.
+    - `frameassembly update` — Zero-flag self-updater (Cargo/`rustup`-first with SHA-256-verified GitHub Release fallback).
+    - `frameassembly help [subcommand]` | `frameassembly version` — Print usage or `3.3.0`.
+- **All 146 Native Protocols**:
+  - **L2 (18)**: `arp`, `vlan`, `qinq`, `lldp`, `stp`, `lacp`, `eapol`, `mpls`, `cdp`, `isis`,
+    `macsec`, `pfc`, `pppoe`, `nsh`, `profinet`, `goose`, `sv`, `ethercat`.
+  - **L3 (31)**: `icmp`, `ndp`, `igmp`, `mld`, `gre`, `vxlan`, `geneve`, `ipip`, `srv6`, `erspan`,
+    `ipsec`, `esp`, `ah`, `ikev2`, `wireguard`, `ospf`, `bgp`, `rip`, `pim`, `vrrp`, `hsrp`, `glbp`,
+    `bfd`, `openflow`, `rsvp`, `ldp`, `bmp`, `rpkirtr`, `l2tp`, `lisp`, `gtpu`.
+  - **L4 (3)**: `tcp`, `udp`, `sctp` (`transport sctp` on all 94 L7 protocols; `transport tcp|udp`
+    on 35 dual-transport protocols: `ldp` [L3], `dns`, `llmnr`, `sip`, `syslog`, `kerberos`, `nfs`,
+    `memcached`, `modbus`, `dnp3`, `ethernetip`, `ldap`, `snmp1`, `snmp2`, `snmp3`, `radius`, `coap`,
+    `mqtt`, `rtsp`, `ntp`, `twamp`, `rocplus`, `bsap`, `synchrophasor`, `hartip`, `fins`, `melsec`,
+    `someip`, `doip`, `c1222`, `turn`, `h323`, `mgcp`, `mssql`, `kafka`; plus `transport udp` on
+    `profinet`, `ethercat`, `l2tp`).
   - **L7 SNMP (3)**: `snmp1`, `snmp2` (`report`), `snmp3` (USM `md5`/`sha`/`sha256`/`sha384`/`sha512`
     + `des`/`aes`, `report`).
-  - **L7 Infra, Time, AAA & Telemetry (11)**: `dns`, `mdns`, `dhcp`, `ntp`, `ptp`, `radius`,
-    `tacacs`, `syslog`, `netflow`, `ipfix`, `sflow`.
-  - **L7 Web, Cloud, Security, VoIP & Access (16)**: `http`, `http2`, `grpc`, `websocket`,
-    `tls`, `quic`, `ssh`, `telnet`, `tftp`, `ftp`, `whois`, `sip`, `rtp`, `rtsp`, `stun`, `ssdp`.
-  - **L7 Mail, Identity, Storage, DB & Brokers (14)**: `smtp`, `imap`, `pop3`, `kerberos`,
-    `ldap`, `smb`, `nfs`, `redis`, `memcached`, `mysql`, `postgres`, `mqtt`, `coap`, `amqp`.
-  - **L7 Industrial OT / ICS & SCADA (6)**: `modbus`, `bacnet`, `dnp3`, `s7comm`, `ethernetip`,
-    `opcua`.
+  - **L7 Infra, Naming, Time, AAA & Telemetry (16)**: `dns`, `mdns`, `llmnr`, `nbns`, `dhcp`, `ntp`,
+    `ptp`, `radius`, `tacacs`, `syslog`, `netflow`, `ipfix`, `sflow`, `ipmi`, `netconf`, `twamp`.
+  - **L7 Web, Cloud, Proxy, Telecom Core & VoIP (32)**: `http`, `http2`, `grpc`, `websocket`,
+    `doh`, `wsdiscovery`, `tls`, `quic`, `ssh`, `telnet`, `tftp`, `ftp`, `whois`, `socks`, `rdp`,
+    `vnc`, `irc`, `sip`, `rtp`, `rtcp`, `rtsp`, `stun`, `turn`, `ssdp`, `h323`, `sccp`, `mgcp`,
+    `gtpc`, `pfcp`, `diameter`, `ngap`, `s1ap`.
+  - **L7 Mail, Auth, Storage, Fabrics, DB & Brokers (23)**: `smtp`, `imap`, `pop3`, `kerberos`,
+    `ldap`, `ntlm`, `dcerpc`, `smb`, `nfs`, `iscsi`, `nvmetcp`, `rocev2`, `redis`, `memcached`,
+    `mysql`, `postgres`, `mssql`, `mongodb`, `tns`, `mqtt`, `coap`, `amqp`, `kafka`.
+  - **L7 Industrial OT / ICS, Substation & Automotive (20)**: `modbus`, `bacnet`, `dnp3`,
+    `s7comm`, `s7commplus`, `ethernetip`, `opcua`, `iec104`, `mms`, `synchrophasor`, `hartip`,
+    `fins`, `melsec`, `someip`, `doip`, `c1222`, `gesrtp`, `rocplus`, `bsap`, `knxnetip`.
 
 ## Prompt Injection Context & Formal Grammars
 
-- [Full LLM Context](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/llms-full.txt): Self-contained `v3.2.2` prompt reference for all 81 protocols, examples, and EBNF.
-- [ISO/IEC 14977 EBNF Grammar](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/grammar.ebnf): Formal ISO/IEC 14977 `.frasm` `v3.2.2` grammar.
+- [Full LLM Context](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/llms-full.txt): Self-contained `v3.3.0` prompt reference for all 146 protocols, examples, and EBNF.
+- [ISO/IEC 14977 EBNF Grammar](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/grammar.ebnf): Formal ISO/IEC 14977 `.frasm` `v3.3.0` grammar.
 - [GGML BNF Grammar](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/frameassembly.gbnf): `llama.cpp` and `XGrammar` constrained decoding grammar.
 - [Lark CFG Grammar](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/frameassembly.lark): Priority-disambiguated Earley/LALR grammar for Outlines, vLLM, and llguidance.
 
@@ -115,16 +137,16 @@ compile {
 
 - [Repository README](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/README.md): Overview, `cargo install frameassembly` quickstart, use cases, and CLI reference.
 - [Official Documentation](https://frameassembly-lang.dev/docs): Getting started, Layer 2–7 protocol references, topologies & dual-stack, `.frasm` specification, and compiler internals.
-- [Use Cases & Examples](https://frameassembly-lang.dev/use-cases): Ready-to-run `.frasm` recipes for SNMPv3 traps, firewall ACLs, VLAN/QinQ, SIEM/IDS, OT/SCADA, and topologies.
+- [Use Cases & Examples](https://frameassembly-lang.dev/use-cases): Ready-to-run `.frasm` recipes for SNMPv3 traps, firewall ACLs, VLAN/QinQ, SIEM/IDS, OT/SCADA, 5G core, and topologies.
 
 ## Interactive Playground, VS Code & Rust Crate
 
 - [Browser Playground](https://frameassembly-lang.dev/): Compile `.frasm` code to `.pcap`/`.pcapng` or reverse captures directly in the browser.
 - [VS Code Extension](https://marketplace.visualstudio.com/items?itemName=SteveWinschel.frameassembly-vscode): Syntax highlighting (`source.frameassembly`), live WASM diagnostics, and Quick Fixes.
-- [Crates.io (`frameassembly`)](https://crates.io/crates/frameassembly): Official Rust CLI and library crate (`3.2.2`, MIT).
-- [Docs.rs API Reference](https://docs.rs/frameassembly): Rust library documentation (`lexer`, `parser`, `backend`, `reverse`, `pcap`).
+- [Crates.io (`frameassembly`)](https://crates.io/crates/frameassembly): Official Rust CLI and library crate (`3.3.0`, MIT).
+- [Docs.rs API Reference](https://docs.rs/frameassembly): Rust library documentation (`lexer`, `parser`, `backend`, `inspect`, `reverse`, `pcap`).
 - [Crate Root (`src/lib.rs`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/src/lib.rs): Public Rust API and compiler pipeline entrypoints.
-- [PCAP Decompiler (`src/reverse/mod.rs`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/src/reverse/mod.rs): 81-protocol PCAP/PCAPNG-to-`.frasm` decompiler.
+- [PCAP Decompiler (`src/reverse/mod.rs`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/src/reverse/mod.rs): 146-protocol PCAP/PCAPNG-to-`.frasm` decompiler.
 
 ## Optional
 
@@ -134,5 +156,5 @@ compile {
 - [Shell Completions](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/contrib/completions/README.md): Static Tab completions for Bash, Zsh, Fish, and PowerShell.
 - [Unix Install Script](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh): Cross-platform macOS and Linux installer.
 - [Windows Install Script](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.ps1): Zero-Admin Windows PowerShell installer.
-- [Citation Metadata](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/CITATION.cff): CFF 1.2.0 academic citation file (`v3.2.2`).
-- [CodeMeta Metadata](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/codemeta.json): CodeMeta 4.0 software metadata (`v3.2.2`).
+- [Citation Metadata](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/CITATION.cff): CFF 1.2.0 academic citation file (`v3.3.0`).
+- [CodeMeta Metadata](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/codemeta.json): CodeMeta 4.0 software metadata (`v3.3.0`).

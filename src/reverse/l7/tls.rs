@@ -4,10 +4,10 @@
 //! and RFC 5246 (TLS 1.2) record and handshake messages (`clienthello`, `serverhello`,
 //! `certificate`, `finished`, `alert`, `appdata`). It decodes `recordversion`,
 //! `handshakeversion`, cipher suites (`ciphersuite`), Server Name Indication (`sni` extension
-//! `0x0000`), and Application-Layer Protocol Negotiation (`alpn` extension `0x0010`). It never
-//! attempts cryptographic decryption: opaque `appdata` or `alert` bodies are preserved via
-//! residual payload, and unsupported or encrypted multi-record segments return `None` to step down
-//! cleanly to `tcp` with `payload` or `hexpayload`.
+//! `0x0000`), Application-Layer Protocol Negotiation (`alpn` extension `0x0010`), and TLS 1.3
+//! extensions (`0x002b` `supported_versions`, `0x000a` `supported_groups`, `0x000d`
+//! `signature_algorithms`, `0x0033` `key_share`). Unsupported or multi-record segments return
+//! `None` to step down cleanly to `tcp` + `hexpayload`.
 
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -22,6 +22,60 @@ use super::{checked_be_u16, push_str_mod};
 pub(crate) fn is_tls_signature(payload: &[u8]) -> bool {
     matches!(payload.first(), Some(21..=23))
         && matches!(checked_be_u16(payload, 1), Some(0x0300..=0x0304))
+}
+
+/// Validates wire lengths of an RFC 8446 TLS 1.3 handshake extension (`0x002b`, `0x000a`, `0x000d`, `0x0033`).
+fn is_valid_tls13_extension(hs_type: u8, ext_type: u16, ext_data: &[u8]) -> bool {
+    match ext_type {
+        0x002b => {
+            if hs_type == 1 {
+                ext_data.len() >= 3
+                    && usize::from(ext_data[0]) + 1 == ext_data.len()
+                    && ext_data[0].is_multiple_of(2)
+            } else {
+                ext_data.len() == 2
+            }
+        }
+        0x000a | 0x000d => {
+            let Some(list_len) = checked_be_u16(ext_data, 0) else {
+                return false;
+            };
+            list_len >= 2
+                && list_len.is_multiple_of(2)
+                && usize::from(list_len) + 2 == ext_data.len()
+        }
+        0x0033 => {
+            if hs_type == 1 {
+                let Some(shares_len) = checked_be_u16(ext_data, 0) else {
+                    return false;
+                };
+                if usize::from(shares_len) + 2 != ext_data.len() {
+                    return false;
+                }
+                let mut p = 2usize;
+                while p < ext_data.len() {
+                    let Some(klen) = checked_be_u16(ext_data, p + 2) else {
+                        return false;
+                    };
+                    let Some(next) = p.checked_add(4).and_then(|x| x.checked_add(usize::from(klen)))
+                    else {
+                        return false;
+                    };
+                    if next > ext_data.len() {
+                        return false;
+                    }
+                    p = next;
+                }
+                p == ext_data.len()
+            } else {
+                let Some(klen) = checked_be_u16(ext_data, 2) else {
+                    return false;
+                };
+                4usize.checked_add(usize::from(klen)) == Some(ext_data.len())
+            }
+        }
+        _ => false,
+    }
 }
 
 /// Dissects an RFC 8446 / RFC 5246 TLS record and handshake payload.
@@ -105,14 +159,11 @@ pub(crate) fn dissect_tls(payload: &[u8]) -> Option<ProtocolDissection> {
                 return None;
             }
             let hs_version = checked_be_u16(hs_body, 0)?;
-            if hs_version != rec_version {
-                let _ = write!(tokens, " handshakeversion 0x{hs_version:04x}");
-            }
 
             let mut pos = 35usize.checked_add(hs_body[34] as usize)?;
             let cs = if hs_type == 1 {
                 let cs_len = checked_be_u16(hs_body, pos)? as usize;
-                if cs_len < 2 {
+                if cs_len < 2 || !cs_len.is_multiple_of(2) {
                     return None;
                 }
                 let val = checked_be_u16(hs_body, pos + 2)?;
@@ -125,6 +176,14 @@ pub(crate) fn dissect_tls(payload: &[u8]) -> Option<ProtocolDissection> {
                 pos = pos.checked_add(3)?;
                 val
             };
+
+            let is_tls13 = (0x1301..=0x1305).contains(&cs)
+                || rec_version == 0x0304
+                || hs_version == 0x0304;
+            let expected_hs_ver = if is_tls13 { 0x0303 } else { rec_version };
+            if hs_version != expected_hs_ver {
+                let _ = write!(tokens, " handshakeversion 0x{hs_version:04x}");
+            }
 
             let mut sni_opt: Option<&str> = None;
             let mut alpn_opt: Option<&str> = None;
@@ -146,8 +205,6 @@ pub(crate) fn dissect_tls(payload: &[u8]) -> Option<ProtocolDissection> {
                     let ext_data = hs_body.get(pos..ext_end)?;
                     if ext_type == 0x0000
                         && sni_opt.is_none()
-                        && alpn_opt.is_none()
-                        && ext_payload.is_empty()
                         && let Some(nlen) = checked_be_u16(ext_data, 3)
                         && 5usize.checked_add(nlen as usize) == Some(ext_data.len())
                         && let Ok(s) = core::str::from_utf8(&ext_data[5..])
@@ -155,12 +212,13 @@ pub(crate) fn dissect_tls(payload: &[u8]) -> Option<ProtocolDissection> {
                         sni_opt = Some(s);
                     } else if ext_type == 0x0010
                         && alpn_opt.is_none()
-                        && ext_payload.is_empty()
                         && let Some(&plen) = ext_data.get(2)
                         && 3usize.checked_add(plen as usize) == Some(ext_data.len())
                         && let Ok(s) = core::str::from_utf8(&ext_data[3..])
                     {
                         alpn_opt = Some(s);
+                    } else if is_valid_tls13_extension(hs_type, ext_type, ext_data) {
+                        // RFC 8446 mandatory TLS 1.3 handshake extensions
                     } else if ext_type == 0xFFFF && ext_end == exts_end && !ext_data.is_empty() {
                         ext_payload = ext_data.to_vec();
                     } else {

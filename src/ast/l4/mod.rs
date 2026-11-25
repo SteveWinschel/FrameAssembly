@@ -21,9 +21,9 @@ pub use tcp::*;
 #[doc(inline)]
 pub use udp::*;
 
-/// Transport layer protocol selector for dual-transport application protocols (e.g., DNS, SIP, Syslog).
+/// Transport layer protocol selector for multi-transport application protocols (e.g., DNS, SIP, Syslog, Diameter).
 ///
-/// Syntax mapping: `[tcp | udp]`
+/// Syntax mapping: `[tcp | udp | sctp]`
 #[doc(alias = "L4")]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TransportProto {
@@ -31,29 +31,37 @@ pub enum TransportProto {
     Tcp,
     /// User Datagram Protocol (RFC 768, IP Protocol `17`).
     Udp,
+    /// Stream Control Transmission Protocol (RFC 9260, IP Protocol `132`).
+    Sctp,
 }
 
 /// Layer 4 transport header modifiers applied to any transport or application frame statement.
 ///
-/// Syntax mapping: `[srcport <u16>] [dstport <u16>] [seq <u32>] [acknum <u32>] [win <u16>] [urgent <u16>] [syn] [ack] [fin] [rst] [psh] [urg] [ece] [cwr] [mss <u16>] [wscale <u8>] [sackperm] [tsval <u32>] [tsecr <u32>]`
+/// Syntax mapping: `[srcport <u16>] [dstport <u16>] [transport tcp|udp|sctp] [seq <u32>] [acknum <u32>] [win <u16>] [urgent <u16>] [syn] [ack] [fin] [rst] [psh] [urg] [ece] [cwr] [mss <u16>] [wscale <u8>] [sackperm] [sackblock <u32> <u32>] [tsval <u32>] [tsecr <u32>] [tcpmd5 <hex>] [tfo <hex>] [badchecksum] [nochecksum]`
 #[doc(alias = "Transport")]
 #[doc(alias = "tcp")]
 #[doc(alias = "udp")]
 #[doc(alias = "sctp")]
+#[doc(alias = "badchecksum")]
+#[doc(alias = "nochecksum")]
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct L4Modifiers {
     /// Explicit 16-bit source port override (`srcport <u16>`).
     pub src_port: Option<u16>,
     /// Explicit 16-bit destination port override (`dstport <u16>`).
     pub dst_port: Option<u16>,
-    /// Explicit transport protocol override (`tcp` or `udp`).
+    /// Explicit transport protocol override (`tcp`, `udp`, or `sctp`).
     pub transport: Option<TransportProto>,
     /// Ordered list of active TCP control flags (`syn`, `ack`, `fin`, `rst`, `psh`, `urg`, `ece`, `cwr`).
     pub tcp_flags: Vec<TcpFlag>,
     /// Optional 16-bit TCP Urgent Pointer override (`urgent <u16>`).
     pub urgent: Option<u16>,
-    /// Optional RFC 7323 / RFC 2018 TCP header options (`mss`, `wscale`, `sackperm`, `tsval`, `tsecr`).
+    /// Optional RFC 7323 / RFC 2018 TCP header options (`mss`, `wscale`, `sackperm`, `sackblock`, `tsval`, `tsecr`, `tcpmd5`, `tfo`).
     pub tcp_options: Option<TcpOptions>,
     /// Optional RFC 9260 SCTP association and chunk parameters (`vtag`, `chunk`, `stream`, `ssn`, `ppid`).
     pub sctp_params: Option<SctpParams>,
+    /// Intentionally corrupts the Layer 4 checksum (TCP/UDP/ICMP/SCTP) for negative testing (`badchecksum`).
+    pub bad_checksum: bool,
+    /// Zeroes the optional IPv4 UDP checksum (`0x0000`, `nochecksum`).
+    pub no_checksum: bool,
 }

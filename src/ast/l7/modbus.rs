@@ -7,11 +7,11 @@
 //! Discrete Inputs, `0x03` Read Holding Registers, `0x04` Read Input Registers, `0x05` Write
 //! Single Coil, `0x06` Write Single Register, `0x10` Write Multiple Registers) and register data.
 //! Canonical `.frasm` syntax:
-//! `modbus [txid <u16>] [protoid <u16>] [unitid <u8>] [func <str>] [addr <u16>] [count <u16>] [value <u16>] [isresponse]`.
+//! `modbus [txid <u16>] [protoid <u16>] [unitid <u8>] [func <str|u8>] [addr <u16>] [count <u16>] [value <u16>] [errcode <u8>] [isresponse]`.
 
 /// Modbus TCP Application Protocol v1.1b3 (MBAP + PDU) specification.
 ///
-/// Syntax mapping: `modbus [txid <u16>] [protoid <u16>] [unitid <u8>] [func <str>] [addr <u16>] [count <u16>] [value <u16>] [isresponse]`
+/// Syntax mapping: `modbus [txid <u16>] [protoid <u16>] [unitid <u8>] [func <str|u8>] [addr <u16>] [count <u16>] [value <u16>] [errcode <u8>] [isresponse]`
 #[doc(alias = "modbus")]
 #[doc(alias = "Modbus TCP")]
 #[doc(alias = "MBAP")]
@@ -23,6 +23,7 @@
 #[doc(alias = "addr")]
 #[doc(alias = "count")]
 #[doc(alias = "value")]
+#[doc(alias = "errcode")]
 #[doc(alias = "isresponse")]
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ModbusSpec<'a> {
@@ -40,6 +41,8 @@ pub struct ModbusSpec<'a> {
     pub count: Option<u16>,
     /// Register or coil value for write operations or read responses (`value <u16>`, default `0`).
     pub value: Option<u16>,
+    /// 8-bit Modbus exception code (`errcode <u8>`, e.g., `1` Illegal Function, `2` Illegal Data Address).
+    pub exception_code: Option<u8>,
     /// Response direction flag (`isresponse`).
     pub is_response: bool,
 }

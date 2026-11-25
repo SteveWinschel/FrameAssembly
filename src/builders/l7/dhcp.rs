@@ -25,7 +25,7 @@ pub fn build_dhcp_payload(
     spec: &DhcpSpec,
     payload_bytes: &[u8],
 ) -> (Vec<u8>, u16, u16) {
-    if ctx.src_ip.is_ipv4() {
+    if !ctx.src_ip.is_ipv6() && !ctx.dst_ip.is_ipv6() {
         // DHCPv4 (BOOTP)
         let is_server_msg =
             spec.is_offer || spec.is_ack || spec.is_advertise || spec.is_reply;
@@ -126,10 +126,62 @@ pub fn build_dhcp_payload(
             pkt.extend_from_slice(slice);
         }
 
-        // Option 51: IP Address Lease Time
-        if let Some(lease) = spec.lease_time {
+        // Option 50: Requested IP Address (RFC 2131 / RFC 2132 §9.1)
+        let req_ip = if !is_server_msg {
+            match spec.yiaddr {
+                Some(IpAddr::V4(v4)) => Some(v4),
+                _ if msg_type == 3 => match spec.ciaddr.or(Some(ctx.src_ip)) {
+                    Some(IpAddr::V4(v4)) if !v4.is_unspecified() => Some(v4),
+                    _ => Some(core::net::Ipv4Addr::new(192, 168, 1, 100)),
+                },
+                _ => None,
+            }
+        } else {
+            None
+        };
+        if let Some(v4) = req_ip {
+            pkt.extend_from_slice(&[50, 4]);
+            pkt.extend_from_slice(&v4.octets());
+        }
+
+        // Option 51: IP Address Lease Time (mandatory on OFFER/ACK)
+        let eff_lease = spec.lease_time.or(if matches!(msg_type, 2 | 5) {
+            Some(3600)
+        } else {
+            None
+        });
+        if let Some(lease) = eff_lease {
             pkt.extend_from_slice(&[51, 4]);
             pkt.extend_from_slice(&lease.to_be_bytes());
+        }
+
+        // Option 54: Server Identifier (mandatory on OFFER/ACK/REQUEST/RELEASE)
+        let server_id = match spec.siaddr {
+            Some(IpAddr::V4(v4)) => Some(v4),
+            _ if matches!(msg_type, 2 | 5) => match ctx.src_ip {
+                IpAddr::V4(v4) if !v4.is_unspecified() => Some(v4),
+                _ => Some(core::net::Ipv4Addr::new(192, 168, 1, 1)),
+            },
+            _ if matches!(msg_type, 3 | 7) => match ctx.dst_ip {
+                IpAddr::V4(v4)
+                    if !v4.is_unspecified()
+                        && !v4.is_multicast()
+                        && v4 != core::net::Ipv4Addr::BROADCAST =>
+                {
+                    Some(v4)
+                }
+                _ => Some(core::net::Ipv4Addr::new(192, 168, 1, 1)),
+            },
+            _ => None,
+        };
+        if let Some(v4) = server_id {
+            pkt.extend_from_slice(&[54, 4]);
+            pkt.extend_from_slice(&v4.octets());
+        }
+
+        // Option 55: Parameter Request List (Subnet Mask, Router, DNS, Domain, Lease Time, Server ID)
+        if matches!(msg_type, 1 | 3) {
+            pkt.extend_from_slice(&[55, 6, 1, 3, 6, 15, 51, 54]);
         }
 
         if !payload_bytes.is_empty() {

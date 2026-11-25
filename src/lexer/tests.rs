@@ -187,3 +187,82 @@ fn test_plain_english_lexer_error_hints() {
     }
 }
 
+/// Verifies Wave 1 modifier tokens and `repeat` tokenize cleanly without colliding with identifiers.
+#[test]
+fn test_wave1_modifier_tokens_and_repeat() {
+    let input = "repeat comment fcs badfcs routeralert badipchecksum badchecksum nochecksum sackblock tcpmd5 tfo shutdowncomplete";
+    let tokens: Vec<Token<'_>> = lex(input).unwrap().into_iter().map(|(t, _)| t).collect();
+    assert_eq!(
+        tokens,
+        vec![
+            Token::Repeat,
+            Token::Comment,
+            Token::Fcs,
+            Token::BadFcs,
+            Token::RouterAlert,
+            Token::BadIpChecksum,
+            Token::BadChecksum,
+            Token::NoChecksum,
+            Token::SackBlock,
+            Token::TcpMd5,
+            Token::Tfo,
+            Token::ShutdownComplete,
+        ]
+    );
+}
+
+/// Verifies single-line string literal termination and paste-recovery spans/hints for
+/// unclosed quotes, invisible Unicode spaces (`\u{00a0}`, `\u{200b}`), and broken/Unicode arrows.
+#[test]
+fn test_unclosed_string_invisible_unicode_and_arrow_lex_errors() {
+    use miette::Diagnostic;
+
+    let unclosed = "a -> b http get uri \"/unclosed\na -> b http get uri \"/next\"";
+    let err = lex(unclosed).unwrap_err();
+    match &err {
+        crate::error::CompilerError::LexError { span, .. } => {
+            assert_eq!(
+                &unclosed[span.0..span.0 + span.1],
+                "\"/unclosed",
+                "unclosed quote span must stop at end-of-line"
+            );
+        }
+        other => panic!("expected LexError, got {other:?}"),
+    }
+    let unclosed_combined = format!(
+        "{} {}",
+        err,
+        err.help().map(|h| h.to_string()).unwrap_or_default()
+    );
+    assert!(unclosed_combined.contains("missing closing '\"'"));
+
+    let cases = [
+        ("host\u{00a0}a { ip 10.0.0.1 }", "non-breaking space", (4, 2)),
+        ("host\u{200b}a { ip 10.0.0.1 }", "zero-width space", (4, 3)),
+        ("a --> b tcp syn", "replace '-->' with '->'", (2, 3)),
+        ("a <-- b tcp syn", "replace '<--' with '<-'", (2, 3)),
+        ("a => b tcp syn", "replace '=>' with '->'", (2, 2)),
+        ("a \u{2192} b tcp syn", "replace '\u{2192}' with '->'", (2, 3)),
+        ("a \u{2190} b tcp syn", "replace '\u{2190}' with '<-'", (2, 3)),
+    ];
+
+    for (src, expected_msg, expected_span) in cases {
+        let lex_err = lex(src).unwrap_err();
+        match &lex_err {
+            crate::error::CompilerError::LexError { span, .. } => {
+                assert_eq!(*span, expected_span, "bad span for `{src}`");
+            }
+            other => panic!("expected LexError, got {other:?}"),
+        }
+        let combined = format!(
+            "{} {}",
+            lex_err,
+            lex_err.help().map(|h| h.to_string()).unwrap_or_default()
+        );
+        assert!(
+            combined.contains(expected_msg),
+            "For input `{src}`, expected `{expected_msg}`, got `{combined}`"
+        );
+    }
+}
+

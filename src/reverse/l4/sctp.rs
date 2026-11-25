@@ -4,8 +4,8 @@
 //! Transmission Protocol (`sctp`, IP protocol `132`) packets in FrameAssembly. It decodes the
 //! 12-byte SCTP common header (`srcport`, `dstport`, 32-bit verification tag `vtag`) and primary
 //! chunk descriptor (`data`, `init`, `initack`, `sack`, `heartbeat`, `heartbeatack`, `abort`,
-//! `shutdown`, `shutdownack`, `cookieecho`, `cookieack`) including `data` stream (`stream`),
-//! sequence number (`ssn`), and payload protocol identifier (`ppid`).
+//! `shutdown`, `shutdownack`, `shutdowncomplete`, `cookieecho`, `cookieack`) including `data`
+//! stream (`stream`), sequence number (`ssn`), and payload protocol identifier (`ppid`).
 
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -32,7 +32,13 @@ pub(crate) fn dissect_sctp(
     match ct {
         0 if cb.len() >= 16 => {
             t.push_str(" data");
-            let (stream, ssn, ppid) = (be_u16(cb, 8), be_u16(cb, 10), be_u32(cb, 12));
+            let (tsn, stream, ssn, ppid) = (
+                be_u32(cb, 4),
+                be_u16(cb, 8),
+                be_u16(cb, 10),
+                be_u32(cb, 12),
+            );
+            push_if(&mut t, "tsn", tsn, 1000);
             push_if(&mut t, "stream", stream, 0);
             push_if(&mut t, "ssn", ssn, 0);
             push_if(&mut t, "ppid", ppid, 0);
@@ -41,6 +47,11 @@ pub(crate) fn dissect_sctp(
             params.ssn = (ssn != 0).then_some(ssn);
             params.ppid = (ppid != 0).then_some(ppid);
             res.extend_from_slice(&cb[16..]);
+        }
+        0 => {
+            t.push_str(" data");
+            params.chunk = Some(String::from("data"));
+            res.extend_from_slice(cb.get(4..).unwrap_or(&[]));
         }
         1 | 2 => {
             t.push_str(if ct == 1 { " init" } else { " initack" });
@@ -60,11 +71,12 @@ pub(crate) fn dissect_sctp(
             params.chunk = Some(String::from(ch));
             res.extend_from_slice(cb.get(4..).unwrap_or(&[]));
         }
-        6 | 8 | 11 => {
+        6 | 8 | 11 | 14 => {
             let (kw, ch) = match ct {
                 6 => (" abort", "abort"),
                 8 => (" shutdownack", "shutdownack"),
-                _ => (" cookieack", "cookieack"),
+                11 => (" cookieack", "cookieack"),
+                _ => (" shutdowncomplete", "shutdowncomplete"),
             };
             t.push_str(kw);
             params.chunk = Some(String::from(ch));

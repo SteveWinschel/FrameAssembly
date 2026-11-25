@@ -56,17 +56,26 @@ pub fn build_mld_payload(
     mld.extend_from_slice(&mcast_octets);
     mld.extend_from_slice(payload);
 
+    // RFC 2710 §3: MLD Done goes to All-Routers ff02::2; General Query (::) goes to All-Nodes ff02::1.
+    let dst_octets = match mld_type {
+        MldType::Done => [0xff, 0x02, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2],
+        MldType::Query if mcast_octets == [0u8; 16] => {
+            [0xff, 0x02, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]
+        }
+        _ => mcast_octets,
+    };
+
     let pseudo = {
         let mut p = Vec::with_capacity(40);
         p.extend_from_slice(&src_v6.octets());
-        p.extend_from_slice(&mcast_octets);
-        p.extend_from_slice(&(mld.len() as u32).to_be_bytes());
+        p.extend_from_slice(&dst_octets);
+        p.extend_from_slice(&u32::try_from(mld.len()).unwrap_or(u32::MAX).to_be_bytes());
         p.extend_from_slice(&[0, 0, 0, 58]);
         p
     };
     let cksum = internet_checksum(&[&pseudo, &mld]);
     mld[2..4].copy_from_slice(&cksum.to_be_bytes());
 
-    let dst_ip = IpAddr::V6(core::net::Ipv6Addr::from(mcast_octets));
+    let dst_ip = IpAddr::V6(core::net::Ipv6Addr::from(dst_octets));
     Ok((mld, dst_ip, 58))
 }

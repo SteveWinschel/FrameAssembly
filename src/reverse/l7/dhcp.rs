@@ -2,15 +2,15 @@
 //!
 //! This module implements the fuzz-safe reverse dissectors for both IPv4 BOOTP / `dhcp` (RFC 2131
 //! and RFC 2132 over UDP ports `67` and `68`) and `DHCPv6` (RFC 8415 over UDP ports `546` and
-//! `547`). It decodes transaction identifiers (`xid`), client/server IPv4 addresses (`ciaddr`,
-//! `yiaddr`, `siaddr`), client hardware MAC addresses (`chaddr`), and DHCP options (`subnetmask`,
-//! `router`, `dnsserver`, `hostname`, `leasetime`) into canonical `.frasm` modifiers.
+//! `547`). It decodes transaction identifiers (`xid`), client/server addresses (`ciaddr`, `yiaddr`,
+//! `siaddr`), client hardware MACs (`chaddr`), DHCPv4 Options `1`/`3`/`6`/`12`/`50`/`51`/`53`/`54`/`55`,
+//! and DHCPv6 Options `1`/`2`/`3`/`5`/`23`/`39` into canonical `.frasm` modifiers.
 
 use alloc::format;
 use alloc::string::ToString;
 use alloc::vec::Vec;
 use core::fmt::Write as _;
-use core::net::{Ipv4Addr, Ipv6Addr};
+use core::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
 use crate::ast::Protocol;
 use crate::reverse::{
@@ -20,16 +20,20 @@ use crate::reverse::{
 use super::{is_printable_ascii_str, ok_dissect, push_opt, push_str_if};
 
 /// Dissects an RFC 2131 DHCPv4 or RFC 8415 DHCPv6 payload over UDP ports `67`/`68` or `546`/`547`.
-pub(crate) fn dissect_dhcp(payload: &[u8], is_ipv6: bool) -> Option<ProtocolDissection> {
+pub(crate) fn dissect_dhcp(
+    payload: &[u8],
+    is_ipv6: bool,
+    dst_ip: Option<IpAddr>,
+) -> Option<ProtocolDissection> {
     if is_ipv6 {
         dissect_dhcpv6(payload)
     } else {
-        dissect_dhcpv4(payload)
+        dissect_dhcpv4(payload, dst_ip)
     }
 }
 
 /// Dissects an RFC 2131 BOOTP / DHCPv4 payload (236B header + 4B magic cookie + TLV options).
-pub(crate) fn dissect_dhcpv4(payload: &[u8]) -> Option<ProtocolDissection> {
+pub(crate) fn dissect_dhcpv4(payload: &[u8], dst_ip: Option<IpAddr>) -> Option<ProtocolDissection> {
     if payload.len() < 241 || payload[236..240] != [99, 130, 83, 99] {
         return None;
     }
@@ -45,6 +49,7 @@ pub(crate) fn dissect_dhcpv4(payload: &[u8]) -> Option<ProtocolDissection> {
 
     let (mut msg_type, mut subnet_mask, mut router, mut dns_server, mut hostname, mut lease_time) =
         (None, None, None, None, None, None);
+    let (mut seen_req_ip, mut seen_server_id, mut seen_prl) = (false, false, false);
     let mut residual_payload = Vec::new();
 
     let mut idx = 240usize;
@@ -73,26 +78,80 @@ pub(crate) fn dissect_dhcpv4(payload: &[u8]) -> Option<ProtocolDissection> {
             break;
         }
         let val = &payload[idx + 2..idx + 2 + len];
+        let raw_opt = &payload[idx..idx + 2 + len];
+        let mtype = msg_type.unwrap_or(1);
+        let is_server_msg = matches!(mtype, 2 | 5);
         match opt {
             53 if len == 1 && msg_type.is_none() => msg_type = Some(val[0]),
-            1 if len == 4 && subnet_mask.is_none() => subnet_mask = Some(ipv4_at(val, 0)),
-            3 if len == 4 && router.is_none() => router = Some(ipv4_at(val, 0)),
-            6 if len == 4 && dns_server.is_none() => dns_server = Some(ipv4_at(val, 0)),
-            12 if hostname.is_none() => {
+            1 if len == 4 && subnet_mask.is_none() && residual_payload.is_empty() => {
+                subnet_mask = Some(ipv4_at(val, 0));
+            }
+            3 if len == 4 && router.is_none() && residual_payload.is_empty() => {
+                router = Some(ipv4_at(val, 0));
+            }
+            6 if len == 4 && dns_server.is_none() && residual_payload.is_empty() => {
+                dns_server = Some(ipv4_at(val, 0));
+            }
+            12 if hostname.is_none() && residual_payload.is_empty() => {
                 if let Some(s) = is_printable_ascii_str(val) {
                     hostname = Some(s.to_string());
                 } else {
-                    residual_payload.extend_from_slice(&payload[idx..idx + 2 + len]);
+                    residual_payload.extend_from_slice(raw_opt);
                 }
             }
-            51 if len == 4 && lease_time.is_none() => lease_time = Some(be_u32(val, 0)),
-            _ => residual_payload.extend_from_slice(&payload[idx..idx + 2 + len]),
+            50 if len == 4
+                && !is_server_msg
+                && !seen_req_ip
+                && residual_payload.is_empty()
+                && ((yiaddr != Ipv4Addr::UNSPECIFIED && ipv4_at(val, 0) == yiaddr)
+                    || (yiaddr == Ipv4Addr::UNSPECIFIED && mtype == 3)) =>
+            {
+                seen_req_ip = true;
+            }
+            51 if len == 4 && lease_time.is_none() && residual_payload.is_empty() => {
+                lease_time = Some(be_u32(val, 0));
+            }
+            54 if len == 4 && !seen_server_id && residual_payload.is_empty() => {
+                let sid = ipv4_at(val, 0);
+                let matches_expected = if !siaddr.is_unspecified() {
+                    sid == siaddr
+                } else if matches!(mtype, 2 | 5) {
+                    true
+                } else if matches!(mtype, 3 | 7) {
+                    match dst_ip {
+                        Some(IpAddr::V4(v4))
+                            if !v4.is_unspecified()
+                                && !v4.is_multicast()
+                                && v4 != Ipv4Addr::BROADCAST =>
+                        {
+                            sid == v4
+                        }
+                        _ => sid == Ipv4Addr::new(192, 168, 1, 1),
+                    }
+                } else {
+                    false
+                };
+                if matches_expected {
+                    seen_server_id = true;
+                } else {
+                    residual_payload.extend_from_slice(raw_opt);
+                }
+            }
+            55 if !seen_prl
+                && residual_payload.is_empty()
+                && matches!(mtype, 1 | 3)
+                && val == [1, 3, 6, 15, 51, 54] =>
+            {
+                seen_prl = true;
+            }
+            _ => residual_payload.extend_from_slice(raw_opt),
         }
         idx += 2 + len;
     }
 
+    let resolved_mtype = msg_type.unwrap_or(1);
     let bootp_flags = be_u16(payload, 10);
-    let mut tokens = match (msg_type.unwrap_or(1), bootp_flags) {
+    let mut tokens = match (resolved_mtype, bootp_flags) {
         (1, 0x8000) => "dhcp discover".to_string(),
         (1, 0x0000) => "dhcp".to_string(),
         (2, 0x0000) => "dhcp offer".to_string(),
@@ -114,7 +173,11 @@ pub(crate) fn dissect_dhcpv4(payload: &[u8]) -> Option<ProtocolDissection> {
     if let Some(h) = hostname {
         push_str_if(&mut tokens, "hostname", &h, "");
     }
-    push_opt(&mut tokens, "leasetime", lease_time);
+    if let Some(lease) = lease_time
+        && !(matches!(resolved_mtype, 2 | 5) && lease == 3600)
+    {
+        let _ = write!(tokens, " leasetime {lease}");
+    }
 
     ok_dissect(Protocol::Dhcp, tokens, residual_payload)
 }

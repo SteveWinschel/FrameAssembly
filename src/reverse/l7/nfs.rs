@@ -1,9 +1,11 @@
 //! Network File System v3/v4 (NFS, RFC 1813 / RFC 7530 / RFC 8881) Layer 7 PCAP-to-`.frasm` decompiler.
 //!
 //! This module implements fuzz-safe ONC-RPC / SunRPC (`prog == 100_003`, `rpc_vers == 2`) wire-to-AST
-//! dissection for `nfs` frames over 4-byte record-marked TCP and raw UDP transports (port `2049`
-//! and custom ports with a valid SunRPC NFS Call header). It decodes `"null"`, `"getattr"`, `compound`,
-//! `lookup`, `"read"`, and `"write"` procedures along with XDR-padded `tag` and `path` strings.
+//! dissection for `nfs` frames over 4-byte record-marked TCP/SCTP and raw UDP transports (port
+//! `2049` and custom ports with a valid SunRPC NFS Call header). It decodes procedures `0..=21`
+//! (`null`, `getattr`/`compound`, `setattr`, `lookup`, `access`, `readlink`, `read`, `write`,
+//! `create`, `mkdir`, `symlink`, `mknod`, `remove`, `rmdir`, `rename`, `link`, `readdir`,
+//! `readdirplus`, `fsstat`, `fsinfo`, `pathconf`, `commit`, plus numeric fallback) and XDR `tag`/`path`.
 
 use alloc::format;
 use alloc::string::String;
@@ -11,12 +13,11 @@ use alloc::string::String;
 use crate::ast::{Protocol, TransportProto};
 use crate::reverse::ProtocolDissection;
 
-/// Checks whether `s` can be emitted inside `"..."` for a parser field that uses
-/// `parse_raw_string_lit` (which strips outer quotes without unescaping).
-fn is_valid_raw_str(s: &str) -> bool {
-    !s.contains('"')
-        && s.chars().all(|c| !c.is_control())
-        && (s.bytes().rev().take_while(|&b| b == b'\\').count() % 2 == 0)
+use super::quote_raw_str;
+
+/// Checks whether `s` contains no control characters so it can safely be emitted as a quoted field.
+fn is_printable_nfs_str(s: &str) -> bool {
+    s.chars().all(|c| !c.is_control())
 }
 
 /// Reads a big-endian `u32` from `b[off..off + 4]`.
@@ -36,25 +37,30 @@ fn parse_xdr_str(input: &[u8]) -> Option<(&str, &[u8])> {
         return None;
     }
     let s = core::str::from_utf8(&input[4..4 + len]).ok()?;
-    if !is_valid_raw_str(s) {
+    if !is_printable_nfs_str(s) {
         return None;
     }
     Some((s, &input[total..]))
 }
 
-/// Dissects an `nfs` SunRPC Call message over TCP or UDP.
+/// Dissects an `nfs` SunRPC Call message over TCP, UDP, or SCTP.
 pub(crate) fn dissect_nfs(
     transport: TransportProto,
     _src_port: u16,
     _dst_port: u16,
     payload: &[u8],
 ) -> Option<ProtocolDissection> {
-    if payload.is_empty() || !matches!(transport, TransportProto::Tcp | TransportProto::Udp) {
+    if payload.is_empty()
+        || !matches!(
+            transport,
+            TransportProto::Tcp | TransportProto::Udp | TransportProto::Sctp
+        )
+    {
         return None;
     }
-    let is_tcp = matches!(transport, TransportProto::Tcp);
+    let is_udp = matches!(transport, TransportProto::Udp);
 
-    let rpc = if is_tcp {
+    let rpc = if !is_udp {
         if payload.len() < 44 {
             return None;
         }
@@ -92,10 +98,27 @@ pub(crate) fn dissect_nfs(
                 tokens.push_str(" compound");
             }
         }
+        2 => tokens.push_str(" proc \"setattr\""),
         3 => {}
+        4 => tokens.push_str(" proc \"access\""),
+        5 => tokens.push_str(" proc \"readlink\""),
         6 => tokens.push_str(" proc \"read\""),
         7 => tokens.push_str(" proc \"write\""),
-        _ => return None,
+        8 => tokens.push_str(" proc \"create\""),
+        9 => tokens.push_str(" proc \"mkdir\""),
+        10 => tokens.push_str(" proc \"symlink\""),
+        11 => tokens.push_str(" proc \"mknod\""),
+        12 => tokens.push_str(" proc \"remove\""),
+        13 => tokens.push_str(" proc \"rmdir\""),
+        14 => tokens.push_str(" proc \"rename\""),
+        15 => tokens.push_str(" proc \"link\""),
+        16 => tokens.push_str(" proc \"readdir\""),
+        17 => tokens.push_str(" proc \"readdirplus\""),
+        18 => tokens.push_str(" proc \"fsstat\""),
+        19 => tokens.push_str(" proc \"fsinfo\""),
+        20 => tokens.push_str(" proc \"pathconf\""),
+        21 => tokens.push_str(" proc \"commit\""),
+        other => tokens.push_str(&format!(" proc \"{other}\"")),
     }
 
     if vers != 4 {
@@ -109,11 +132,11 @@ pub(crate) fn dissect_nfs(
         if let Some((tag_str, after_tag)) = parse_xdr_str(rest) {
             rest = after_tag;
             if !tag_str.is_empty() {
-                tokens.push_str(&format!(" tag \"{tag_str}\""));
+                tokens.push_str(&format!(" tag \"{}\"", quote_raw_str(tag_str)));
             }
             if let Some((path_str, after_path)) = parse_xdr_str(rest) {
                 rest = after_path;
-                tokens.push_str(&format!(" path \"{path_str}\""));
+                tokens.push_str(&format!(" path \"{}\"", quote_raw_str(path_str)));
             }
         }
     } else if proc_num != 1
@@ -121,10 +144,14 @@ pub(crate) fn dissect_nfs(
         && let Some((first_str, after_first)) = parse_xdr_str(rest)
     {
         if let Some((second_str, after_second)) = parse_xdr_str(after_first) {
-            tokens.push_str(&format!(" tag \"{first_str}\" path \"{second_str}\""));
+            tokens.push_str(&format!(
+                " tag \"{}\" path \"{}\"",
+                quote_raw_str(first_str),
+                quote_raw_str(second_str)
+            ));
             rest = after_second;
         } else {
-            tokens.push_str(&format!(" path \"{first_str}\""));
+            tokens.push_str(&format!(" path \"{}\"", quote_raw_str(first_str)));
             rest = after_first;
         }
     }
@@ -133,7 +160,7 @@ pub(crate) fn dissect_nfs(
         protocol: Protocol::Nfs,
         tokens,
         residual_payload: rest.to_vec(),
-        explicit_transport: if !is_tcp {
+        explicit_transport: if is_udp {
             Some(TransportProto::Udp)
         } else {
             None

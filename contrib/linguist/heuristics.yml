@@ -1,4 +1,4 @@
-# GitHub Linguist heuristics.yml disambiguation rules for .frasm (v3.0.0)
+# GitHub Linguist heuristics.yml disambiguation rules for .frasm (v3.3.0)
 # Upstream target: lib/linguist/heuristics.yml in https://github.com/github-linguist/linguist
 # Specification: https://frameassembly-lang.dev/docs
 
@@ -12,7 +12,7 @@ disambiguations:
           - '^\s*host\s+[A-Za-z_][A-Za-z0-9_-]*\s*\{\s*(?:ip|mac)\b'
           - '^\s*flow\s+[A-Za-z_][A-Za-z0-9_-]*\s*\([A-Za-z0-9_,\s-]*\)\s*\{'
           - '^\s*compile\s*\{\s*(?:[A-Za-z_][A-Za-z0-9_-]*\s*\(|[A-Za-z_][A-Za-z0-9_-]*\s*(?:->|<-))'
-          - '\b[A-Za-z_][A-Za-z0-9_-]*\s*(?:->|<-)\s*[A-Za-z_][A-Za-z0-9_-]*\s+(?:srcmac|dstmac|ethertype|vlan|qinq|mpls|ttl|dscp|ecn|flowlabel|ipid|df|mf|fragoffset|srcport|dstport|transport|seq|acknum|win|window|mss|wscale|sackperm|tsval|tsecr|urgent|arp|lldp|stp|lacp|eapol|icmp|ndp|igmp|mld|gre|vxlan|geneve|ipsec|esp|ah|ikev2|wireguard|ospf|bgp|rip|vrrp|hsrp|pim|bfd|openflow|tcp|udp|sctp|snmp[123]|dns|mdns|dhcp|ntp|ptp|radius|tacacs|syslog|netflow|ipfix|sflow|tftp|ftp|ssh|telnet|http|http2|grpc|websocket|tls|quic|stun|sip|rtp|rtsp|smtp|imap|pop3|kerberos|ldap|smb|nfs|redis|memcached|mysql|postgres|mqtt|coap|amqp|ssdp|whois|modbus|bacnet|dnp3|s7comm|ethernetip|opcua)\b'
+          - '\b[A-Za-z_][A-Za-z0-9_-]*\s*(?:->|<-)\s*[A-Za-z_][A-Za-z0-9_-]*\s+(?:srcmac|dstmac|ethertype|vlan|qinq|mpls|fcs|badfcs|ttl|dscp|ecn|flowlabel|ipid|df|mf|fragoffset|routeralert|badipchecksum|srcport|dstport|transport|seq|acknum|win|window|mss|wscale|sackperm|sackblock|tsval|tsecr|urgent|badchecksum|nochecksum|tcpmd5|tfo|arp|lldp|stp|lacp|eapol|cdp|isis|macsec|pfc|pppoe|nsh|profinet|goose|sv|ethercat|icmp|ndp|igmp|mld|gre|vxlan|geneve|ipsec|esp|ah|ikev2|wireguard|ospf|bgp|rip|vrrp|hsrp|pim|bfd|openflow|ipip|srv6|erspan|rsvp|ldp|bmp|rpkirtr|l2tp|lisp|glbp|gtpu|tcp|udp|sctp|snmp[123]|dns|mdns|dhcp|ntp|ptp|radius|tacacs|syslog|netflow|ipfix|sflow|tftp|ftp|ssh|telnet|http2|http|grpc|websocket|tls|quic|stun|sip|rtp|rtsp|smtp|imap|pop3|kerberos|ldap|smb|nfs|redis|memcached|mysql|postgres|mqtt|coap|amqp|ssdp|whois|modbus|bacnet|dnp3|s7commplus|s7comm|ethernetip|opcua|dcerpc|ntlm|rdp|llmnr|nbns|socks|vnc|doh|wsdiscovery|irc|iec104|mms|synchrophasor|hartip|fins|melsec|someip|doip|c1222|gesrtp|rocplus|bsap|knxnetip|rocev2|ipmi|twamp|netconf|gtpc|pfcp|diameter|ngap|s1ap|mssql|kafka|mongodb|tns|iscsi|nvmetcp|rtcp|turn|h323|sccp|mgcp)\b'
       # 2. Flat Assembler (x86 / x86-64 machine assembly)
       - language: Assembly
         pattern:

@@ -2,10 +2,9 @@
 //!
 //! This module implements the fuzz-safe reverse dissector for RFC 3261 `sip` signaling requests
 //! (`invite`, `ack`, `bye`, `cancel`, `register`, `options`, or `method`) and responses (`status`,
-//! `reason`) carried over UDP or TCP ports `5060` and `5061`. It extracts `uri`, `via`, `from`,
-//! `to`, `callid`, `cseq`, `contact`, `contenttype`, and Session Description Protocol (`SDP`)
-//! `body` payloads, elides canonical builder defaults, emits `transport tcp` when dissected over
-//! TCP streams, and preserves any non-text or trailing bytes in `residual_payload`.
+//! `reason`) carried over UDP, TCP, or SCTP ports `5060` and `5061`. It extracts `uri`, `via`,
+//! `from`, `to`, `callid`, `cseq`, `contact`, `contenttype`, validates `Max-Forwards: 70`, and
+//! decodes SDP `body` payloads while preserving explicit `tcp` or `sctp` transport modifiers.
 
 use alloc::string::String;
 use core::fmt::Write as _;
@@ -20,8 +19,11 @@ pub(crate) fn is_sip_signature(payload: &[u8]) -> bool {
     first_crlf_line(payload).is_some_and(|l| l.starts_with("SIP/2.0 ") || l.ends_with(" SIP/2.0"))
 }
 
-/// Dissects an RFC 3261 SIP signaling request or response over UDP or TCP.
-pub(crate) fn dissect_sip<'a>(payload: &'a [u8], is_tcp: bool) -> Option<ProtocolDissection> {
+/// Dissects an RFC 3261 SIP signaling request or response over UDP, TCP, or SCTP.
+pub(crate) fn dissect_sip<'a>(
+    payload: &'a [u8],
+    transport: TransportProto,
+) -> Option<ProtocolDissection> {
     let (hdr_str, body_bytes) = split_crlf_headers(payload)?;
     let mut lines = hdr_str.split("\r\n");
     let first_line = lines.next()?;
@@ -47,8 +49,15 @@ pub(crate) fn dissect_sip<'a>(payload: &'a [u8], is_tcp: bool) -> Option<Protoco
         }
     }
 
-    let (mut via_opt, mut from_opt, mut to_opt, mut call_id_opt, mut contact_opt, mut ct_opt) =
-        (None, None, None, None, None, None);
+    let (
+        mut via_opt,
+        mut from_opt,
+        mut to_opt,
+        mut call_id_opt,
+        mut contact_opt,
+        mut ct_opt,
+        mut max_fwd_seen,
+    ) = (None, None, None, None, None, None, false);
     let mut cseq_opt: Option<(u32, &str)> = None;
 
     for hline in lines {
@@ -65,6 +74,9 @@ pub(crate) fn dissect_sip<'a>(payload: &'a [u8], is_tcp: bool) -> Option<Protoco
                     cseq_opt = Some((cseq_num, m_s));
                 }
             }
+            "Max-Forwards" if !is_response && !max_fwd_seen && v == "70" => {
+                max_fwd_seen = true;
+            }
             "Contact" => contact_opt = Some(v),
             "Content-Type" => ct_opt = Some(v),
             "Content-Length" => {}
@@ -72,7 +84,12 @@ pub(crate) fn dissect_sip<'a>(payload: &'a [u8], is_tcp: bool) -> Option<Protoco
         }
     }
 
-    if via_opt.is_none() || from_opt.is_none() || to_opt.is_none() || call_id_opt.is_none() || cseq_opt.is_none() {
+    if via_opt.is_none()
+        || from_opt.is_none()
+        || to_opt.is_none()
+        || call_id_opt.is_none()
+        || cseq_opt.is_none()
+    {
         return None;
     }
     if is_response {
@@ -126,11 +143,16 @@ pub(crate) fn dissect_sip<'a>(payload: &'a [u8], is_tcp: bool) -> Option<Protoco
     }
 
     let residual_payload = attach_text_body(&mut tokens, "body", body_bytes);
+    let explicit_transport = match transport {
+        TransportProto::Tcp => Some(TransportProto::Tcp),
+        TransportProto::Sctp => Some(TransportProto::Sctp),
+        TransportProto::Udp => None,
+    };
     Some(ProtocolDissection {
         protocol: Protocol::Sip,
         tokens,
         residual_payload,
-        explicit_transport: is_tcp.then_some(TransportProto::Tcp),
+        explicit_transport,
     })
 }
 

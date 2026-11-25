@@ -6,11 +6,11 @@
 //! flag), a variable-length Remaining Length integer, a type-specific Variable Header (protocol
 //! name `"MQTT"`, level `4`, topic string, or 16-bit Packet Identifier), and an application
 //! payload. Canonical FrameAssembly `.frasm` syntax models MQTT traffic via
-//! `mqtt [connect | connack | publish | puback | subscribe | suback | pingreq | pingresp | disconnect | pkttype <str>] [clientid <str>] [topic <str>] [qos <u8>] [retain] [pktid <u16>] [keepalive <u16>] [returncode <u8>]`.
+//! `mqtt [connect | connack | publish | puback | subscribe | suback | pingreq | pingresp | disconnect | pkttype <str>] [clientid <str>] [topic <str>] [qos <u8>] [retain] [pktid <u16>] [keepalive <u16>] [returncode <u8>] [payload <str>]`.
 
 /// OASIS Message Queuing Telemetry Transport (MQTT v3.1.1 / ISO/IEC 20922) specification.
 ///
-/// Syntax mapping: `mqtt [connect | connack | publish | puback | subscribe | suback | pingreq | pingresp | disconnect | pkttype <str>] [clientid <str>] [topic <str>] [qos <u8>] [retain] [pktid <u16>] [keepalive <u16>] [returncode <u8>]`
+/// Syntax mapping: `mqtt [connect | connack | publish | puback | subscribe | suback | pingreq | pingresp | disconnect | pkttype <str>] [clientid <str>] [topic <str>] [qos <u8>] [retain] [pktid <u16>] [keepalive <u16>] [returncode <u8>] [payload <str>]`
 #[doc(alias = "mqtt")]
 #[doc(alias = "OASIS MQTT")]
 #[doc(alias = "ISO/IEC 20922")]
@@ -31,6 +31,7 @@
 #[doc(alias = "pktid")]
 #[doc(alias = "keepalive")]
 #[doc(alias = "returncode")]
+#[doc(alias = "payload")]
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct MqttSpec<'a> {
     /// Control packet type name (`connect`, `connack`, `publish`, `puback`, `subscribe`, `suback`, `pingreq`, `pingresp`).
@@ -49,4 +50,6 @@ pub struct MqttSpec<'a> {
     pub keepalive: Option<u16>,
     /// Connect return code or SUBACK return code (`returncode <u8>`, default `0`).
     pub return_code: Option<u8>,
+    /// Explicit publish payload text (populated with `Some("")` when `payload ""` is given).
+    pub payload: Option<&'a str>,
 }

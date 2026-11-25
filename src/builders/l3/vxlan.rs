@@ -4,8 +4,8 @@
 //! Ethernet frame encapsulated over UDP destination port `4789`. Byte 0 sets the mandatory `I` flag
 //! (`0x08`) indicating a valid 24-bit VXLAN Network Identifier, followed by 24 bits of zeroed
 //! `Reserved` octets, the 24-bit big-endian `VNI` (`vni`, default `4096`), and a trailing 8-bit
-//! `Reserved` zero byte. When no explicit `payload` or `hexpayload` is supplied, a sensible default
-//! inner Ethernet frame (`00:00:00:00:00:02 <- 00:00:00:00:00:01`, EtherType `0x0800`) is synthesized.
+//! `Reserved` zero byte. When no explicit `payload` or `hexpayload` is supplied, a valid 42-byte
+//! inner Ethernet + IPv4 + ICMPv4 Echo frame (`00:00:5e:00:53:02 <- 00:00:5e:00:53:01`, `0x0800`) is synthesized.
 //!
 //! Canonical `.frasm` syntax:
 //! `a -> b vxlan [vni <u24>] [srcport <u16>] [payload "<str>" | hexpayload "<hex>"]`
@@ -16,7 +16,7 @@ use alloc::vec::Vec;
 /// Builds an RFC 7348 VXLAN overlay payload and returns `(bytes, 4789)` for UDP encapsulation.
 pub fn build_vxlan_payload(spec: &VxlanSpec, payload: &[u8]) -> (Vec<u8>, u16) {
     let vni = spec.vni.unwrap_or(4096) & 0x00FF_FFFF;
-    let mut vxlan = Vec::with_capacity(8 + payload.len());
+    let mut vxlan = Vec::with_capacity(8 + payload.len().max(42));
     vxlan.push(0x08); // I flag
     vxlan.extend_from_slice(&[0, 0, 0]); // Reserved
     vxlan.push((vni >> 16) as u8);
@@ -25,19 +25,7 @@ pub fn build_vxlan_payload(spec: &VxlanSpec, payload: &[u8]) -> (Vec<u8>, u16) {
     vxlan.push(0); // Reserved
 
     if payload.is_empty() {
-        // Synthesize a valid 14B Ethernet II + 20B IPv4 + 8B UDP inner passenger frame (42 bytes)
-        let mut inner_ip = [
-            0x45, 0x00, 0x00, 28, 0x00, 0x01, 0x00, 0x00, 64, 17, 0x00, 0x00, 10, 0, 0, 1, 10, 0,
-            0, 2,
-        ];
-        let ip_cksum = crate::packet::internet_checksum(&[&inner_ip]);
-        inner_ip[10..12].copy_from_slice(&ip_cksum.to_be_bytes());
-
-        vxlan.extend_from_slice(&[0x00, 0x00, 0x00, 0x00, 0x00, 0x02]);
-        vxlan.extend_from_slice(&[0x00, 0x00, 0x00, 0x00, 0x00, 0x01]);
-        vxlan.extend_from_slice(&0x0800_u16.to_be_bytes());
-        vxlan.extend_from_slice(&inner_ip);
-        vxlan.extend_from_slice(&[0x30, 0x39, 0x00, 0x50, 0x00, 0x08, 0x00, 0x00]);
+        vxlan.extend_from_slice(&super::gre::default_overlay_inner_ethernet());
     } else {
         vxlan.extend_from_slice(payload);
     }

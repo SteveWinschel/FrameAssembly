@@ -6,11 +6,13 @@
 //! frames or override specific protocol header fields and attributes.
 //!
 //! Canonical `.frasm` syntax:
-//! `a -> b quic [initial | zerortt | handshake | retry | short] [version <u32>] [dcid <u64>] [scid <u64>] [token <str>] [pktnum <u32>]`
+//! `a -> b quic [initial | zerortt | handshake | retry | short] [version <u32>] [dcid <u64|hex>] [scid <u64|hex>] [token <str>] [pktnum <u32>]`
+
+use alloc::vec::Vec;
 
 /// RFC 9000 QUIC Transport Protocol specification.
 ///
-/// Syntax mapping: `quic [initial | zerortt | handshake | retry | short] [version <u32>] [dcid <u64>] [scid <u64>] [token <str>] [pktnum <u32>]`
+/// Syntax mapping: `quic [initial | zerortt | handshake | retry | short] [version <u32>] [dcid <u64|hex>] [scid <u64|hex>] [token <str>] [pktnum <u32>]`
 #[doc(alias = "quic")]
 #[doc(alias = "HTTP3")]
 #[doc(alias = "RFC 9000")]
@@ -39,10 +41,14 @@ pub struct QuicSpec<'a> {
     pub is_short: bool,
     /// Version number.
     pub version: Option<u32>,
-    /// Destination Connection ID.
+    /// Destination Connection ID (`u64` shorthand).
     pub dcid: Option<u64>,
-    /// Source Connection ID.
+    /// Variable-length Destination Connection ID bytes (`0..=20` bytes from hex literal).
+    pub dcid_bytes: Option<Vec<u8>>,
+    /// Source Connection ID (`u64` shorthand).
     pub scid: Option<u64>,
+    /// Variable-length Source Connection ID bytes (`0..=20` bytes from hex literal).
+    pub scid_bytes: Option<Vec<u8>>,
     /// Token string.
     pub token: Option<&'a str>,
     /// Packet number.

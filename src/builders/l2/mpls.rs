@@ -35,27 +35,50 @@ pub fn build_mpls_frame(
     } else {
         spec.label
     };
-    if l2.mpls.is_none() {
+    if l2.mpls_stack.is_empty() && l2.mpls.is_none() {
         l2.mpls = Some(MplsSpec {
             label: default_label,
             exp: spec.exp,
             bos: spec.bos,
             ttl: spec.ttl,
         });
+    } else if l2.mpls_stack.len() == 1
+        && l2.mpls_stack[0].label == 0
+        && default_label == 2
+    {
+        l2.mpls_stack[0].label = 2;
     }
 
+    let mpls_et = l2.ethertype.unwrap_or(0x8847);
     if !payload.is_empty() || ctx.src_ip.is_unspecified() || ctx.dst_ip.is_unspecified() {
         Ok(build_ethernet_and_l2(
             ctx.src_mac,
             ctx.dst_mac,
             &l2,
-            0x8847,
+            mpls_et,
             payload,
         ))
     } else {
-        let udp = crate::packet::build_udp_datagram(ctx.src_ip, ctx.dst_ip, ctx.src_port, ctx.dst_port, b"")?;
-        let ip = crate::packet::build_ip_packet(ctx.src_ip, ctx.dst_ip, 17, ctx.l3, &udp)?;
-        Ok(build_ethernet_and_l2(ctx.src_mac, ctx.dst_mac, &l2, 0x8847, &ip))
+        let ip_payload = if ctx.l3.frag_offset.unwrap_or(0) > 0 {
+            Vec::new()
+        } else {
+            crate::packet::build_udp_datagram_with_opts(
+                ctx.src_ip,
+                ctx.dst_ip,
+                ctx.src_port,
+                ctx.dst_port,
+                b"",
+                ctx.l4,
+            )?
+        };
+        let ip = crate::packet::build_ip_packet(ctx.src_ip, ctx.dst_ip, 17, ctx.l3, &ip_payload)?;
+        Ok(build_ethernet_and_l2(
+            ctx.src_mac,
+            ctx.dst_mac,
+            &l2,
+            mpls_et,
+            &ip,
+        ))
     }
 }
 

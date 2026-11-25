@@ -1,15 +1,27 @@
-# FrameAssembly Shell Tab Completions
+# FrameAssembly Shell Tab Completions (`v3.3.0`)
 
 This directory provides context-aware Tab completion scripts for the `frameassembly` CLI across **Bash**, **Zsh**, **Fish**, and **PowerShell**:
 
-- **Position 1 (`frameassembly <TAB>`)**: Completes `.frasm` files and directories alongside `show`, `reverse`, `update`, `version`, and `help`.
-- **`frameassembly <input.frasm> [output.pcap]`**: Completes `.frasm` files and directories on argument 1, and `.pcap` / `.pcapng` files and directories on argument 2.
-- **`frameassembly show <input.frasm>`**: Completes `.frasm` files and directories on argument 1.
-- **`frameassembly reverse <input.pcap> [output.frasm]`**: Completes `.pcap` / `.pcapng` files and directories on argument 1, and `.frasm` files and directories on argument 2.
-- **`frameassembly update`**: Takes zero flags or positional arguments, updates the installed CLI via Cargo/`rustup` or a SHA-256-verified GitHub Release binary, and automatically refreshes any already-installed Bash, Zsh, Fish, or PowerShell completion files on disk.
+- **Position 1 (`frameassembly <TAB>`)**: Completes `.frasm` files and directories alongside `show`, `reverse`, `update`, `version`, and `help` (and `-` for reading `.frasm` code from `stdin`).
+- **`frameassembly <input.frasm|-> [output.pcap|output.pcapng|-]`**: Completes `.frasm` files and directories (or `-`) on argument 1, and `.pcap` / `.pcapng` files and directories (or `-` to stream PCAPNG to `stdout`) on argument 2. Omitting argument 2 when reading from `-` streams PCAPNG to `stdout`.
+- **`frameassembly show <input.frasm|capture.pcap|capture.pcapng|->`**: Completes `.frasm`, `.pcap`, and `.pcapng` files and directories (or `-` to inspect `.frasm` or capture bytes from `stdin`).
+- **`frameassembly reverse <input.pcap|input.pcapng|-> [output.frasm|-]`**: Completes `.pcap` / `.pcapng` files and directories (or `-` for `stdin`) on argument 1, and `.frasm` files and directories (or `-` for `stdout`) on argument 2. Omitting argument 2 when reversing from `-` writes `.frasm` to `stdout`.
+- **`frameassembly update`**: Takes zero flags or positional arguments, updates the installed CLI via Cargo/`rustup` or a SHA-256-verified GitHub Release binary, and refreshes any already-installed Bash, Zsh, Fish, or PowerShell completion files on disk.
+- **`frameassembly version`**: Prints the active `frameassembly` version.
 - **`frameassembly help [subcommand]`**: Completes `show`, `reverse`, `update`, `version`, and `help`.
 
-Debian `.deb` packages and the `install.sh` bootstrap installer install Bash, Zsh, and Fish completions automatically, `install.ps1` installs PowerShell completions on Windows, and `frameassembly update` (zero flags or positional arguments) automatically refreshes any already-installed Bash, Zsh, Fish, or PowerShell completion files on disk when updating via Cargo/`rustup` or verified GitHub Release binaries. For manual setup, use the commands below.
+### `stdin` / `stdout` Streaming Examples
+
+```bash
+# Compile .frasm from stdin and stream PCAPNG to tshark via stdout
+cat demo.frasm | frameassembly - - | tshark -r -
+
+# Inspect a live capture or reversed stream in the terminal ladder
+frameassembly show capture.pcapng
+cat capture.pcap | frameassembly reverse -
+```
+
+Debian `.deb` packages and the `install.sh` bootstrap installer install Bash, Zsh, and Fish completions automatically, `install.ps1` installs PowerShell completions on Windows, and `frameassembly update` (zero flags or positional arguments) refreshes any already-installed Bash, Zsh, Fish, or PowerShell completion files on disk when updating via Cargo/`rustup` or verified GitHub Release binaries. For manual setup, use the commands below.
 
 ## Manual Installation
 

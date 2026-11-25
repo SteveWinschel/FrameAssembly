@@ -9,7 +9,7 @@
 //!    nanoseconds, normalizes link-layer types (`ETHERNET`, `RAW`, `IPV4`, `IPV6`, `LINUX_SLL`,
 //!    `LINUX_SLL2`, `NULL`, `LOOP`) into Ethernet II frames, and strips 60/64-byte Ethernet zero
 //!    padding and 4-byte FCS trailers.
-//! 2. **Layer 2–7 Modular Protocol Dissection (`l2`, `l3`, `l4`, `l7`)**: Decodes all 81 native
+//! 2. **Layer 2–7 Modular Protocol Dissection (`l2`, `l3`, `l4`, `l7`)**: Decodes all 146 native
 //!    protocols across Layer 2 through Layer 7 into strongly-typed modifier structures and
 //!    canonical `.frasm` token strings.
 //! 3. **Deterministic Topology Discovery (`topology`)**: Infers sequential `host1`, `host2`, ...
@@ -127,10 +127,17 @@ pub(crate) struct DissectedPacket {
 pub fn reverse_pcap_reader<R: std::io::Read>(reader: R) -> Result<ReverseOutput, CompilerError> {
     let read_res = container::read_capture_frames_with_warnings(reader)
         .map_err(CompilerError::BackendError)?;
-    let packets: Vec<DissectedPacket> =
-        read_res.frames.into_iter().map(l2::dissect_packet).collect();
+    let mut comments: Vec<Option<String>> = Vec::with_capacity(read_res.frames.len());
+    let packets: Vec<DissectedPacket> = read_res
+        .frames
+        .into_iter()
+        .map(|mut frame| {
+            comments.push(frame.comment.take());
+            l2::dissect_packet(frame)
+        })
+        .collect();
     let topo = topology::build_topology(&packets);
-    let mut out = shadow_emit::emit_fasm_program(&packets, &topo);
+    let mut out = shadow_emit::emit_fasm_program(&packets, &topo, &comments);
     out.warnings = read_res.warnings;
     Ok(out)
 }
@@ -326,7 +333,7 @@ pub(crate) fn push_hex(out: &mut String, kw: &str, val: u64, default: u64, width
 }
 
 /// Returns `true` if `"<s>"` tokenizes cleanly as a single `Token::StringLit` whose raw body
-/// (parsed by `parse_raw_string_lit`) equals `s` verbatim without escape Expansion.
+/// passes FrameAssembly's Wave 1 escape validation (`parse_raw_string_lit` / `unescape_bytes`).
 pub(crate) fn is_valid_raw_string_body(s: &str) -> bool {
     let mut it = s.chars();
     while let Some(c) = it.next() {
@@ -340,7 +347,7 @@ pub(crate) fn is_valid_raw_string_body(s: &str) -> bool {
             }
         }
     }
-    true
+    crate::parser::unescape_string(s).is_ok()
 }
 
 /// Appends ` <kw> "<val>"` onto `out` when `val != default`.
@@ -670,5 +677,307 @@ compile {
             fallbacks.len(),
             fallbacks.iter().map(|(p, _)| *p).collect::<Vec<_>>()
         );
+    }
+
+    /// Constructs a raw classic little-endian `.pcap` byte buffer with explicit header `snaplen`,
+    /// `linktype`, and per-record `(payload, declared_incl_len, ts_sec)` tuples.
+    fn build_raw_le_pcap(snaplen: u32, linktype: u32, records: &[(&[u8], u32, u32)]) -> Vec<u8> {
+        let mut buf = Vec::with_capacity(24 + records.len() * 32);
+        buf.extend_from_slice(&[0xd4, 0xc3, 0xb2, 0xa1]);
+        buf.extend_from_slice(&2u16.to_le_bytes());
+        buf.extend_from_slice(&4u16.to_le_bytes());
+        buf.extend_from_slice(&0i32.to_le_bytes());
+        buf.extend_from_slice(&0u32.to_le_bytes());
+        buf.extend_from_slice(&snaplen.to_le_bytes());
+        buf.extend_from_slice(&linktype.to_le_bytes());
+        for &(data, incl_len, ts_sec) in records {
+            buf.extend_from_slice(&ts_sec.to_le_bytes());
+            buf.extend_from_slice(&0u32.to_le_bytes());
+            buf.extend_from_slice(&incl_len.to_le_bytes());
+            buf.extend_from_slice(&(data.len() as u32).to_le_bytes());
+            buf.extend_from_slice(data);
+        }
+        buf
+    }
+
+    /// Builds a minimal raw PCAPNG Section Header + Interface Description + optional Enhanced Packet
+    /// buffer to validate `MAX_SNAPLEN` and 32-bit `captured_len + pad` wrap guards cleanly.
+    fn build_raw_pcapng_header_probe(snaplen: u32, epb_captured_len: Option<u32>) -> Vec<u8> {
+        let mut buf = Vec::with_capacity(80);
+        // Section Header Block (28 bytes, LE BOM)
+        buf.extend_from_slice(&[0x0A, 0x0D, 0x0D, 0x0A]);
+        buf.extend_from_slice(&28u32.to_le_bytes());
+        buf.extend_from_slice(&[0x4D, 0x3C, 0x2B, 0x1A]);
+        buf.extend_from_slice(&1u16.to_le_bytes());
+        buf.extend_from_slice(&0u16.to_le_bytes());
+        buf.extend_from_slice(&(-1i64).to_le_bytes());
+        buf.extend_from_slice(&28u32.to_le_bytes());
+        // Interface Description Block (20 bytes, Ethernet)
+        buf.extend_from_slice(&1u32.to_le_bytes());
+        buf.extend_from_slice(&20u32.to_le_bytes());
+        buf.extend_from_slice(&1u16.to_le_bytes());
+        buf.extend_from_slice(&0u16.to_le_bytes());
+        buf.extend_from_slice(&snaplen.to_le_bytes());
+        buf.extend_from_slice(&20u32.to_le_bytes());
+        if let Some(cap_len) = epb_captured_len {
+            // Crafted Enhanced Packet Block header (32 bytes) without allocating `cap_len` payload bytes.
+            buf.extend_from_slice(&6u32.to_le_bytes());
+            buf.extend_from_slice(&32u32.to_le_bytes());
+            buf.extend_from_slice(&0u32.to_le_bytes());
+            buf.extend_from_slice(&0u64.to_le_bytes());
+            buf.extend_from_slice(&cap_len.to_le_bytes());
+            buf.extend_from_slice(&cap_len.to_le_bytes());
+            buf.extend_from_slice(&32u32.to_le_bytes());
+        }
+        buf
+    }
+
+    /// Verifies container DoS/OOM guards (`MAX_CAPTURE_BYTES`, `MAX_SNAPLEN`, `MAX_REVERSE_FRAMES`).
+    #[test]
+    fn test_reverse_container_bounds_and_dos_guards() {
+        assert_eq!(container::MAX_CAPTURE_BYTES, 256 * 1024 * 1024);
+        assert_eq!(container::MAX_SNAPLEN, 262_144);
+        assert_eq!(container::MAX_REVERSE_FRAMES, 100_000);
+
+        let ok_read = container::read_bounded_capture(std::io::Cursor::new(&[0xab_u8; 32]), 32);
+        assert_eq!(ok_read.as_ref().map(Vec::len), Ok(32));
+        let over_read = container::read_bounded_capture(std::io::Cursor::new(&[0xab_u8; 33]), 32);
+        assert!(over_read.is_err());
+
+        let tiny_eth = [0x02, 0, 0, 0, 0, 2, 0x02, 0, 0, 0, 0, 1, 0x88, 0xb5];
+        let bad_snap_pcap = build_raw_le_pcap(container::MAX_SNAPLEN + 1, 1, &[(&tiny_eth, 14, 1)]);
+        assert!(reverse_pcap_bytes(&bad_snap_pcap).is_err());
+
+        let bad_incl_pcap =
+            build_raw_le_pcap(65535, 1, &[(&tiny_eth, container::MAX_SNAPLEN + 1, 1)]);
+        assert!(reverse_pcap_bytes(&bad_incl_pcap).is_err());
+
+        let bad_idb_ng = build_raw_pcapng_header_probe(container::MAX_SNAPLEN + 1, None);
+        assert!(reverse_pcap_bytes(&bad_idb_ng).is_err());
+
+        let bad_epb_wrap_ng = build_raw_pcapng_header_probe(65535, Some(u32::MAX - 1));
+        assert!(reverse_pcap_bytes(&bad_epb_wrap_ng).is_err());
+
+        let mut too_many = Vec::with_capacity(24 + (container::MAX_REVERSE_FRAMES + 1) * 30);
+        too_many.extend_from_slice(&[0xd4, 0xc3, 0xb2, 0xa1]);
+        too_many.extend_from_slice(&2u16.to_le_bytes());
+        too_many.extend_from_slice(&4u16.to_le_bytes());
+        too_many.extend_from_slice(&0i32.to_le_bytes());
+        too_many.extend_from_slice(&0u32.to_le_bytes());
+        too_many.extend_from_slice(&65535u32.to_le_bytes());
+        too_many.extend_from_slice(&1u32.to_le_bytes());
+        for i in 0..=container::MAX_REVERSE_FRAMES {
+            too_many.extend_from_slice(&(i as u32).to_le_bytes());
+            too_many.extend_from_slice(&0u32.to_le_bytes());
+            too_many.extend_from_slice(&14u32.to_le_bytes());
+            too_many.extend_from_slice(&14u32.to_le_bytes());
+            too_many.extend_from_slice(&tiny_eth);
+        }
+        let max_frames_err = reverse_pcap_bytes(&too_many).expect_err("reject >100k frames");
+        assert!(matches!(max_frames_err, CompilerError::BackendError(_)));
+    }
+
+    /// Verifies standard `LINKTYPE_LINUX_SLL2` (`276`), `IPV4` (`228`), `IPV6` (`229`), `NULL` (`0`),
+    /// and `LOOP` (`108`) normalization.
+    #[test]
+    fn test_reverse_linktypes_sll2_and_l3_encapsulations() {
+        let v4_prog = parse_program(
+            "host a { ip 10.40.0.1 mac 00:11:22:33:44:01 }\n\
+             host b { ip 10.40.0.2 mac 00:11:22:33:44:02 }\n\
+             compile { a -> b dns query qname \"sll2.example\" qtype \"a\" }\n",
+        )
+        .expect("parse v4");
+        let v4_eth = compile_program(&v4_prog).expect("compile v4")[0].0.clone();
+        let v4_l3 = &v4_eth[14..];
+
+        let v6_prog = parse_program(
+            "host a { ip 2001:db8::10 }\n\
+             host b { ip 2001:db8::20 }\n\
+             compile { a -> b icmp echorequest id 17 seq 2 }\n",
+        )
+        .expect("parse v6");
+        let v6_eth = compile_program(&v6_prog).expect("compile v6")[0].0.clone();
+        let v6_l3 = &v6_eth[14..];
+
+        // True tcpdump LINKTYPE_LINUX_SLL2 layout: pkt_type=0 at byte 10, halen=6 at byte 11, src MAC at 12..18.
+        let mut sll2_real = alloc::vec![0u8; 20];
+        sll2_real[0..2].copy_from_slice(&0x0800u16.to_be_bytes());
+        sll2_real[10] = 0;
+        sll2_real[11] = 6;
+        sll2_real[12..18].copy_from_slice(&[0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0x11]);
+        sll2_real.extend_from_slice(v4_l3);
+        let pcap_sll2 = build_raw_le_pcap(65535, 276, &[(&sll2_real, sll2_real.len() as u32, 1)]);
+        let out_sll2 = reverse_pcap_bytes(&pcap_sll2).expect("reverse real SLL2");
+        assert!(out_sll2.fasm.contains("aa:bb:cc:dd:ee:11"));
+        let re_sll2 = compile_program(&parse_program(&out_sll2.fasm).expect("parse sll2"))
+            .expect("compile sll2");
+        assert_eq!(&re_sll2[0].0[14..], v4_l3);
+
+        let mut null_v4 = 2u32.to_le_bytes().to_vec();
+        null_v4.extend_from_slice(v4_l3);
+        let mut loop_v6 = 24u32.to_be_bytes().to_vec();
+        loop_v6.extend_from_slice(v6_l3);
+
+        for (lt, body, expected_kw) in [
+            (228u32, v4_l3.to_vec(), "dns query"),
+            (229u32, v6_l3.to_vec(), "icmp echorequest"),
+            (0u32, null_v4, "dns query"),
+            (108u32, loop_v6, "icmp echorequest"),
+        ] {
+            let pcap = build_raw_le_pcap(65535, lt, &[(&body, body.len() as u32, 1)]);
+            let out = reverse_pcap_bytes(&pcap).expect("reverse linktype");
+            assert!(out.fasm.contains(expected_kw), "linktype {lt}:\n{}", out.fasm);
+            let reframes = compile_program(&parse_program(&out.fasm).expect("reparse linktype"))
+                .expect("recompile linktype");
+            assert_eq!(reframes.len(), 1);
+        }
+    }
+
+    /// Verifies `is_valid_raw_string_body` invalid-escape rejection and lossless PCAPNG `opt_comment` roundtripping.
+    #[test]
+    fn test_reverse_pcapng_opt_comment_and_raw_string_escape() {
+        use pcap_file::pcapng::blocks::enhanced_packet::EnhancedPacketOption;
+
+        assert!(!is_valid_raw_string_body(r"foo\z"));
+        assert!(!is_valid_raw_string_body(r"foo\xZZ"));
+        assert!(!is_valid_raw_string_body(r"foo\u12"));
+        assert!(!is_valid_raw_string_body(r"foo\uD800"));
+        assert!(!is_valid_raw_string_body("trailing\\"));
+        assert!(is_valid_raw_string_body("plain ascii text"));
+        assert!(is_valid_raw_string_body(r#"quoted\"and\nnewline"#));
+
+        let mut quoted = String::new();
+        push_str_if(&mut quoted, "msg", r"foo\z", "");
+        assert_eq!(quoted, " msg \"foo\\\\z\"");
+
+        let src = r#"
+host c { ip 10.70.0.1 mac 02:00:00:00:00:01 }
+host s { ip 10.70.0.2 mac 02:00:00:00:00:02 }
+compile {
+    c -> s dns query qname "c.example" comment "probe \"alpha\"\nline2"
+    s -> c dns response qname "c.example" comment "reply\\zok" wait 5ms
+}
+"#;
+        let prog = parse_program(src).expect("parse comment source");
+        let (orig_frames, _) =
+            crate::backend::compile_program_with_metadata(&prog).expect("compile comment source");
+        assert_eq!(orig_frames[0].comment.as_deref(), Some("probe \"alpha\"\nline2"));
+        assert_eq!(orig_frames[1].comment.as_deref(), Some("reply\\zok"));
+
+        let mut ng_buf = Vec::new();
+        {
+            let mut writer = PcapNgWriter::new(&mut ng_buf).expect("create PcapNgWriter");
+            let idb = InterfaceDescriptionBlock {
+                linktype: pcap_file::DataLink::ETHERNET,
+                snaplen: 262_144,
+                options: alloc::vec![InterfaceDescriptionOption::IfTsResol(9)],
+            };
+            writer
+                .write_block(&Block::InterfaceDescription(idb))
+                .expect("write IDB");
+            for f in &orig_frames {
+                let mut opts = Vec::new();
+                if let Some(ref c) = f.comment {
+                    opts.push(EnhancedPacketOption::Comment(Cow::Borrowed(c.as_str())));
+                }
+                let epb = EnhancedPacketBlock {
+                    interface_id: 0,
+                    timestamp: Duration::from_nanos(f.timestamp_ns),
+                    original_len: f.data.len() as u32,
+                    data: Cow::Borrowed(&f.data),
+                    options: opts,
+                };
+                writer
+                    .write_block(&Block::EnhancedPacket(epb))
+                    .expect("write EPB");
+            }
+        }
+
+        let out = reverse_pcap_bytes(&ng_buf).expect("reverse commented PCAPNG");
+        assert!(out.fasm.contains("comment "), "expected comment in:\n{}", out.fasm);
+        let reprog = parse_program(&out.fasm).expect("reparse commented frasm");
+        let (reframes, _) =
+            crate::backend::compile_program_with_metadata(&reprog).expect("recompile commented");
+        assert_eq!(reframes.len(), 2);
+        for idx in 0..2 {
+            assert_eq!(reframes[idx].data, orig_frames[idx].data);
+            assert_eq!(reframes[idx].comment, orig_frames[idx].comment);
+        }
+    }
+
+    /// Verifies distinct `hostN` creation when an IP changes MAC and `host_index + 1` MAC derivation parity.
+    #[test]
+    fn test_topology_mac_change_splits_hosts_and_derives_host_index_macs() {
+        let split_src = r#"
+host a1 { ip 10.50.0.1 mac 02:00:00:00:00:11 }
+host b1 { ip 10.50.0.2 mac 02:00:00:00:00:22 }
+host a2 { ip 10.50.0.1 mac 02:00:00:00:00:33 }
+compile {
+    a1 -> b1 udp dstport 5000 payload "one"
+    a2 -> b1 udp dstport 5000 payload "two" wait 5ms
+}
+"#;
+        let orig_split =
+            compile_program(&parse_program(split_src).expect("parse split")).expect("compile split");
+        let out_split = reverse_pcap_bytes(&frames_to_pcapng(&orig_split)).expect("reverse split");
+        assert_eq!(out_split.host_count, 3, "expected 3 hosts:\n{}", out_split.fasm);
+        let re_split =
+            compile_program(&parse_program(&out_split.fasm).expect("reparse split"))
+                .expect("recompile split");
+        for (i, ((o, _), (r, _))) in orig_split.iter().zip(re_split.iter()).enumerate() {
+            assert_eq!(o, r, "split host frame #{i} mismatch");
+        }
+
+        let multi_src = r#"
+host h1 { ip 10.60.0.1 }
+host h2 { ip 10.60.0.2 }
+host h3 { ip 10.60.0.3 }
+compile {
+    h1 -> h2 udp dstport 5001 payload "m1"
+    h3 -> h1 udp dstport 5002 payload "m2" wait 5ms
+}
+"#;
+        let orig_multi =
+            compile_program(&parse_program(multi_src).expect("parse multi")).expect("compile multi");
+        assert_eq!(&orig_multi[1].0[6..12], &[0, 0, 0, 0, 0, 3]);
+        let out_multi = reverse_pcap_bytes(&frames_to_pcapng(&orig_multi)).expect("reverse multi");
+        assert_eq!(out_multi.host_count, 3);
+        let re_multi =
+            compile_program(&parse_program(&out_multi.fasm).expect("reparse multi"))
+                .expect("recompile multi");
+        for (i, ((o, _), (r, _))) in orig_multi.iter().zip(re_multi.iter()).enumerate() {
+            assert_eq!(o, r, "multi-host frame #{i} mismatch");
+        }
+    }
+
+    /// Verifies transport-class port isolation, post-teardown SYN port rotation, and `ptp`/`radius` server polarity.
+    #[test]
+    fn test_shadow_port_isolation_post_teardown_and_ptp() {
+        let src = r#"
+host c { ip 10.80.0.1 mac 02:00:00:00:00:01 }
+host s { ip 10.80.0.2 mac 02:00:00:00:00:02 }
+compile {
+    c -> s tcp dstport 8443 syn
+    s -> c tcp syn ack
+    c -> s tcp fin ack
+    c -> s tcp syn
+    c -> s udp dstport 5353 payload "u"
+    c -> s sctp dstport 3868 payload "s"
+    c -> s ptp
+    s -> c ptp followup
+    c -> s radius
+    s -> c radius accessaccept
+}
+"#;
+        let orig_frames =
+            compile_program(&parse_program(src).expect("parse shadow")).expect("compile shadow");
+        let out = reverse_pcap_bytes(&frames_to_pcapng(&orig_frames)).expect("reverse shadow");
+        assert!(!out.fasm.contains("// ["), "unexpected fallback:\n{}", out.fasm);
+        let re_frames = compile_program(&parse_program(&out.fasm).expect("reparse shadow"))
+            .expect("recompile shadow");
+        assert_eq!(orig_frames.len(), re_frames.len());
+        for (i, ((o, _), (r, _))) in orig_frames.iter().zip(re_frames.iter()).enumerate() {
+            assert_eq!(o, r, "shadow state mismatch at packet #{}", i + 1);
+        }
     }
 }

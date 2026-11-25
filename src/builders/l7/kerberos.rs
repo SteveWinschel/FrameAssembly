@@ -1,11 +1,10 @@
 //! Kerberos Network Authentication Service v5 (RFC 4120) ASN.1 DER wire payload builder.
 //!
-//! This module implements [`build_kerberos_payload`], which encodes a [`KerberosSpec`]
-//! AST node into a deterministic ASN.1 DER Kerberos v5 message over UDP or TCP port 88. It
-//! constructs the outer `[APPLICATION <msg_type>]` tag (`0x6A` `AS-REQ`, `0x6B` `AS-REP`, `0x6C`
-//! `TGS-REQ`, `0x6D` `TGS-REP`, or `0x7E` `KRB-ERROR`), wraps the inner `SEQUENCE` with `pvno` (5),
-//! `msg-type`, `realm` (`GeneralString`), `cname` (`PrincipalName`), `sname` (`PrincipalName`), and
-//! `etype`, and appends any additional trailer bytes.
+//! This module implements [`build_kerberos_payload`], which encodes a [`KerberosSpec`] AST node
+//! into a deterministic ASN.1 DER Kerberos v5 message over UDP or 4-byte record-marked TCP port
+//! 88. It constructs `[APPLICATION <msg_type>]` envelopes (`0x6A` `AS-REQ`, `0x6B` `AS-REP`, `0x6C`
+//! `TGS-REQ`, `0x6D` `TGS-REP`, `0x7E` `KRB-ERROR`), signed `Int32` encryption types (`etype`),
+//! UTC `GeneralizedTime` timestamps, and RFC 4120 `ETYPE-INFO2` pre-authentication metadata.
 
 use crate::ast::*;
 use crate::builders::WireContext;
@@ -21,10 +20,13 @@ fn push_der_length(out: &mut Vec<u8>, len: usize) {
     } else if len <= 0xFFFF {
         out.push(0x82);
         out.extend_from_slice(&(len as u16).to_be_bytes());
-    } else {
+    } else if len <= 0xFF_FFFF {
         out.push(0x83);
         out.push((len >> 16) as u8);
         out.extend_from_slice(&(len as u16).to_be_bytes());
+    } else {
+        out.push(0x84);
+        out.extend_from_slice(&(u32::try_from(len).unwrap_or(u32::MAX)).to_be_bytes());
     }
 }
 
@@ -63,6 +65,19 @@ fn encode_general_string(s: &str) -> Vec<u8> {
     encode_der_tlv(0x1B, s.as_bytes())
 }
 
+/// Encodes an RFC 4120 §5.2.3 `KerberosTime` (`GeneralizedTime` `0x18`, `YYYYMMDDHHMMSSZ`).
+fn encode_generalized_time(utc: &str) -> Vec<u8> {
+    let valid = utc.len() == 15
+        && utc.ends_with('Z')
+        && utc.as_bytes()[..14].iter().all(u8::is_ascii_digit);
+    let bytes = if valid {
+        utc.as_bytes()
+    } else {
+        b"20261023000000Z"
+    };
+    encode_der_tlv(0x18, bytes)
+}
+
 /// Encodes an RFC 4120 §5.2.2 `PrincipalName ::= SEQUENCE { [0] name-type Int32, [1] name-string SEQUENCE OF KerberosString }`.
 fn encode_principal_name(name_type: i64, principal: &str) -> Vec<u8> {
     let mut seq_of_strings = Vec::new();
@@ -86,6 +101,23 @@ fn encode_encrypted_data(etype: i64, cipher: &[u8]) -> Vec<u8> {
     seq.extend_from_slice(&encode_explicit_ctx(0, &encode_der_int(etype)));
     seq.extend_from_slice(&encode_explicit_ctx(2, &encode_der_tlv(0x04, cipher)));
     encode_der_tlv(0x30, &seq)
+}
+
+/// Encodes an RFC 4120 §5.2.7 `PA-ETYPE-INFO2` (`19`) inside `METHOD-DATA` (`SEQUENCE OF PA-DATA`).
+fn encode_method_data_etype_info2(etype: i64, salt: Option<&str>) -> Vec<u8> {
+    let mut entry = Vec::new();
+    entry.extend_from_slice(&encode_explicit_ctx(0, &encode_der_int(etype)));
+    if let Some(s) = salt {
+        entry.extend_from_slice(&encode_explicit_ctx(1, &encode_general_string(s)));
+    }
+    let etype_info2_entry = encode_der_tlv(0x30, &entry);
+    let etype_info2 = encode_der_tlv(0x30, &etype_info2_entry);
+
+    let mut pa_data = Vec::new();
+    pa_data.extend_from_slice(&encode_explicit_ctx(1, &encode_der_int(19))); // PA-ETYPE-INFO2 (19)
+    pa_data.extend_from_slice(&encode_explicit_ctx(2, &encode_der_tlv(0x04, &etype_info2)));
+    let pa_seq = encode_der_tlv(0x30, &pa_data);
+    encode_der_tlv(0x30, &pa_seq)
 }
 
 /// Encodes an RFC 4120 §5.3 `Ticket ::= [APPLICATION 1] SEQUENCE { [0] tkt-vno (5), [1] realm, [2] sname, [3] enc-part }`.
@@ -145,6 +177,10 @@ pub fn build_kerberos_payload(
                 1,
                 &encode_der_int(i64::from(msg_type)),
             )); // [1] msg-type
+            if msg_type == 11 {
+                let pa_bytes = encode_method_data_etype_info2(etype, None);
+                kdc_rep.extend_from_slice(&encode_explicit_ctx(2, &pa_bytes)); // [2] padata PA-ETYPE-INFO2
+            }
             kdc_rep.extend_from_slice(&encode_explicit_ctx(3, &encode_general_string(realm))); // [3] crealm
             kdc_rep.extend_from_slice(&encode_explicit_ctx(4, &encode_principal_name(1, cname))); // [4] cname
             kdc_rep.extend_from_slice(&encode_explicit_ctx(5, &encode_ticket(realm, sname, etype))); // [5] ticket
@@ -162,7 +198,7 @@ pub fn build_kerberos_payload(
             err_seq.extend_from_slice(&encode_explicit_ctx(1, &encode_der_int(30))); // [1] msg-type (30)
             err_seq.extend_from_slice(&encode_explicit_ctx(
                 4,
-                &encode_der_tlv(0x18, b"20261023000000Z"),
+                &encode_generalized_time("20261023000000Z"),
             )); // [4] stime GeneralizedTime
             err_seq.extend_from_slice(&encode_explicit_ctx(5, &encode_der_int(0))); // [5] susec
             err_seq.extend_from_slice(&encode_explicit_ctx(6, &encode_der_int(24))); // [6] error-code (KDC_ERR_PREAUTH_FAILED = 24)
@@ -170,6 +206,8 @@ pub fn build_kerberos_payload(
             err_seq.extend_from_slice(&encode_explicit_ctx(8, &encode_principal_name(1, cname))); // [8] cname
             err_seq.extend_from_slice(&encode_explicit_ctx(9, &encode_general_string(realm))); // [9] realm
             err_seq.extend_from_slice(&encode_explicit_ctx(10, &encode_principal_name(2, sname))); // [10] sname
+            let e_data = encode_method_data_etype_info2(etype, None);
+            err_seq.extend_from_slice(&encode_explicit_ctx(11, &encode_der_tlv(0x04, &e_data))); // [11] e-data (METHOD-DATA / ETYPE-INFO2)
             let seq = encode_der_tlv(0x30, &err_seq);
             encode_der_tlv(0x7E, &seq)
         }
@@ -190,7 +228,7 @@ pub fn build_kerberos_payload(
             // [7] till KerberosTime (GeneralizedTime)
             req_body.extend_from_slice(&encode_explicit_ctx(
                 7,
-                &encode_der_tlv(0x18, b"20370913024805Z"),
+                &encode_generalized_time("20370913024805Z"),
             ));
             // [8] nonce UInt32
             req_body.extend_from_slice(&encode_explicit_ctx(8, &encode_der_int(0x1234_5678)));
@@ -214,8 +252,9 @@ pub fn build_kerberos_payload(
     };
 
     if ctx.transport == Some(TransportProto::Tcp) {
+        let tcp_len = u32::try_from(pkt.len()).unwrap_or(u32::MAX);
         let mut tcp_pkt = Vec::with_capacity(4 + pkt.len() + payload_bytes.len());
-        tcp_pkt.extend_from_slice(&(pkt.len() as u32).to_be_bytes());
+        tcp_pkt.extend_from_slice(&tcp_len.to_be_bytes());
         tcp_pkt.extend_from_slice(&pkt);
         if !payload_bytes.is_empty() {
             tcp_pkt.extend_from_slice(payload_bytes);

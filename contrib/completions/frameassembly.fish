@@ -1,4 +1,4 @@
-# fish completion for frameassembly(1)
+# fish completion for frameassembly(1) — FrameAssembly v3.3.0
 # https://github.com/SteveWinschel/FrameAssembly
 
 complete -c frameassembly -f
@@ -20,7 +20,7 @@ function __fish_frameassembly_default_output_arg
     set -l tokens (commandline -opc)
     test (count $tokens) -eq 2
     and not contains -- "$tokens[2]" show reverse update version help
-    and not string match -qr '^-' -- "$tokens[2]"
+    and not string match -qr '^-.+' -- "$tokens[2]"
 end
 
 function __fish_frameassembly_frasm_files
@@ -32,23 +32,40 @@ function __fish_frameassembly_pcap_files
     __fish_complete_suffix .pcapng
 end
 
-# Position 1: .frasm files/directories + 5 subcommands
+function __fish_frameassembly_show_inputs
+    __fish_complete_suffix .frasm
+    __fish_complete_suffix .pcap
+    __fish_complete_suffix .pcapng
+end
+
+function __fish_frameassembly_stdio_dash
+    if test (commandline -ct) = "-"
+        printf '%s\n' -
+    end
+end
+
+# Position 1: .frasm files/directories, '-' (stdin), + 5 subcommands
 complete -c frameassembly -n "__fish_frameassembly_pos1" -a "(__fish_frameassembly_frasm_files)"
-complete -c frameassembly -n "__fish_frameassembly_pos1" -a show -d "Validate a .frasm file and print a packet ladder table"
-complete -c frameassembly -n "__fish_frameassembly_pos1" -a reverse -d "Reverse a .pcap or .pcapng capture into .frasm code"
+complete -c frameassembly -n "__fish_frameassembly_pos1" -a "(__fish_frameassembly_stdio_dash)" -d "Read .frasm code from stdin"
+complete -c frameassembly -n "__fish_frameassembly_pos1" -a show -d "Inspect a .frasm file or .pcap/.pcapng capture (or - for stdin)"
+complete -c frameassembly -n "__fish_frameassembly_pos1" -a reverse -d "Reverse a .pcap or .pcapng capture (or - for stdin) into .frasm code"
 complete -c frameassembly -n "__fish_frameassembly_pos1" -a update -d "Update frameassembly to the newest release"
 complete -c frameassembly -n "__fish_frameassembly_pos1" -a version -d "Print the FrameAssembly version"
 complete -c frameassembly -n "__fish_frameassembly_pos1" -a help -d "Print help for FrameAssembly or a subcommand"
 
-# Default root command: frameassembly <input.frasm> [output.pcap]
+# Default root command: frameassembly <input.frasm|-> [output.pcap|-]
 complete -c frameassembly -n "__fish_frameassembly_default_output_arg" -a "(__fish_frameassembly_pcap_files)"
+complete -c frameassembly -n "__fish_frameassembly_default_output_arg" -a "(__fish_frameassembly_stdio_dash)" -d "Write PCAPNG capture to stdout"
 
-# show <input.frasm>
-complete -c frameassembly -n "__fish_frameassembly_subcmd_arg show 1" -a "(__fish_frameassembly_frasm_files)"
+# show <input.frasm|capture.pcap|capture.pcapng|->
+complete -c frameassembly -n "__fish_frameassembly_subcmd_arg show 1" -a "(__fish_frameassembly_show_inputs)"
+complete -c frameassembly -n "__fish_frameassembly_subcmd_arg show 1" -a "(__fish_frameassembly_stdio_dash)" -d "Read .frasm or capture from stdin"
 
-# reverse <input.pcap> [output.frasm]
+# reverse <input.pcap|-> [output.frasm|-]
 complete -c frameassembly -n "__fish_frameassembly_subcmd_arg reverse 1" -a "(__fish_frameassembly_pcap_files)"
+complete -c frameassembly -n "__fish_frameassembly_subcmd_arg reverse 1" -a "(__fish_frameassembly_stdio_dash)" -d "Read capture from stdin"
 complete -c frameassembly -n "__fish_frameassembly_subcmd_arg reverse 2" -a "(__fish_frameassembly_frasm_files)"
+complete -c frameassembly -n "__fish_frameassembly_subcmd_arg reverse 2" -a "(__fish_frameassembly_stdio_dash)" -d "Write .frasm code to stdout"
 
 # help [subcommand]
 complete -c frameassembly -n "__fish_frameassembly_subcmd_arg help 1" -a "show reverse update version help"

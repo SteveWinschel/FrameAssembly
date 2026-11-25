@@ -3,8 +3,8 @@
 //! This module implements fuzz-safe wire-to-AST dissection for `memcached` binary protocol frames
 //! (24-byte `0x80` request header with `opcode`, `flags`, `exptime`, `key`, `value`, `opaque`, and
 //! `cas`) and CRLF-delimited ASCII commands (`get`, `set`, `add`, `replace`, `append`, `prepend`,
-//! `delete`) over TCP and UDP transports on ports `11211`, `11212`, or custom ports carrying the
-//! 24-byte `0x80` binary header.
+//! `delete`) over TCP, UDP (with 8-byte UDP framing), and SCTP transports on ports `11211`,
+//! `11212`, or custom ports carrying the 24-byte `0x80` binary header.
 
 use alloc::format;
 use alloc::string::String;
@@ -13,19 +13,26 @@ use alloc::vec::Vec;
 use crate::ast::{Protocol, TransportProto};
 use crate::reverse::ProtocolDissection;
 
-/// Checks whether `s` can be emitted inside `"..."` for a parser field that uses
-/// `parse_raw_string_lit` (which strips outer quotes without unescaping).
+use super::quote_raw_str;
+
+/// Checks whether `s` contains no control characters so it can safely be emitted inside quotes.
+fn is_printable_mc_str(s: &str) -> bool {
+    s.chars().all(|c| !c.is_control())
+}
+
+/// Checks whether `s` can be emitted verbatim inside `"..."` for `parse_any_str` fields (`cmd`).
 fn is_valid_raw_str(s: &str) -> bool {
     !s.contains('"')
         && s.chars().all(|c| !c.is_control())
         && (s.bytes().rev().take_while(|&b| b == b'\\').count() % 2 == 0)
+        && crate::parser::unescape_string(s).is_ok()
 }
 
 /// Finds the first `\r\n` sequence in `bytes` and returns `(line_str, remainder)`.
 fn split_crlf_line(bytes: &[u8]) -> Option<(&str, &[u8])> {
     let pos = bytes.windows(2).position(|w| w == b"\r\n")?;
     let line = core::str::from_utf8(&bytes[..pos]).ok()?;
-    if !is_valid_raw_str(line) {
+    if !is_printable_mc_str(line) {
         return None;
     }
     Some((line, &bytes[pos + 2..]))
@@ -36,23 +43,28 @@ fn be_u32(b: &[u8], off: usize) -> u32 {
     u32::from_be_bytes([b[off], b[off + 1], b[off + 2], b[off + 3]])
 }
 
-/// Dissects a `memcached` binary (`0x80`) or ASCII command frame over TCP or UDP.
+/// Dissects a `memcached` binary (`0x80`) or ASCII command frame over TCP, UDP, or SCTP.
 pub(crate) fn dissect_memcached(
     transport: TransportProto,
     src_port: u16,
     dst_port: u16,
     payload: &[u8],
 ) -> Option<ProtocolDissection> {
-    if payload.is_empty() || !matches!(transport, TransportProto::Tcp | TransportProto::Udp) {
+    if payload.is_empty()
+        || !matches!(
+            transport,
+            TransportProto::Tcp | TransportProto::Udp | TransportProto::Sctp
+        )
+    {
         return None;
     }
-    let is_tcp = matches!(transport, TransportProto::Tcp);
-    let explicit_transport = if !is_tcp {
+    let is_udp = matches!(transport, TransportProto::Udp);
+    let explicit_transport = if is_udp {
         Some(TransportProto::Udp)
     } else {
         None
     };
-    let payload = if is_tcp {
+    let payload = if !is_udp {
         payload
     } else {
         let udp_body = payload.strip_prefix(&[0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00])?;
@@ -104,7 +116,7 @@ pub(crate) fn dissect_memcached(
         let val_end = 24 + total_body;
         let key_str = core::str::from_utf8(&payload[key_start..key_end]).ok()?;
         let val_str = core::str::from_utf8(&payload[key_end..val_end]).ok()?;
-        if !is_valid_raw_str(key_str) || !is_valid_raw_str(val_str) {
+        if !is_printable_mc_str(key_str) || !is_printable_mc_str(val_str) {
             return None;
         }
         let default_bin_key = if matches!(opcode, 0x07 | 0x08 | 0x0A | 0x0B | 0x10) {
@@ -113,10 +125,10 @@ pub(crate) fn dissect_memcached(
             "key"
         };
         if key_str != default_bin_key {
-            tokens.push_str(&format!(" key \"{key_str}\""));
+            tokens.push_str(&format!(" key \"{}\"", quote_raw_str(key_str)));
         }
         if !val_str.is_empty() {
-            tokens.push_str(&format!(" value \"{val_str}\""));
+            tokens.push_str(&format!(" value \"{}\"", quote_raw_str(val_str)));
         }
         if opaque != 0 {
             tokens.push_str(&format!(" opaque 0x{opaque:08x}"));
@@ -155,7 +167,7 @@ pub(crate) fn dissect_memcached(
             return None;
         }
         let val = core::str::from_utf8(&rem[..vlen]).ok()?;
-        if !is_valid_raw_str(key) || !is_valid_raw_str(val) {
+        if !is_printable_mc_str(key) || !is_printable_mc_str(val) {
             return None;
         }
         if cmd == "set" {
@@ -164,7 +176,7 @@ pub(crate) fn dissect_memcached(
             tokens.push_str(&format!(" cmd \"{cmd}\""));
         }
         if key != "key" {
-            tokens.push_str(&format!(" key \"{key}\""));
+            tokens.push_str(&format!(" key \"{}\"", quote_raw_str(key)));
         }
         if flags != 0 {
             tokens.push_str(&format!(" flags {flags}"));
@@ -173,7 +185,7 @@ pub(crate) fn dissect_memcached(
             tokens.push_str(&format!(" exptime {exptime}"));
         }
         if !val.is_empty() {
-            tokens.push_str(&format!(" value \"{val}\""));
+            tokens.push_str(&format!(" value \"{}\"", quote_raw_str(val)));
         }
         return Some(ProtocolDissection {
             protocol: Protocol::Memcached,
@@ -192,14 +204,14 @@ pub(crate) fn dissect_memcached(
         }
     } else if parts.len() == 2 {
         let key = parts[1];
-        if !is_valid_raw_str(key) {
+        if !is_printable_mc_str(key) {
             return None;
         }
         if cmd != "get" {
             tokens.push_str(&format!(" cmd \"{emit_cmd}\""));
         }
         if key != "key" {
-            tokens.push_str(&format!(" key \"{key}\""));
+            tokens.push_str(&format!(" key \"{}\"", quote_raw_str(key)));
         }
     } else {
         return None;

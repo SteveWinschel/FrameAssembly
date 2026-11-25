@@ -20,7 +20,13 @@ pub fn build_postgres_payload(
     let mut pkt = Vec::new();
 
     if spec.is_startup
-        || ((spec.user.is_some() || spec.db.is_some()) && !spec.is_query && spec.sql.is_none())
+        || ((spec.user.is_some() || spec.db.is_some())
+            && !spec.is_query
+            && spec.sql.is_none()
+            && !spec.is_ready_for_query
+            && !spec.is_command_complete
+            && !spec.is_error_response
+            && !spec.is_auth_ok)
     {
         // StartupMessage: 4B length (including self) + 0x00030000 (v3.0) + key/value pairs + 0x00
         let user = spec.user.unwrap_or("postgres").as_bytes();
@@ -38,12 +44,12 @@ pub fn build_postgres_payload(
             body.extend_from_slice(payload_bytes);
         }
 
-        let length = (4 + body.len()) as u32;
+        let length = u32::try_from(4 + body.len()).unwrap_or(u32::MAX);
         pkt.extend_from_slice(&length.to_be_bytes());
         pkt.extend_from_slice(&body);
     } else if spec.is_ready_for_query {
         // ReadyForQuery ('Z', length 5 + trailing payload, status 'I' Idle)
-        let length = (5 + payload_bytes.len()) as u32;
+        let length = u32::try_from(5 + payload_bytes.len()).unwrap_or(u32::MAX);
         pkt.push(b'Z');
         pkt.extend_from_slice(&length.to_be_bytes());
         pkt.push(b'I');
@@ -53,7 +59,7 @@ pub fn build_postgres_payload(
     } else if spec.is_command_complete {
         // CommandComplete ('C', length, command tag + NUL + trailing payload)
         let tag = spec.sql.unwrap_or("SELECT 1").as_bytes();
-        let length = (4 + tag.len() + 1 + payload_bytes.len()) as u32;
+        let length = u32::try_from(4 + tag.len() + 1 + payload_bytes.len()).unwrap_or(u32::MAX);
         pkt.push(b'C');
         pkt.extend_from_slice(&length.to_be_bytes());
         pkt.extend_from_slice(tag);
@@ -72,13 +78,13 @@ pub fn build_postgres_payload(
         if !payload_bytes.is_empty() {
             body.extend_from_slice(payload_bytes);
         }
-        let length = (4 + body.len()) as u32;
+        let length = u32::try_from(4 + body.len()).unwrap_or(u32::MAX);
         pkt.push(b'E');
         pkt.extend_from_slice(&length.to_be_bytes());
         pkt.extend_from_slice(&body);
     } else if spec.is_auth_ok {
         // AuthenticationOk ('R', length 8 + trailing payload, auth code 0)
-        let length = (8 + payload_bytes.len()) as u32;
+        let length = u32::try_from(8 + payload_bytes.len()).unwrap_or(u32::MAX);
         pkt.push(b'R');
         pkt.extend_from_slice(&length.to_be_bytes());
         pkt.extend_from_slice(&0u32.to_be_bytes());
@@ -90,7 +96,8 @@ pub fn build_postgres_payload(
         let _ = spec.is_query;
         let sql = spec.sql.unwrap_or("SELECT version()");
         let sql_bytes = sql.as_bytes();
-        let length = (4 + sql_bytes.len() + 1 + payload_bytes.len()) as u32;
+        let length =
+            u32::try_from(4 + sql_bytes.len() + 1 + payload_bytes.len()).unwrap_or(u32::MAX);
         pkt.push(b'Q');
         pkt.extend_from_slice(&length.to_be_bytes());
         pkt.extend_from_slice(sql_bytes);

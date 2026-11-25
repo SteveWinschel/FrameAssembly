@@ -1,4 +1,4 @@
-//! **FrameAssembly** (`frameassembly` v3.2.2) is an offline, rootless PCAP generator & Packets-as-Code DSL and optimizing compiler that compiles declarative `.frasm` code into deterministic `.pcap` and `.pcapng` packet captures—and decompiles `.pcap` / `.pcapng` captures back into canonical `.frasm` code—across **81 native Layer 2 through Layer 7 protocols**.
+//! **FrameAssembly** (`frameassembly` v3.3.0) is an offline, rootless PCAP generator & Packets-as-Code DSL and optimizing compiler that compiles declarative `.frasm` code into deterministic `.pcap` and `.pcapng` packet captures—and decompiles `.pcap` / `.pcapng` captures back into canonical `.frasm` code—across **146 native Layer 2 through Layer 7 protocols**.
 //!
 //! * **Official Website & Browser Playground:** [frameassembly-lang.dev](https://frameassembly-lang.dev/) (compile `.frasm` <-> `.pcap`/`.pcapng` and inspect packets in the browser with zero install)
 //! * **Canonical Repository & CLI:** [github.com/SteveWinschel/FrameAssembly](https://github.com/SteveWinschel/FrameAssembly)
@@ -23,12 +23,13 @@
 //! 1. **Compile, Inspect, Decompile & Update (`frameassembly` / `show` / `reverse` / `update`)**: Turn a declarative `.frasm`
 //!    ("Packets as Code") specification into a deterministic `.pcap` / `.pcapng` file with automatic
 //!    RFC defaults, 4-tuple TCP `SEQ`/`ACK` progression, bidirectional port inheritance across
-//!    `->` and `<-`, IPv4/IPv6 dual-stack flow reuse, and full SNMPv3 USM (`MD5`/`SHA-1`/`SHA-2` +
-//!    `DES`/`AES`) cryptography (`frameassembly demo.frasm output.pcap`)—preview the packet
-//!    ladder in the terminal with `frameassembly show demo.frasm`, decompile an existing `.pcap` /
-//!    `.pcapng` capture back into canonical `.frasm` code with `frameassembly reverse capture.pcap`,
-//!    or keep the CLI current with `frameassembly update` (part of the 5 CLI subcommands: `show`,
-//!    `reverse`, `update`, `help`, and `version`).
+//!    `->` and `<-`, `repeat <count> { ... }` loops, IPv4/IPv6 dual-stack flow reuse, and full
+//!    SNMPv3 USM (`MD5`/`SHA-1`/`SHA-2` + `DES`/`AES`) cryptography (`frameassembly demo.frasm output.pcap`,
+//!    or `-` for `stdin`/`stdout` PCAPNG streaming)—preview any `.frasm` or `.pcap`/`.pcapng` packet
+//!    ladder in the terminal with `frameassembly show demo.frasm` (via [`inspect`]), decompile an
+//!    existing `.pcap` / `.pcapng` capture back into canonical `.frasm` code with
+//!    `frameassembly reverse capture.pcap`, or keep the CLI current with `frameassembly update`
+//!    (part of the 5 CLI subcommands: `show`, `reverse`, `update`, `help`, and `version`).
 //! 2. **Inspect & Dissect (`Wireshark` / `tshark`)**: Open the generated `.pcap` in Wireshark or
 //!    assert protocol fields in automated CI pipelines with `tshark -r output.pcap -V`.
 //! 3. **Replay & Validate (`tcpreplay` / `Suricata` / `Zeek`)**: Inject the synthesized `.pcap`
@@ -170,45 +171,49 @@
 //! ## Six-Stage Zero-Copy Compiler Pipeline
 //!
 //! 1. **Stage 1 — Zero-Copy Lexical Analysis ([`lexer`])**: [`logos`]-powered DFA scanner
-//!    ([`lexer::lex`]) recognizing 640+ strict-lowercase `[a-z0-9]+` DSL keywords, all 81 protocols,
+//!    ([`lexer::lex`]) recognizing 1,130+ strict-lowercase `[a-z0-9]+` DSL keywords, all 146 protocols,
 //!    nanosecond-to-minute time units (`ns`, `us`, `ms`, `s`, `m`), IPv4/IPv6/MAC literals, and
 //!    ASN.1 OIDs without heap string allocations.
 //! 2. **Stage 2 — Two-Phase Token-Slice Parsing ([`parser`], [`ast`])**: [`winnow`] combinator
-//!    parser ([`parser::parse_program`]) operating over [`parser::Stream`] with protocol-scoped
-//!    modifier dispatch so shared sub-keywords never shadow across protocol boundaries.
+//!    parser ([`parser::parse_program`]) stripping optional UTF-8 BOM and operating over [`parser::Stream`]
+//!    with `repeat <u64> { ... }`, nested `flow` calls, and protocol-scoped modifier dispatch so
+//!    shared sub-keywords never shadow across protocol boundaries.
 //! 3. **Stage 3 — Semantic Validation ([`parser::validate_semantics`], [`error`])**: Enforces
-//!    case-insensitive symbol uniqueness, flow arity, homogeneous IPv4/IPv6 endpoint pairs, and
-//!    IEEE/RFC field bounds with byte-accurate [`miette`] source spans ([`error::CompilerError`]).
+//!    case-insensitive symbol uniqueness, flow arity, nested-flow cycle & depth checks, homogeneous
+//!    IPv4/IPv6 endpoint pairs, and IEEE/RFC field bounds with byte-accurate [`miette`] source spans
+//!    ([`error::CompilerError`]).
 //! 4. **Stage 4 — Zero-Heap Wire Builders, Checksums & Crypto ([`builders`], [`packet`])**:
 //!    Encapsulates frames inner-outward (`L7 -> L4 -> L3 -> MPLS/QinQ/VLAN/Ethernet II`) with
 //!    disjoint-slice RFC 1071 checksums ([`packet::internet_checksum`]), RFC 8200 UDP
-//!    `0x0000 -> 0xFFFF` folding, RFC 9260 SCTP Castagnoli CRC32c, IEEE 1815 DNP3 CRC-16, and
+//!    `0x0000 -> 0xFFFF` folding, RFC 9260 SCTP Castagnoli CRC32c, IEEE 1815 DNP3 CRC-16, negative
+//!    corruption overrides (`badipchecksum`, `badchecksum`, `nochecksum`, `badfcs`), and
 //!    RFC 3414/3826/7860 SNMPv3 USM key localization (`Ku -> Kul`), `DES-CBC`/`AES-128-CFB`, and
 //!    truncated HMAC signing.
-//! 5. **Stage 5 — Stateful 4-Tuple & Bidirectional Port Engine ([`backend`])**: Tracks two-stage
+//! 5. **Stage 5 — Stateful 4-Tuple & Bidirectional Port Engine ([`backend`])**: Expands `repeat`
+//!    loops and nested `flow` invocations (with unshadowed global `host` access), tracks two-stage
 //!    port inheritance across `->` and `<-`, shares canonical 4-tuple TCP sequence/acknowledgment
 //!    state across raw `tcp` and L7 protocols, preserves dynamic builder ports/multicast targets,
 //!    and derives RFC 1112 (`01:00:5e:xx:xx:xx`) and RFC 2464 (`33:33:xx:xx:xx:xx`) multicast MACs.
-//! 6. **Stage 6 — Classic `.pcap` & Nanosecond `PCAPNG` Serialization ([`pcap`]) & 5-Stage Reverse PCAP Decompiler ([`reverse`])**: Emits classic libpcap `.pcap` files
+//! 6. **Stage 6 — Classic `.pcap` & Nanosecond `PCAPNG` Serialization ([`pcap`]), Terminal Inspection ([`inspect`]) & 5-Stage Reverse PCAP Decompiler ([`reverse`])**: Emits classic libpcap `.pcap` files
 //!    ([`pcap::serialize_classic_pcap`]) when the output path ends with `.pcap` and `SHB -> IDB -> EPB` `PCAPNG` blocks
-//!    ([`pcap::serialize_pcapng`], [`pcap::write_capture_file`], [`pcap::PcapWriter`]) with `LINKTYPE_ETHERNET` and `IfTsResol(9)` (`10^-9`s) resolution for `.pcapng`,
+//!    ([`pcap::serialize_pcapng`], [`pcap::serialize_pcapng_with_metadata`], [`pcap::write_capture_file_with_metadata`], [`pcap::PcapWriter`]) with `LINKTYPE_ETHERNET`, `IfTsResol(9)` (`10^-9`s) timestamps, and per-frame `epb_comment` options for `.pcapng`; renders terminal packet ladders via [`inspect::format_packet_ladder`];
 //!    and decompiles `.pcap` / `.pcapng` captures into canonical `.frasm` code via
 //!    [`reverse::reverse_pcap_reader`], [`reverse::reverse_pcap_bytes`], and
 //!    [`reverse::reverse_pcap_file`] across a 5-stage reverse pipeline (`container.rs`,
 //!    `topology.rs`, `oracle.rs`, `shadow_emit.rs`, and `src/reverse/{l2,l3,l4,l7}/<protocol>.rs`)
 //!    with per-packet self-checking compiler oracle verification.
 //!
-//! ## Supported Protocol Matrix (81 Native Protocols)
+//! ## Supported Protocol Matrix (146 Native Protocols)
 //!
 //! | OSI Layer | Count | Supported Protocols |
 //! | :--- | :---: | :--- |
-//! | **Layer 2 (Data Link & Switching)** | 8 | `arp`, `vlan` (802.1Q), `qinq` (802.1ad), `mpls`, `lldp`, `stp` / `rstp`, `lacp`, `eapol` (802.1X) |
-//! | **Layer 3 (Control, Tunnel, VPN, Routing)** | 20 | `icmp` / `ICMPv6`, `ndp`, `igmp`, `mld`, `gre`, `vxlan`, `geneve`, `ipsec`, `esp`, `ah`, `ikev2`, `wireguard`, `ospf`, `bgp`, `rip`, `vrrp`, `hsrp`, `pim`, `bfd`, `openflow` |
+//! | **Layer 2 (Data Link & Switching)** | 18 | `arp`, `vlan` (802.1Q), `qinq` (802.1ad), `mpls`, `lldp`, `stp` / `rstp`, `lacp`, `eapol` (802.1X), `cdp`, `isis`, `macsec`, `pfc`, `pppoe`, `nsh`, `profinet`, `goose`, `sv`, `ethercat` |
+//! | **Layer 3 (Control, Tunnel, VPN, Routing)** | 31 | `icmp` / `ICMPv6`, `ndp`, `igmp`, `mld`, `gre`, `vxlan`, `geneve`, `ipip`, `srv6`, `erspan`, `ipsec`, `esp`, `ah`, `ikev2`, `wireguard`, `ospf`, `bgp`, `rip`, `vrrp`, `hsrp`, `glbp`, `pim`, `bfd`, `openflow`, `rsvp`, `ldp`, `bmp`, `rpkirtr`, `l2tp`, `lisp`, `gtpu` |
 //! | **Layer 4 (Transport)** | 3 | `tcp`, `udp`, `sctp` |
-//! | **Layer 7 (SNMP, Infra, Time, AAA, Telemetry)** | 14 | `snmp1`, `snmp2`, `snmp3`, `dns`, `mdns`, `dhcp` / `DHCPv6`, `ntp`, `ptp`, `radius`, `tacacs`, `syslog`, `netflow`, `ipfix`, `sflow` |
-//! | **Layer 7 (Web, Cloud, Security, VoIP, Access)** | 16 | `http`, `http2`, `grpc`, `websocket`, `tls`, `quic`, `tftp`, `ftp`, `ssh`, `telnet`, `whois`, `sip`, `rtp`, `rtsp`, `stun`, `ssdp` |
-//! | **Layer 7 (Mail, Auth, Storage, DB, Brokers)** | 14 | `smtp`, `imap`, `pop3`, `kerberos`, `ldap`, `smb`, `nfs`, `redis`, `memcached`, `mysql`, `postgres`, `mqtt`, `coap`, `amqp` |
-//! | **Layer 7 (Industrial ICS / SCADA / OT)** | 6 | `modbus`, `bacnet`, `dnp3`, `s7comm`, `ethernetip`, `opcua` |
+//! | **Layer 7 (SNMP, Infra, Naming, Time, AAA, Telemetry)** | 19 | `snmp1`, `snmp2`, `snmp3`, `dns`, `mdns`, `llmnr`, `nbns`, `dhcp` / `DHCPv6`, `ntp`, `ptp`, `radius`, `tacacs`, `syslog`, `netflow`, `ipfix`, `sflow`, `ipmi`, `netconf`, `twamp` |
+//! | **Layer 7 (Web, Cloud, Proxy, Telecom Core, VoIP)** | 32 | `http`, `http2`, `grpc`, `websocket`, `doh`, `wsdiscovery`, `tls`, `quic`, `tftp`, `ftp`, `ssh`, `telnet`, `whois`, `socks`, `rdp`, `vnc`, `irc`, `sip`, `rtp`, `rtcp`, `rtsp`, `stun`, `turn`, `ssdp`, `h323`, `sccp`, `mgcp`, `gtpc`, `pfcp`, `diameter`, `ngap`, `s1ap` |
+//! | **Layer 7 (Mail, Auth, Storage, Fabrics, DB, Brokers)** | 23 | `smtp`, `imap`, `pop3`, `kerberos`, `ldap`, `ntlm`, `dcerpc`, `smb`, `nfs`, `iscsi`, `nvmetcp`, `rocev2`, `postgres`, `mysql`, `mssql`, `mongodb`, `tns`, `redis`, `memcached`, `mqtt`, `coap`, `amqp`, `kafka` |
+//! | **Layer 7 (Industrial OT, Substation, Utility & Automotive)** | 20 | `modbus`, `bacnet`, `dnp3`, `s7comm`, `s7commplus`, `ethernetip`, `opcua`, `iec104`, `mms`, `synchrophasor`, `hartip`, `fins`, `melsec`, `someip`, `doip`, `c1222`, `gesrtp`, `rocplus`, `bsap`, `knxnetip` |
 //!
 //! ## Documentation & Use Cases
 //!
@@ -303,6 +308,7 @@ pub mod ast;
 pub mod backend;
 pub mod builders;
 pub mod error;
+pub mod inspect;
 pub mod lexer;
 pub mod packet;
 pub mod parser;

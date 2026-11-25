@@ -56,10 +56,11 @@ pub fn build_ndp_payload(
             ndp_body.extend_from_slice(&target_v6.octets()); // Target Address
 
             // Option 1: Source Link-Layer Address (Type 1, Length 1 = 8 bytes)
-            let slla = spec.slla.unwrap_or(ctx.src_mac);
-            ndp_body.push(1);
-            ndp_body.push(1);
-            ndp_body.extend_from_slice(&slla);
+            if let Some(slla) = spec.slla.or((!src_v6.is_unspecified()).then_some(ctx.src_mac)) {
+                ndp_body.push(1);
+                ndp_body.push(1);
+                ndp_body.extend_from_slice(&slla);
+            }
 
             // Compute Solicited-Node Multicast destination
             let target_octets = target_v6.octets();
@@ -87,11 +88,12 @@ pub fn build_ndp_payload(
             ndp_body.push(0);
             ndp_body.extend_from_slice(&[0, 0]);
             ndp_body.extend_from_slice(&[0u8; 4]);
-            // Option 1: SLLA
-            let slla = spec.slla.unwrap_or(ctx.src_mac);
-            ndp_body.push(1);
-            ndp_body.push(1);
-            ndp_body.extend_from_slice(&slla);
+            // Option 1: SLLA (omitted per RFC 4861 §4.1 when IPv6 source is :: unless explicit)
+            if let Some(slla) = spec.slla.or((!src_v6.is_unspecified()).then_some(ctx.src_mac)) {
+                ndp_body.push(1);
+                ndp_body.push(1);
+                ndp_body.extend_from_slice(&slla);
+            }
             actual_dst_ip = IpAddr::V6(core::net::Ipv6Addr::new(0xff02, 0, 0, 0, 0, 0, 0, 2));
         }
         NdpType::RouterAdvert => {
@@ -103,6 +105,12 @@ pub fn build_ndp_payload(
             ndp_body.extend_from_slice(&spec.router_lifetime.unwrap_or(1800).to_be_bytes());
             ndp_body.extend_from_slice(&0_u32.to_be_bytes()); // Reachable Time
             ndp_body.extend_from_slice(&0_u32.to_be_bytes()); // Retrans Timer
+            // Option 1: Source Link-Layer Address (RFC 4861 §4.2)
+            if let Some(slla) = spec.slla.or((!src_v6.is_unspecified()).then_some(ctx.src_mac)) {
+                ndp_body.push(1);
+                ndp_body.push(1);
+                ndp_body.extend_from_slice(&slla);
+            }
         }
         NdpType::Redirect => {
             ndp_body.push(137);
@@ -126,7 +134,7 @@ pub fn build_ndp_payload(
         if let IpAddr::V6(ad) = actual_dst_ip {
             p.extend_from_slice(&ad.octets());
         }
-        p.extend_from_slice(&(ndp_body.len() as u32).to_be_bytes());
+        p.extend_from_slice(&u32::try_from(ndp_body.len()).unwrap_or(u32::MAX).to_be_bytes());
         p.extend_from_slice(&[0, 0, 0, 58]);
         p
     };

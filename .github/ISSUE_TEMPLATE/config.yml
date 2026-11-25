@@ -5,7 +5,7 @@ contact_links:
     about: Ask questions about modeling traffic in .frasm, share packet recipes, or discuss ideas with the community.
   - name: Getting Started & Protocol Guides
     url: https://frameassembly-lang.dev/docs
-    about: Browse the official documentation and field references across all 81 supported protocols.
+    about: Browse the official documentation and field references across all 146 supported protocols.
   - name: Use Cases & Examples
     url: https://frameassembly-lang.dev/use-cases
     about: Browse ready-to-run .frasm recipes for firewalls, SNMP traps, IDS/IPS, OT/SCADA, and more.

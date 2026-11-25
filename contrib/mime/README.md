@@ -1,6 +1,6 @@
 # Freedesktop `shared-mime-info` Package & Upstream Merge Guide for FrameAssembly (`.frasm`)
 
-This directory contains the Freedesktop.org `shared-mime-info` XML database definition and upstream contribution assets for **FrameAssembly** (v3.2.2, `.frasm`, media type `text/vnd.frameassembly`).
+This directory contains the Freedesktop.org `shared-mime-info` XML database definition and upstream contribution assets for **FrameAssembly** (v3.3.0, `.frasm`, media type `text/vnd.frameassembly`).
 
 The definition provides desktop-wide MIME classification, content-sniffing magic rules, file-manager icons, and default editor associations across Linux, BSD, and Unix desktop environments (GNOME, KDE Plasma, XFCE, Sway, and Wayland/X11 compositors).
 
@@ -41,7 +41,7 @@ The XML definition file [`text-vnd.frameassembly.xml`](text-vnd.frameassembly.xm
 
 ## 2. Magic Content-Sniffing Rules Documentation
 
-While FrameAssembly (v3.0.0+, active v3.2.2) uses the dedicated `.frasm` extension (distinct from `.fasm` used by Flat Assembler and SymbiFlow / F4PGA FPGA FASM), content sniffing remains essential for deterministic classification when files lack extensions.
+While FrameAssembly (v3.0.0+, active v3.3.0) uses the dedicated `.frasm` extension (distinct from `.fasm` used by Flat Assembler and SymbiFlow / F4PGA FPGA FASM), content sniffing remains essential for deterministic classification when files lack extensions.
 
 [`text-vnd.frameassembly.xml`](text-vnd.frameassembly.xml) implements two multi-level, nested conjunction (`AND`) magic rules:
 
@@ -226,7 +226,7 @@ Title: Add text/vnd.frameassembly MIME type for FrameAssembly packet specificati
 ### Summary
 Adds the `text/vnd.frameassembly` MIME type for FrameAssembly (`.frasm`) network packet specifications.
 
-FrameAssembly is a declarative domain-specific language for synthesizing deterministic `.pcap` / `.pcapng` packet capture fixtures across 81 Layer 2–7 protocols.
+FrameAssembly is a declarative domain-specific language for synthesizing deterministic `.pcap` / `.pcapng` packet capture fixtures across 146 Layer 2–7 protocols.
 
 ### Specifications & Registrations
 - Published Specification: https://frameassembly-lang.dev/docs

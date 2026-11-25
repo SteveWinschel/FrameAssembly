@@ -553,7 +553,7 @@ pub mod tier2_boundary_and_corner_cases {
         run_e2e_test(fl_bounds_script, |fl_pkts| assert_eq!((fl_pkts.len(), fl_pkts[0].ethertype()), (2, Some(0x86DD))));
     }
 
-    /// Tests `FLOWLABEL` on IPv4 hosts being silently ignored per dual-stack polymorphism rules.
+    /// Tests that `FLOWLABEL` on IPv4 hosts is rejected with a spanned `SemanticError`.
     #[test]
     pub fn test_tier2_l3_flowlabel_ipv4_silently_ignored() {
         let fl_v4_script = r#"
@@ -562,7 +562,18 @@ pub mod tier2_boundary_and_corner_cases {
             flow flowlabel_ipv4_ignore(v4_s, v4_d) {
                 v4_s -> v4_d flowlabel 99999 udp payload "v4_flowlabel"
             } compile { flowlabel_ipv4_ignore(fl_v4_a, fl_v4_b) }"#;
-        run_e2e_test(fl_v4_script, |fl_v4_pkts| assert_eq!((fl_v4_pkts.len(), fl_v4_pkts[0].ethertype()), (1, Some(0x0800))));
+        let err = frameassembly::parser::parse_program(fl_v4_script)
+            .expect_err("flowlabel on IPv4 endpoints must fail semantic validation");
+        match err {
+            frameassembly::error::CompilerError::SemanticError { message, span, .. } => {
+                assert_eq!(
+                    message,
+                    "Invalid L3 modifier: 'flowlabel' only applies to IPv6, not IPv4 host 'fl_v4_a'"
+                );
+                assert!(span.1 > 0, "SemanticError span length must be > 0");
+            }
+            other => panic!("Expected SemanticError, got {other:?}"),
+        }
     }
 
     /// Tests string escape sequences (`\r`, `\n`, `\t`, `\"`) and raw `HEXPAYLOAD` encoding.

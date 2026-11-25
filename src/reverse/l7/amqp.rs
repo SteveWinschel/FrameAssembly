@@ -1,10 +1,10 @@
 //! Advanced Message Queuing Protocol v0-9-1 (AMQP) Layer 7 PCAP-to-`.frasm` decompiler.
 //!
-//! This module implements fuzz-safe wire-to-AST dissection for `amqp` 0-9-1 frames over TCP
-//! (ports `5672`, `5671`, `15672`, and custom ports matching the `AMQP\x00\x00\x09\x01` protocol
-//! header or `0xCE`-terminated method/heartbeat frame envelope). It decodes `protocolheader`,
-//! `heartbeat`, `connectionstart`, `channelopen`, `basicpublish`, and `basicdeliver` frames
-//! along with `channel`, `exchange`, and `routingkey` fields.
+//! This module implements fuzz-safe wire-to-AST dissection for `amqp` 0-9-1 frames over TCP and
+//! SCTP (ports `5672`, `5671`, `15672`, and custom ports matching the `AMQP\x00\x00\x09\x01`
+//! protocol header or `0xCE`-terminated method/heartbeat frame envelope). It decodes
+//! `protocolheader`, `heartbeat`, `connectionstart`, `channelopen`, `basicpublish`, and
+//! `basicdeliver` frames along with `channel`, `exchange`, and `routingkey` fields.
 
 use alloc::format;
 use alloc::string::String;
@@ -12,12 +12,11 @@ use alloc::string::String;
 use crate::ast::{Protocol, TransportProto};
 use crate::reverse::ProtocolDissection;
 
-/// Checks whether `s` can be emitted inside `"..."` for a parser field that uses
-/// `parse_raw_string_lit` (which strips outer quotes without unescaping).
-fn is_valid_raw_str(s: &str) -> bool {
-    !s.contains('"')
-        && s.chars().all(|c| !c.is_control())
-        && (s.bytes().rev().take_while(|&b| b == b'\\').count() % 2 == 0)
+use super::quote_raw_str;
+
+/// Checks whether `s` contains no control characters so it can safely be emitted as a quoted field.
+fn is_printable_amqp_str(s: &str) -> bool {
+    s.chars().all(|c| !c.is_control())
 }
 
 /// Parses an AMQP 0-9-1 1-byte length-prefixed `shortstr`.
@@ -27,20 +26,20 @@ fn parse_amqp_shortstr(input: &[u8]) -> Option<(&str, &[u8])> {
         return None;
     }
     let s = core::str::from_utf8(&input[1..1 + len]).ok()?;
-    if !is_valid_raw_str(s) {
+    if !is_printable_amqp_str(s) {
         return None;
     }
     Some((s, &input[1 + len..]))
 }
 
-/// Dissects an `amqp` 0-9-1 protocol header, heartbeat, or method frame over TCP.
+/// Dissects an `amqp` 0-9-1 protocol header, heartbeat, or method frame over TCP or SCTP.
 pub(crate) fn dissect_amqp(
     transport: TransportProto,
     _src_port: u16,
     _dst_port: u16,
     payload: &[u8],
 ) -> Option<ProtocolDissection> {
-    if payload.is_empty() || !matches!(transport, TransportProto::Tcp) {
+    if payload.is_empty() || !matches!(transport, TransportProto::Tcp | TransportProto::Sctp) {
         return None;
     }
 
@@ -112,10 +111,10 @@ pub(crate) fn dissect_amqp(
                 && (!ex.is_empty() || !rk.is_empty())
             {
                 if !ex.is_empty() {
-                    tokens.push_str(&format!(" exchange \"{ex}\""));
+                    tokens.push_str(&format!(" exchange \"{}\"", quote_raw_str(ex)));
                 }
                 if !rk.is_empty() {
-                    tokens.push_str(&format!(" routingkey \"{rk}\""));
+                    tokens.push_str(&format!(" routingkey \"{}\"", quote_raw_str(rk)));
                 }
                 residual = after_rk;
             } else {
@@ -136,10 +135,10 @@ pub(crate) fn dissect_amqp(
                 return None;
             }
             if !ex.is_empty() {
-                tokens.push_str(&format!(" exchange \"{ex}\""));
+                tokens.push_str(&format!(" exchange \"{}\"", quote_raw_str(ex)));
             }
             if !rk.is_empty() {
-                tokens.push_str(&format!(" routingkey \"{rk}\""));
+                tokens.push_str(&format!(" routingkey \"{}\"", quote_raw_str(rk)));
             }
             residual = &after_rk[1..];
         }
@@ -153,10 +152,10 @@ pub(crate) fn dissect_amqp(
             let (ex, after_ex) = parse_amqp_shortstr(after_prefix)?;
             let (rk, after_rk) = parse_amqp_shortstr(after_ex)?;
             if !ex.is_empty() {
-                tokens.push_str(&format!(" exchange \"{ex}\""));
+                tokens.push_str(&format!(" exchange \"{}\"", quote_raw_str(ex)));
             }
             if !rk.is_empty() {
-                tokens.push_str(&format!(" routingkey \"{rk}\""));
+                tokens.push_str(&format!(" routingkey \"{}\"", quote_raw_str(rk)));
             }
             residual = after_rk;
         }

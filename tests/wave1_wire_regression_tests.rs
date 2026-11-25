@@ -511,11 +511,11 @@ fn test_l3_routing_multicast_ipsec_and_openflow_wired_fields() {
             a -> b ah spi 0x55556666 seq 7 icv "11223344556677889900aabb" nextheader 17 wait 1ms
             a -> b openflow featuresreply dpid 0x0000000000000099 tableid 128 priority 50 wait 1ms
             a -> b openflow flowmod dpid 0x1234 tableid 3 priority 500 wait 1ms
-            a -> b ospf hello area 0.0.0.1 routerid 1.1.1.1 wait 1ms
-            a -> b ospf dbd area 0.0.0.1 routerid 1.1.1.1 wait 1ms
-            a -> b ospf lsr area 0.0.0.1 routerid 1.1.1.1 wait 1ms
-            a -> b ospf lsu area 0.0.0.1 routerid 1.1.1.1 wait 1ms
-            a -> b ospf lsack area 0.0.0.1 routerid 1.1.1.1 wait 1ms
+            a -> b ospf hello areaid 0.0.0.1 routerid 1.1.1.1 wait 1ms
+            a -> b ospf dbd areaid 0.0.0.1 routerid 1.1.1.1 wait 1ms
+            a -> b ospf lsr areaid 0.0.0.1 routerid 1.1.1.1 wait 1ms
+            a -> b ospf lsu areaid 0.0.0.1 routerid 1.1.1.1 wait 1ms
+            a -> b ospf lsack areaid 0.0.0.1 routerid 1.1.1.1 wait 1ms
             a -> b pim hello holdtime 90 drpriority 10 wait 1ms
             a -> b pim joinprune group 239.5.5.5 source 10.5.5.1 rp 10.5.5.254 wait 1ms
             a -> b pim register group 239.6.6.6 source 10.6.6.1 rp 10.6.6.254 wait 1ms
@@ -545,6 +545,7 @@ fn test_l3_routing_multicast_ipsec_and_openflow_wired_fields() {
     assert_eq!((of_mod[1], of_mod.len(), of_mod[24], u16::from_be_bytes([of_mod[30], of_mod[31]])), (14, 56, 3, 500));
     for (idx, code) in (1u8..=5u8).enumerate() {
         assert_eq!((l3_frames[9 + idx][23], l3_frames[9 + idx][35]), (89, code));
+        assert_eq!(&l3_frames[9 + idx][42..46], &[0, 0, 0, 1], "OSPF areaid 0.0.0.1");
     }
     assert_eq!((l3_frames[14][23], l3_frames[14][34]), (103, 0x20));
     assert_eq!(&l3_frames[14][42..44], &90u16.to_be_bytes());
@@ -589,7 +590,27 @@ fn test_l7_web_voip_remote_and_security_wired_fields() {
     let (_, _, dns_r) = ipv4_udp_parts(&web_frames[1]);
     assert_eq!(&dns_r[2..4], &[0x81, 0x80]);
     assert!(contains_subslice(dns_r, &[93, 184, 216, 34]));
-    assert_eq!(&ipv4_tcp_parts(&web_frames[2]).2[5..], b"pkg.Health/Check grpc-status:0");
+    let (_, d_grpc, grpc) = ipv4_tcp_parts(&web_frames[2]);
+    assert_eq!(d_grpc, 50051);
+    let h1_len = ((grpc[0] as usize) << 16) | ((grpc[1] as usize) << 8) | (grpc[2] as usize);
+    assert_eq!((grpc[3], grpc[4], &grpc[5..9]), (1, 0x04, &[0, 0, 0, 1][..]));
+    let h1_end = 9 + h1_len;
+    assert!(contains_subslice(&grpc[9..h1_end], b"/pkg.Health/Check"));
+    assert!(contains_subslice(&grpc[9..h1_end], b"application/grpc"));
+    assert_eq!(
+        &grpc[h1_end..h1_end + 14],
+        &[0, 0, 5, 0, 0x00, 0, 0, 0, 1, 0, 0, 0, 0, 0]
+    );
+    let trl_off = h1_end + 14;
+    let trl_len = ((grpc[trl_off] as usize) << 16)
+        | ((grpc[trl_off + 1] as usize) << 8)
+        | (grpc[trl_off + 2] as usize);
+    assert_eq!(
+        (grpc[trl_off + 3], grpc[trl_off + 4], &grpc[trl_off + 5..trl_off + 9]),
+        (1, 0x05, &[0, 0, 0, 1][..])
+    );
+    assert_eq!(trl_off + 9 + trl_len, grpc.len());
+    assert_eq!(&grpc[trl_off + 9..], b"\x00\x0bgrpc-status\x010");
     assert_eq!(ipv4_tcp_parts(&web_frames[3]).2[3], 4); // HTTP2 SETTINGS
     let (_, _, sip) = ipv4_udp_parts(&web_frames[4]);
     assert!(contains_subslice(sip, b"Contact: <sip:alice@10.0.0.1>\r\n"));
@@ -762,9 +783,9 @@ fn test_v31_pim_register_ospfv3_fletcher16_and_bgp_4byte_asn() {
         host r6b { ip 2001:db8:88::2 mac 00:1c:73:88:06:02 }
         compile {
             r1 -> r2 pim register group 239.6.6.6 source 10.6.6.1 rp 10.6.6.254
-            r1 -> r2 ospf lsack routerid 1.1.1.1 area 0.0.0.0
-            r6a -> r6b ospf hello routerid 1.1.1.1 area 0.0.0.0
-            r6a -> r6b ospf lsack routerid 1.1.1.1 area 0.0.0.0
+            r1 -> r2 ospf lsack routerid 1.1.1.1 areaid 0.0.0.0
+            r6a -> r6b ospf hello routerid 1.1.1.1 areaid 0.0.0.0
+            r6a -> r6b ospf lsack routerid 1.1.1.1 areaid 0.0.0.0
             r1 -> r2 bgp open asn 4200000001 holdtime 90 bgpid 1.1.1.1
             r1 -> r2 bgp update asn 4200000001 nexthop 10.88.0.1 prefix "192.0.2.0/24"
         }
@@ -797,7 +818,7 @@ fn test_v31_pim_register_ospfv3_fletcher16_and_bgp_4byte_asn() {
 }
 
 /// Verifies v3.1.0 `ikev2 exchange auth nextheader`, `tacacs seq`, `snmp2`/`snmp3 report`,
-/// HTTP/2 RFC 9113 default bodies, strict bounds, flow-param hints, and plain-English error codes.
+/// HTTP/2 RFC 9113 default bodies, strict bounds, global host refs in flows, fail-closed parse errors, and plain-English diagnostics.
 #[test]
 fn test_v31_ikev2_tacacs_snmp_report_http2_and_strict_diagnostics() {
     let frames = compile_frames(r#"
@@ -827,12 +848,24 @@ fn test_v31_ikev2_tacacs_snmp_report_http2_and_strict_diagnostics() {
 
     let syn_err = parse_program("host a { ip 10.0.0.1 }\ncompile { a -> a ttl 99999999999999999999 icmp }\n").unwrap_err();
     assert!(syn_err.to_string().starts_with("syntax error:"));
+    let nop_err = parse_program("host c { ip 10.0.0.1 }\nhost s { ip 10.0.0.2 }\ncompile { c -> s udp nop }\n").unwrap_err();
+    let nop_msg = nop_err.to_string();
+    assert!(
+        matches!(nop_err, frameassembly::error::CompilerError::ParseError { .. })
+            && nop_msg.starts_with("syntax error:")
+            && nop_msg.contains("unexpected modifier 'nop' for protocol 'udp'"),
+        "got: {nop_msg}"
+    );
+    let global_flow_frames = compile_frames(
+        "host c { ip 10.0.0.1 }\nhost s { ip 10.0.0.2 }\nflow f(a) { a -> s udp }\ncompile { f(c) }",
+    );
+    assert_eq!(global_flow_frames.len(), 1);
+    assert_eq!(&global_flow_frames[0][30..34], &[10, 0, 0, 2]);
     let syn_id_err = parse_program("host c { ip 10.0.0.1 }\nhost s { ip 10.0.0.2 }\ncompile { c -> s icmp id 70000 }\n").unwrap_err();
     assert!(syn_id_err.to_string().contains("out of range (0..=65535)"), "got: {syn_id_err}");
     for (bad, needle) in [
-        ("host c { ip 10.0.0.1 }\nhost s { ip 10.0.0.2 }\nflow f(a) { a -> s udp }\ncompile { f(c) }", "pass 's' as a flow parameter"),
-        ("host c { ip 10.0.0.1 }\nhost s { ip 10.0.0.2 }\ncompile { c -> s ntp transport tcp }", "'transport' is only supported"),
-        ("host c { ip 10.0.0.1 }\nhost s { ip 10.0.0.2 }\ncompile { c -> s udp nop }", "'nop' cannot be used with 'udp'"),
+        ("host c { ip 10.0.0.1 }\nhost s { ip 10.0.0.2 }\nflow f(a) { a -> missing_host udp }\ncompile { f(c) }", "Unknown callee endpoint 'missing_host' in flow 'f'"),
+        ("host c { ip 10.0.0.1 }\nhost s { ip 10.0.0.2 }\ncompile { c -> s ssh transport udp }", "'transport' is only supported"),
         ("host c { ip 10.0.0.1 }\nhost s { ip 10.0.0.2 }\ncompile { c -> s dns qname \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.com\" }", "63 octets"),
         ("host c { ip 10.0.0.1 }\nhost s { ip 10.0.0.2 }\ncompile { c -> s snmp3 get engineid \"xyz\" }", "even-length hexadecimal"),
         ("host c { ip 10.0.0.1 }\nhost s { ip 10.0.0.2 }\ncompile { c -> s icmp code 300 }", "out of range"),

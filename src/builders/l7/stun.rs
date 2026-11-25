@@ -5,7 +5,7 @@
 //! are omitted in the `.frasm` source, RFC-compliant default values are automatically populated.
 //!
 //! Canonical `.frasm` syntax:
-//! `a -> b stun [bindingrequest | bindingresponse | bindingerror] [txid <u32>] [xormappedaddr <ip>] [software <str>]`
+//! `a -> b stun [bindingrequest | bindingresponse | bindingerror] [txid <u32>] [xormappedaddr <ip> [<u16>]] [software <str>]`
 
 use crate::ast::*;
 use crate::builders::WireContext;
@@ -13,7 +13,7 @@ use alloc::vec::Vec;
 use core::net::IpAddr;
 
 /// Builds an RFC 8489 STUN NAT traversal packet payload.
-/// Syntax mapping: `stun [bindingrequest | bindingresponse | bindingerror] [txid <u32>] [xormappedaddr <ip>] [software <str>]`
+/// Syntax mapping: `stun [bindingrequest | bindingresponse | bindingerror] [txid <u32>] [xormappedaddr <ip> [<u16>]] [software <str>]`
 #[doc(alias = "STUN")]
 #[doc(alias = "TURN")]
 #[doc(alias = "ICE")]
@@ -38,6 +38,8 @@ pub fn build_stun_payload(
     let txid = spec.txid.unwrap_or(0x11223344);
     let txid_tail: [u8; 8] = [0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc];
 
+    let mapped_port = spec.xor_mapped_port.unwrap_or(12345);
+    let xport: u16 = mapped_port ^ 0x2112;
     let mut attrs = Vec::new();
     match spec.xor_mapped_addr {
         Some(IpAddr::V4(v4)) => {
@@ -46,7 +48,6 @@ pub fn build_stun_payload(
             attrs.extend_from_slice(&8u16.to_be_bytes());
             attrs.push(0); // Reserved
             attrs.push(1); // Family IPv4
-            let xport: u16 = 12345 ^ 0x2112;
             attrs.extend_from_slice(&xport.to_be_bytes());
             let xaddr = u32::from_be_bytes(v4.octets()) ^ 0x2112A442;
             attrs.extend_from_slice(&xaddr.to_be_bytes());
@@ -57,7 +58,6 @@ pub fn build_stun_payload(
             attrs.extend_from_slice(&20u16.to_be_bytes());
             attrs.push(0); // Reserved
             attrs.push(2); // Family IPv6
-            let xport: u16 = 12345 ^ 0x2112;
             attrs.extend_from_slice(&xport.to_be_bytes());
             let mut xor_mask = [0u8; 16];
             xor_mask[0..4].copy_from_slice(&0x2112A442u32.to_be_bytes());

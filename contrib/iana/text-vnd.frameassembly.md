@@ -72,7 +72,7 @@ For the normative technical specification referenced by all submissions, see the
 
 * **Interoperability considerations:**
   ```text
-  FrameAssembly v3.0.0 uses the dedicated ".frasm" extension (migrated from ".fasm" in v1/v2 to avoid ambiguity with two unregistered ".fasm" formats in other domains):
+  FrameAssembly v3.0.0+ (active v3.3.0) uses the dedicated ".frasm" extension (migrated from ".fasm" in v1/v2 to avoid ambiguity with two unregistered ".fasm" formats in other domains):
   1. Flat Assembler (x86/x86-64 machine assembly), which uses ";" comments, "format PE/ELF", "section", "org", and x86 CPU mnemonics.
   2. SymbiFlow / F4PGA FPGA Assembly (FASM), which uses "#" comments and dot-separated hardware tile feature paths (e.g., "CLBLL_L_X10Y100.SLICEL_X0...").
 
@@ -261,7 +261,7 @@ Short Description (1-2 sentences):
 A .frasm file is a declarative network traffic specification written in the FrameAssembly Domain-Specific Language. It defines network hosts, directional packet flows, and compilation targets compiled into deterministic .pcap and .pcapng packet captures.
 
 Long Description:
-FrameAssembly (.frasm) is a human-readable language designed for network engineers, security researchers, and test engineers. Instead of writing complex Python scripts or using raw sockets, users declare network endpoints (host), protocol sequences (flow), and output schedules (compile). The FrameAssembly compiler (frameassembly) parses .frasm files offline in userspace and emits bit-exact .pcap or .pcapng captures across 81 native Layer 2 through Layer 7 protocols (including Ethernet, VLAN, QinQ, MPLS, IPv4, IPv6, TCP, UDP, SCTP, SNMPv1/v2c/v3, DNS, DHCP, TLS, HTTP/2, Modbus, DNP3, and BGP).
+FrameAssembly (.frasm) is a human-readable language designed for network engineers, security researchers, and test engineers. Instead of writing complex Python scripts or using raw sockets, users declare network endpoints (host), protocol sequences (flow), and output schedules (compile). The FrameAssembly compiler (frameassembly) parses .frasm files offline in userspace and emits bit-exact .pcap or .pcapng captures across 146 native Layer 2 through Layer 7 protocols (including Ethernet, VLAN, QinQ, MPLS, MACsec, PROFINET, IPv4, IPv6, SRv6, TCP, UDP, SCTP, SNMPv1/v2c/v3, DNS, DHCP, TLS, HTTP/2, Modbus, DNP3, IEC 60870-5-104, NGAP, S1AP, and BGP).
 
 Format Disambiguation:
 FrameAssembly v3.0.0 uses .frasm (prior v1/v2 releases used .fasm, which collided with two unrelated formats):
@@ -319,7 +319,7 @@ Developer: Steve Winschel / FrameAssembly
 File Category: Source Code / Network Data
 
 Overview:
-FrameAssembly specification (.frasm) is a source code file used to generate deterministic .pcap and .pcapng network packet captures across 81 protocols (Ethernet, IPv4/IPv6, TCP, UDP, SCTP, SNMPv1/v2c/v3, TLS, HTTP/2, Modbus, DNP3, etc.).
+FrameAssembly specification (.frasm) is a source code file used to generate deterministic .pcap and .pcapng network packet captures across 146 protocols (Ethernet, IPv4/IPv6, TCP, UDP, SCTP, SNMPv1/v2c/v3, TLS, HTTP/2, Modbus, DNP3, NGAP, etc.).
 
 Distinction from legacy .fasm files:
 - FrameAssembly (.frasm): Uses '//' comments, 'host { ip|mac ... }', 'flow(...) { ... }', 'compile { ... }' keywords.
@@ -340,7 +340,7 @@ FrameAssembly CLI (https://github.com/SteveWinschel/FrameAssembly)
 ```text
 Format Name: FrameAssembly Network Packet Specification
 Acronym: FRASM
-Version: 3.0.0
+Version: 3.3.0
 Format Type: Text (Source Code) / Network Data Specification
 Disclosure: Full (Open Source, MIT License, RFC 6838 Vendor Tree Candidate)
 Developer / Organisation: Steve Winschel (steve.winschel@gmail.com) / FrameAssembly Project

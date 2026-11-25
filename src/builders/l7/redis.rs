@@ -3,9 +3,9 @@
 //! This module implements [`build_redis_payload`], which serializes a [`RedisSpec`]
 //! AST node into a Redis Serialization Protocol (RESP) byte stream over TCP port 6379 (or 26379 for
 //! Redis Sentinel). When `replytype` is set, it formats server replies as Simple Strings
-//! (`+<val>\r\n`), Errors (`-ERR <val>\r\n`), Integers (`:<n>\r\n`), or Bulk Strings
-//! (`$<len>\r\n<val>\r\n`); otherwise it encodes client commands and whitespace-separated `args`
-//! as a RESP Array of Bulk Strings (`*<argc>\r\n$<len>\r\n...`).
+//! (`+<val>\r\n`), Errors (`-ERR <val>\r\n`), Integers (`:<n>\r\n`), Bulk Strings
+//! (`$<len>\r\n<val>\r\n`), or Null Bulk Strings (`$-1\r\n` when `value` is omitted); otherwise it
+//! encodes client commands and `args` as a RESP Array of Bulk Strings (`*<argc>\r\n$<len>\r\n...`).
 
 use crate::ast::*;
 use crate::builders::WireContext;
@@ -43,8 +43,11 @@ pub fn build_redis_payload(
                 out.push_str(&format!(":{}\r\n", val));
             }
             "$" | "BULK" => {
-                let val = spec.value.unwrap_or("");
-                out.push_str(&format!("${}\r\n{}\r\n", val.len(), val));
+                if let Some(val) = spec.value {
+                    out.push_str(&format!("${}\r\n{}\r\n", val.len(), val));
+                } else {
+                    out.push_str("$-1\r\n");
+                }
             }
             _ => {
                 let val = spec.value.unwrap_or("OK");

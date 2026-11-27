@@ -1,6 +1,6 @@
 # AGENTS.md — FrameAssembly AI Agent & LLM Onboarding Guide
 
-**FrameAssembly** (`frameassembly` v3.3.0, website & playground: [`https://frameassembly-lang.dev/`](https://frameassembly-lang.dev/), repository: [`https://github.com/SteveWinschel/FrameAssembly`](https://github.com/SteveWinschel/FrameAssembly)) is a Rust 2024 Domain-Specific Language (DSL) and optimizing compiler that compiles `.frasm` network traffic specifications into deterministic, nanosecond-precision `.pcap` / `.pcapng` captures—and decompiles `.pcap` / `.pcapng` captures back into `.frasm` code—across **146 native Layer 2 through Layer 7 protocols** (`18` L2 / `31` L3 / `3` L4 / `94` L7; docs: [`https://frameassembly-lang.dev/docs`](https://frameassembly-lang.dev/docs), scenarios: [`https://frameassembly-lang.dev/use-cases`](https://frameassembly-lang.dev/use-cases)).
+**FrameAssembly** (`frameassembly` v3.3.1, website & playground: [`https://frameassembly-lang.dev/`](https://frameassembly-lang.dev/), repository: [`https://github.com/SteveWinschel/FrameAssembly`](https://github.com/SteveWinschel/FrameAssembly)) is a Rust 2024 Domain-Specific Language (DSL) and optimizing compiler that compiles `.frasm` network traffic specifications into deterministic, nanosecond-precision `.pcap` / `.pcapng` captures—and decompiles `.pcap` / `.pcapng` captures back into `.frasm` code—across **146 native Layer 2 through Layer 7 protocols** (`18` L2 / `31` L3 / `3` L4 / `94` L7; docs: [`https://frameassembly-lang.dev/docs`](https://frameassembly-lang.dev/docs), scenarios: [`https://frameassembly-lang.dev/use-cases`](https://frameassembly-lang.dev/use-cases)).
 
 ---
 
@@ -42,7 +42,7 @@ FrameAssembly enforces strict `<layer>/<protocol>` symmetry across `src/ast/`, `
 
 ---
 
-## 3. Canonical `.frasm` v3.3.0 Rules, Branding & Documentation Invariants
+## 3. Canonical `.frasm` v3.3.1 Rules, Branding & Documentation Invariants
 
 1. **Program Structure & Strict-Lowercase Keywords (`[a-z0-9]+`)**:
    - Minimal programs require `host <id> { [ip <ip>] [mac <mac>] }` and one `compile { ... }` block (`flow <id>(<params>) { ... }` is **optional**, may invoke nested `flow`s up to depth `64` and reference unshadowed global `host`s; `repeat <u64> { ... }` loops inside `flow`/`compile` up to `100,000` frames; `loop` was removed in v2.0.0). MAC-only hosts work for the 18 L2 protocols (`arp`, `vlan`, `qinq`, `lldp`, `stp`, `lacp`, `eapol`, `mpls`, `cdp`, `isis`, `macsec`, `pfc`, `pppoe`, `nsh`, `profinet`, `goose`, `sv`, `ethercat`; `profinet`/`ethercat` require `ip` with `transport udp`); L3–L7 require `ip`.

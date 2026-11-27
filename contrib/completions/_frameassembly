@@ -1,5 +1,5 @@
 #compdef frameassembly
-# zsh completion for frameassembly(1) — FrameAssembly v3.3.0
+# zsh completion for frameassembly(1) — FrameAssembly v3.3.1
 # https://github.com/SteveWinschel/FrameAssembly
 
 _frameassembly() {

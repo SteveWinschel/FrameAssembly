@@ -3,7 +3,7 @@
   "@type": "SoftwareSourceCode",
   "name": "FrameAssembly",
   "identifier": "frameassembly",
-  "version": "3.3.0",
+  "version": "3.3.1",
   "description": "A Domain-Specific Language (DSL), optimizing compiler, and PCAP-to-.frasm decompiler written in Rust 2024 that compiles strict-lowercase network packet code (.frasm) into deterministic, nanosecond-precision classic libpcap (.pcap) and PCAPNG (.pcapng) packet captures—and decompiles .pcap / .pcapng captures back into canonical .frasm code (bidirectional .frasm <-> .pcap/.pcapng compilation and decompilation)—across 146 native Layer 2 through Layer 7 protocols (18 L2, 31 L3, 3 L4, and 94 L7).",
   "license": "https://spdx.org/licenses/MIT.html",
   "url": "https://frameassembly-lang.dev/",

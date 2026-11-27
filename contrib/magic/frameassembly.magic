@@ -18,7 +18,7 @@
 #           file -i -m contrib/magic/frameassembly.magic demo.frasm
 #------------------------------------------------------------------------------
 
-# FrameAssembly v3.3.0 documents contain strict-lowercase top-level host { ip|mac ... },
+# FrameAssembly v3.3.1 documents contain strict-lowercase top-level host { ip|mac ... },
 # optional flow(...) { ... }, and compile { ... } blocks.
 # The rules below match within initial byte search windows to tolerate license banners and comments.
 

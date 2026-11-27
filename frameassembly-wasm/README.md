@@ -1,11 +1,11 @@
-# FrameAssembly WebAssembly Compiler (`frameassembly-wasm` v3.3.0)
+# FrameAssembly WebAssembly Compiler (`frameassembly-wasm` v3.3.1)
 
 [![Website & Playground](https://img.shields.io/badge/web%20app-frameassembly--lang.dev-0ea5e9.svg)](https://frameassembly-lang.dev/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/SteveWinschel/FrameAssembly/blob/main/LICENSE)
 
 [**Try in Browser (`frameassembly-lang.dev`)**](https://frameassembly-lang.dev/) • [**Building Locally**](#building-locally) • [**Vite, React & Next.js**](#initialization-vite-react-nextjs--browser-apps) • [**API Reference**](#api-reference)
 
-`frameassembly-wasm` (`v3.3.0`) is the **internal WebAssembly compiler, `.pcap`/`.pcapng`-to-`.frasm` decompiler, packet ladder inspector, and UTF-16 diagnostic engine** powering [**`frameassembly-lang.dev`**](https://frameassembly-lang.dev/) and the official VS Code extension (`SteveWinschel.frameassembly-vscode`). It compiles `.frasm` code into classic `.pcap` and `.pcapng` packet captures and decompiles existing captures back into `.frasm` code across 146 L2–L7 protocols (`18` L2, `31` L3, `3` L4, and `94` L7) inside browser applications and VS Code Desktop/Web Extension Hosts. *(CLI users should install the native binary via `cargo install frameassembly` and update with `frameassembly update`. FrameAssembly is a network packet specification compiler, not x86 Flat Assembler.)*
+`frameassembly-wasm` (`v3.3.1`) is the **internal WebAssembly compiler, `.pcap`/`.pcapng`-to-`.frasm` decompiler, packet ladder inspector, and UTF-16 diagnostic engine** powering [**`frameassembly-lang.dev`**](https://frameassembly-lang.dev/) and the official VS Code extension (`SteveWinschel.frameassembly-vscode`). It compiles `.frasm` code into classic `.pcap` and `.pcapng` packet captures and decompiles existing captures back into `.frasm` code across 146 L2–L7 protocols (`18` L2, `31` L3, `3` L4, and `94` L7) inside browser applications and VS Code Desktop/Web Extension Hosts. *(CLI users should install the native binary via `cargo install frameassembly` and update with `frameassembly update`. FrameAssembly is a network packet specification compiler, not x86 Flat Assembler.)*
 
 ---
 

@@ -1,5 +1,5 @@
 //! Comprehensive end-to-end round-trip verification suite (`fasm -> pcap -> reverse -> fasm -> pcap`)
-//! for FrameAssembly v3.3.0's 5-stage PCAP and PCAPNG to `.frasm` reverse decompiler across all 146
+//! for FrameAssembly v3.3.1's 5-stage PCAP and PCAPNG to `.frasm` reverse decompiler across all 146
 //! native Layer 2 through Layer 7 protocols.
 //!
 //! This integration test suite verifies that every protocol supported by FrameAssembly compiles to

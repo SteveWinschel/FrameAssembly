@@ -1,6 +1,6 @@
 // ============================================================================
 // FrameAssembly Lark Grammar (Outlines / vLLM / Guidance / XGrammar / llguidance)
-// Version: 3.3.0 — Strict-lowercase [a-z0-9]+ built-in keywords, optional
+// Version: 3.3.1 — Strict-lowercase [a-z0-9]+ built-in keywords, optional
 // flow blocks (2-block host + compile or reusable flow templates), and all
 // 146 native Layer 2 through Layer 7 protocols, modifiers, and literals.
 // Synchronized 1:1 with src/lexer/mod.rs, grammar.ebnf, and frameassembly.gbnf.

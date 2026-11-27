@@ -1,4 +1,4 @@
-//! Command-line interface entry point for the FrameAssembly `v3.3.0` network packet compiler.
+//! Command-line interface entry point for the FrameAssembly `v3.3.1` network packet compiler.
 //!
 //! Compiling `.frasm` network traffic code to `.pcap` / `.pcapng` is the default root command,
 //! paired with five subcommands across **146 native Layer 2 through Layer 7 protocols**:

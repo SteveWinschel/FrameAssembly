@@ -1,8 +1,8 @@
 # GitHub Copilot Instructions for FrameAssembly (`frameassembly`)
 
-You are working on **FrameAssembly** (`frameassembly` v3.3.0, official website & browser playground: [`https://frameassembly-lang.dev/`](https://frameassembly-lang.dev/), documentation: [`https://frameassembly-lang.dev/docs`](https://frameassembly-lang.dev/docs), use cases: [`https://frameassembly-lang.dev/use-cases`](https://frameassembly-lang.dev/use-cases), repository: [`https://github.com/SteveWinschel/FrameAssembly`](https://github.com/SteveWinschel/FrameAssembly)), a Rust 2024 Domain-Specific Language (DSL) and optimizing compiler that compiles `.frasm` network packet specifications into deterministic `.pcap` / `.pcapng` packet captures—and decompiles `.pcap` / `.pcapng` captures back into canonical `.frasm` code—across **146 native Layer 2 through Layer 7 protocols** (`18` L2 / `31` L3 / `3` L4 / `94` L7).
+You are working on **FrameAssembly** (`frameassembly` v3.3.1, official website & browser playground: [`https://frameassembly-lang.dev/`](https://frameassembly-lang.dev/), documentation: [`https://frameassembly-lang.dev/docs`](https://frameassembly-lang.dev/docs), use cases: [`https://frameassembly-lang.dev/use-cases`](https://frameassembly-lang.dev/use-cases), repository: [`https://github.com/SteveWinschel/FrameAssembly`](https://github.com/SteveWinschel/FrameAssembly)), a Rust 2024 Domain-Specific Language (DSL) and optimizing compiler that compiles `.frasm` network packet specifications into deterministic `.pcap` / `.pcapng` packet captures—and decompiles `.pcap` / `.pcapng` captures back into canonical `.frasm` code—across **146 native Layer 2 through Layer 7 protocols** (`18` L2 / `31` L3 / `3` L4 / `94` L7).
 
-## 1. Canonical `.frasm` v3.3.0 Syntax Guardrails (Never Hallucinate Keywords)
+## 1. Canonical `.frasm` v3.3.1 Syntax Guardrails (Never Hallucinate Keywords)
 
 When generating or editing FrameAssembly (`.frasm`) code or Markdown ````frameassembly` blocks:
 1. **Strict-Lowercase Built-In Keywords (`[a-z0-9]+`, Zero `_`, Zero `-`) & Host + Compile Structure (Optional Flow)**:

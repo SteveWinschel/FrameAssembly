@@ -1,4 +1,4 @@
-﻿# ==============================================================================
+# ==============================================================================
 # FrameAssembly (frameassembly) — Windows PowerShell Zero-Admin Bootstrap Installer
 # https://github.com/SteveWinschel/FrameAssembly
 # https://frameassembly-lang.dev/
@@ -37,8 +37,8 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-$ReleaseVersion = '3.3.0'
-$VsixVersion = '3.3.0'
+$ReleaseVersion = '3.3.1'
+$VsixVersion = '3.3.1'
 $GitHubReleaseBase = "https://github.com/SteveWinschel/FrameAssembly/releases/download/v$ReleaseVersion"
 $VsixReleaseUrl = "$GitHubReleaseBase/frameassembly-vscode.vsix"
 $VsixRawUrl = "https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/frameassembly-vscode/frameassembly-vscode-$VsixVersion.vsix"

@@ -1,4 +1,4 @@
-# FrameAssembly Shell Tab Completions (`v3.3.0`)
+# FrameAssembly Shell Tab Completions (`v3.3.1`)
 
 This directory provides context-aware Tab completion scripts for the `frameassembly` CLI across **Bash**, **Zsh**, **Fish**, and **PowerShell**:
 

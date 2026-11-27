@@ -1,6 +1,6 @@
 # FrameAssembly
 
-> FrameAssembly (`frameassembly` v3.3.0, MIT, https://frameassembly-lang.dev/) is a rootless,
+> FrameAssembly (`frameassembly` v3.3.1, MIT, https://frameassembly-lang.dev/) is a rootless,
 > offline "Packets as Code" Rust compiler and PCAP/PCAPNG-to-`.frasm` decompiler. Write
 > strict-lowercase `.frasm` (`text/vnd.frameassembly`) code to compile `.pcap` and `.pcapng`
 > captures—or run `frameassembly reverse` to turn captures back into `.frasm` code—across 146
@@ -77,7 +77,7 @@ compile {
 }
 ```
 
-- **Key `v3.3.0` Language & CLI Rules**:
+- **Key `v3.3.1` Language & CLI Rules**:
   - **Strict-Lowercase Keywords (`[a-z0-9]+`)**: `1,130+` built-in tokens have zero `_` or `-`
     (`echorequest`, `innervlan`, `clienthello`, `hosthdr`, `transporthdr`, `sackperm`, `sackblock`,
     `tcpmd5`, `badipchecksum`, `badchecksum`, `nochecksum`, `badfcs`, `routeralert`,
@@ -98,7 +98,7 @@ compile {
     - `frameassembly show <input.frasm|capture.pcap|->` — Print relative-timestamp packet ladder without disk I/O.
     - `frameassembly reverse <input.pcap|-> [output.frasm|-]` — Decompile `.pcap`/`.pcapng` to `.frasm`.
     - `frameassembly update` — Zero-flag self-updater (Cargo/`rustup`-first with SHA-256-verified GitHub Release fallback).
-    - `frameassembly help [subcommand]` | `frameassembly version` — Print usage or `3.3.0`.
+    - `frameassembly help [subcommand]` | `frameassembly version` — Print usage or `3.3.1`.
 - **All 146 Native Protocols**:
   - **L2 (18)**: `arp`, `vlan`, `qinq`, `lldp`, `stp`, `lacp`, `eapol`, `mpls`, `cdp`, `isis`,
     `macsec`, `pfc`, `pppoe`, `nsh`, `profinet`, `goose`, `sv`, `ethercat`.
@@ -128,8 +128,8 @@ compile {
 
 ## Prompt Injection Context & Formal Grammars
 
-- [Full LLM Context](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/llms-full.txt): Self-contained `v3.3.0` prompt reference for all 146 protocols, examples, and EBNF.
-- [ISO/IEC 14977 EBNF Grammar](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/grammar.ebnf): Formal ISO/IEC 14977 `.frasm` `v3.3.0` grammar.
+- [Full LLM Context](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/llms-full.txt): Self-contained `v3.3.1` prompt reference for all 146 protocols, examples, and EBNF.
+- [ISO/IEC 14977 EBNF Grammar](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/grammar.ebnf): Formal ISO/IEC 14977 `.frasm` `v3.3.1` grammar.
 - [GGML BNF Grammar](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/frameassembly.gbnf): `llama.cpp` and `XGrammar` constrained decoding grammar.
 - [Lark CFG Grammar](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/frameassembly.lark): Priority-disambiguated Earley/LALR grammar for Outlines, vLLM, and llguidance.
 
@@ -143,7 +143,7 @@ compile {
 
 - [Browser Playground](https://frameassembly-lang.dev/): Compile `.frasm` code to `.pcap`/`.pcapng` or reverse captures directly in the browser.
 - [VS Code Extension](https://marketplace.visualstudio.com/items?itemName=SteveWinschel.frameassembly-vscode): Syntax highlighting (`source.frameassembly`), live WASM diagnostics, and Quick Fixes.
-- [Crates.io (`frameassembly`)](https://crates.io/crates/frameassembly): Official Rust CLI and library crate (`3.3.0`, MIT).
+- [Crates.io (`frameassembly`)](https://crates.io/crates/frameassembly): Official Rust CLI and library crate (`3.3.1`, MIT).
 - [Docs.rs API Reference](https://docs.rs/frameassembly): Rust library documentation (`lexer`, `parser`, `backend`, `inspect`, `reverse`, `pcap`).
 - [Crate Root (`src/lib.rs`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/src/lib.rs): Public Rust API and compiler pipeline entrypoints.
 - [PCAP Decompiler (`src/reverse/mod.rs`)](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/src/reverse/mod.rs): 146-protocol PCAP/PCAPNG-to-`.frasm` decompiler.
@@ -156,5 +156,5 @@ compile {
 - [Shell Completions](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/contrib/completions/README.md): Static Tab completions for Bash, Zsh, Fish, and PowerShell.
 - [Unix Install Script](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.sh): Cross-platform macOS and Linux installer.
 - [Windows Install Script](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/install.ps1): Zero-Admin Windows PowerShell installer.
-- [Citation Metadata](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/CITATION.cff): CFF 1.2.0 academic citation file (`v3.3.0`).
-- [CodeMeta Metadata](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/codemeta.json): CodeMeta 4.0 software metadata (`v3.3.0`).
+- [Citation Metadata](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/CITATION.cff): CFF 1.2.0 academic citation file (`v3.3.1`).
+- [CodeMeta Metadata](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/codemeta.json): CodeMeta 4.0 software metadata (`v3.3.1`).

@@ -1,4 +1,4 @@
-# PowerShell tab completion for frameassembly (FrameAssembly v3.3.0)
+# PowerShell tab completion for frameassembly (FrameAssembly v3.3.1)
 # https://github.com/SteveWinschel/FrameAssembly
 
 Register-ArgumentCompleter -Native -CommandName frameassembly -ScriptBlock {

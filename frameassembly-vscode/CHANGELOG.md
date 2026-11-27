@@ -2,6 +2,9 @@
 
 All notable changes to the `frameassembly-vscode` extension are documented in this file.
 
+## [3.3.1] - 2026-11-27
+- Rebuilt bundled `frameassembly-wasm` (`3.3.1`) with updated Rust dependencies (`clap` `4.6.10` and `sha2` `0.11.2`) and bumped extension version to `3.3.1`.
+
 ## [3.3.0] - 2026-11-25
 - Expanded syntax highlighting (`syntaxes/frameassembly.tmLanguage.json`) and bundled `frameassembly-wasm` (`3.3.0`) validation with 65 new Layer 2, Layer 3, and Layer 7 protocols, bringing native support from 81 to 146 protocols (`18` L2, `31` L3, `3` L4, `94` L7) plus `repeat` blocks, `fcs`/`badfcs`, `routeralert`, `badipchecksum`, `tcpmd5`, `tfo`, and `comment` metadata.
 - Added a hyphen-aware `wordPattern` to `language-configuration.json` so dashed host identifiers (`fw-dmz-01`) select as whole words without swallowing packet direction arrows (`->`, `<-`).

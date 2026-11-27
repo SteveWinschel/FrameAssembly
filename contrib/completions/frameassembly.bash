@@ -1,5 +1,5 @@
 # bash completion for frameassembly(1)                     -*- shell-script -*-
-# FrameAssembly v3.3.0
+# FrameAssembly v3.3.1
 # https://github.com/SteveWinschel/FrameAssembly
 
 _frameassembly_complete_files() {

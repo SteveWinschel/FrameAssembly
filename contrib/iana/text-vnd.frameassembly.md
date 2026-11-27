@@ -72,7 +72,7 @@ For the normative technical specification referenced by all submissions, see the
 
 * **Interoperability considerations:**
   ```text
-  FrameAssembly v3.0.0+ (active v3.3.0) uses the dedicated ".frasm" extension (migrated from ".fasm" in v1/v2 to avoid ambiguity with two unregistered ".fasm" formats in other domains):
+  FrameAssembly v3.0.0+ (active v3.3.1) uses the dedicated ".frasm" extension (migrated from ".fasm" in v1/v2 to avoid ambiguity with two unregistered ".fasm" formats in other domains):
   1. Flat Assembler (x86/x86-64 machine assembly), which uses ";" comments, "format PE/ELF", "section", "org", and x86 CPU mnemonics.
   2. SymbiFlow / F4PGA FPGA Assembly (FASM), which uses "#" comments and dot-separated hardware tile feature paths (e.g., "CLBLL_L_X10Y100.SLICEL_X0...").
 
@@ -340,7 +340,7 @@ FrameAssembly CLI (https://github.com/SteveWinschel/FrameAssembly)
 ```text
 Format Name: FrameAssembly Network Packet Specification
 Acronym: FRASM
-Version: 3.3.0
+Version: 3.3.1
 Format Type: Text (Source Code) / Network Data Specification
 Disclosure: Full (Open Source, MIT License, RFC 6838 Vendor Tree Candidate)
 Developer / Organisation: Steve Winschel (steve.winschel@gmail.com) / FrameAssembly Project

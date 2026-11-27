@@ -1,8 +1,8 @@
-# FrameAssembly (`.frasm` v3.3.0) — Syntax Highlighting & Live Linter
+# FrameAssembly (`.frasm` v3.3.1) — Syntax Highlighting & Live Linter
 
 [**CLI & Releases (`GitHub`)**](https://github.com/SteveWinschel/FrameAssembly) • [**Crates.io (`cargo install frameassembly`)**](https://crates.io/crates/frameassembly) • [**Documentation**](https://frameassembly-lang.dev/docs) • [**Use Cases**](https://frameassembly-lang.dev/use-cases)
 
-Official syntax highlighting and live error linting for [**FrameAssembly**](https://github.com/SteveWinschel/FrameAssembly) (`.frasm` v3.3.0) **Packets as Code** files across all 146 Layer 2 through Layer 7 network protocols.
+Official syntax highlighting and live error linting for [**FrameAssembly**](https://github.com/SteveWinschel/FrameAssembly) (`.frasm` v3.3.1) **Packets as Code** files across all 146 Layer 2 through Layer 7 network protocols.
 
 Built for network engineers, firewall administrators, SOC/NDR analysts, pentesters, and OT/SCADA integrators writing `.frasm` traffic scenarios for **Wireshark**, **`tshark`**, **`tcpreplay`**, **Suricata**, **Zeek**, **Checkmk**, and **Zabbix**.
 
@@ -152,7 +152,7 @@ compile {
 
 ## Protocol Coverage (146 Native Protocols)
 
-All built-in keywords, protocols, modifiers, and duration units (`ns`, `us`, `ms`, `s`, `m`) in FrameAssembly 3.3.0 use lowercase without `_` or `-` (`echorequest`, `innervlan`, `clienthello`, `readholdingregisters`):
+All built-in keywords, protocols, modifiers, and duration units (`ns`, `us`, `ms`, `s`, `m`) in FrameAssembly 3.3.1 use lowercase without `_` or `-` (`echorequest`, `innervlan`, `clienthello`, `readholdingregisters`):
 
 | OSI Layer | Count | Native Protocol Keywords |
 | :--- | :---: | :--- |

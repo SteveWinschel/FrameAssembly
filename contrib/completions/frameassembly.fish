@@ -1,4 +1,4 @@
-# fish completion for frameassembly(1) — FrameAssembly v3.3.0
+# fish completion for frameassembly(1) — FrameAssembly v3.3.1
 # https://github.com/SteveWinschel/FrameAssembly
 
 complete -c frameassembly -f

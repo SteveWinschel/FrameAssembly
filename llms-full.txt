@@ -1,6 +1,6 @@
-# FrameAssembly v3.3.0 — Complete LLM Prompt-Injection Reference (`llms-full.txt`)
+# FrameAssembly v3.3.1 — Complete LLM Prompt-Injection Reference (`llms-full.txt`)
 
-> **FrameAssembly** (`frameassembly` v3.3.0, MIT License, official website & browser playground:
+> **FrameAssembly** (`frameassembly` v3.3.1, MIT License, official website & browser playground:
 > [`https://frameassembly-lang.dev/`](https://frameassembly-lang.dev/), documentation:
 > [`https://frameassembly-lang.dev/docs`](https://frameassembly-lang.dev/docs), examples:
 > [`https://frameassembly-lang.dev/use-cases`](https://frameassembly-lang.dev/use-cases), CLI overview:
@@ -10,13 +10,13 @@
 > **146 native Layer 2 through Layer 7 protocols** (`18` L2 / `31` L3 / `3` L4 / `94` L7).
 
 This document is self-contained for prompt injection: every keyword, field bound, transport rule,
-default value, CLI option, and `.frasm` example matches `frameassembly 3.3.0` (`1,130+` lexer
+default value, CLI option, and `.frasm` example matches `frameassembly 3.3.1` (`1,130+` lexer
 tokens). Constrained-decoding grammars live in [`grammar.ebnf`](grammar.ebnf) (embedded in full in
 Section 4), [`frameassembly.gbnf`](frameassembly.gbnf), and [`frameassembly.lark`](frameassembly.lark).
 
 ---
 
-## 1. Core `.frasm` v3.3.0 Language Architecture & Invariants
+## 1. Core `.frasm` v3.3.1 Language Architecture & Invariants
 
 ### 1.1 Program Structure (`host` + optional `flow` + `repeat` + `compile`)
 
@@ -108,18 +108,18 @@ optional, used for parameterized reusable sequences):
   on GitHub Releases, VS Code Marketplace (`SteveWinschel.frameassembly-vscode`), or online at
   [`https://frameassembly-lang.dev/`](https://frameassembly-lang.dev/). Details in
   [`README.md`](https://raw.githubusercontent.com/SteveWinschel/FrameAssembly/main/README.md).
-- **CLI Commands (`v3.3.0` — default root compile + 5 subcommands; zero `-o`/`--output` or `compile`)**:
+- **CLI Commands (`v3.3.1` — default root compile + 5 subcommands; zero `-o`/`--output` or `compile`)**:
   - `frameassembly demo.frasm [output.pcap|output.pcapng|-]` — Compile `.frasm` (`<stem>.pcap` libpcap
     by default, `.pcapng` nanosecond `IfTsResol(9)`, or `-` `stdin`->`stdout` PCAPNG).
   - `frameassembly show <demo.frasm|capture.pcap|capture.pcapng|->` — Print relative-timestamp ladder without disk writes.
   - `frameassembly reverse <capture.pcap|-> [out.frasm|-]` — Decompile PCAP/PCAPNG back into `.frasm` (`host1`/`host2`, inline `compile { ... }` statements).
   - `frameassembly update` — Self-update via Cargo/`rustup` or SHA-256 verified GitHub Release.
-  - `frameassembly help [subcommand]` | `frameassembly version` (`frameassembly 3.3.0`).
+  - `frameassembly help [subcommand]` | `frameassembly version` (`frameassembly 3.3.1`).
 - **Formal Grammars**: [`grammar.ebnf`](grammar.ebnf) (Section 4), [`frameassembly.gbnf`](frameassembly.gbnf), and [`frameassembly.lark`](frameassembly.lark).
 
 ### 1.7 Anti-Hallucination Guardrail Table
 
-| Invalid / Hallucinated Syntax | Valid FrameAssembly `v3.3.0` Syntax |
+| Invalid / Hallucinated Syntax | Valid FrameAssembly `v3.3.1` Syntax |
 | :--- | :--- |
 | `HOST a { ipv4 = 10.0.0.1/24 }` | `host a { ip 10.0.0.1 }` |
 | `flow handshake { ... }` (no params) | `flow handshake(c, s) { ... }` (or inline directly in `compile { ... }`) |
@@ -318,7 +318,7 @@ apply across layers where valid.
 
 ## 3. Compiler-Verified `.frasm` Code Library Covering All 146 Protocols
 
-Every ````frameassembly` block below compiles cleanly under `frameassembly 3.3.0` and exercises **all
+Every ````frameassembly` block below compiles cleanly under `frameassembly 3.3.1` and exercises **all
 146 native protocols**, `repeat` loops, nested `flow` calls, global `host` refs inside `flow`,
 repeatable `mpls`, negative checksum/FCS overrides, `routeralert`, `comment`, and `transport sctp`.
 
@@ -584,7 +584,7 @@ compile {
 ```ebnf
 (* ========================================================================= *)
 (* FrameAssembly Formal Grammar Specification (ISO/IEC 14977 EBNF)           *)
-(* Version: 3.3.0 — Strict-lowercase [a-z0-9]+ built-in keywords, optional   *)
+(* Version: 3.3.1 — Strict-lowercase [a-z0-9]+ built-in keywords, optional   *)
 (* flow blocks (2-block host + compile or reusable flow templates), repeat   *)
 (* blocks, and all 146 native Layer 2 through Layer 7 protocols & modifiers. *)
 (* Synchronized 1:1 with src/lexer/mod.rs and src/parser/.                   *)

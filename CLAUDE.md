@@ -1,6 +1,6 @@
 # CLAUDE.md — FrameAssembly Project Instructions for Claude Code & AI Agents
 
-**FrameAssembly** (`frameassembly` v3.3.0, playground: [`https://frameassembly-lang.dev/`](https://frameassembly-lang.dev/), docs: [`https://frameassembly-lang.dev/docs`](https://frameassembly-lang.dev/docs), scenarios: [`https://frameassembly-lang.dev/use-cases`](https://frameassembly-lang.dev/use-cases), repo: [`https://github.com/SteveWinschel/FrameAssembly`](https://github.com/SteveWinschel/FrameAssembly)) compiles `.frasm` network traffic code into deterministic `.pcap` / `.pcapng` packet captures—and decompiles `.pcap` / `.pcapng` captures back into `.frasm` code—across **146 native Layer 2 through Layer 7 protocols** (`18` L2 / `31` L3 / `3` L4 / `94` L7).
+**FrameAssembly** (`frameassembly` v3.3.1, playground: [`https://frameassembly-lang.dev/`](https://frameassembly-lang.dev/), docs: [`https://frameassembly-lang.dev/docs`](https://frameassembly-lang.dev/docs), scenarios: [`https://frameassembly-lang.dev/use-cases`](https://frameassembly-lang.dev/use-cases), repo: [`https://github.com/SteveWinschel/FrameAssembly`](https://github.com/SteveWinschel/FrameAssembly)) compiles `.frasm` network traffic code into deterministic `.pcap` / `.pcapng` packet captures—and decompiles `.pcap` / `.pcapng` captures back into `.frasm` code—across **146 native Layer 2 through Layer 7 protocols** (`18` L2 / `31` L3 / `3` L4 / `94` L7).
 
 Please read [`AGENTS.md`](AGENTS.md) at the repository root for complete branding, audience voice, release channel boundaries, confidentiality, Rustdoc `//!` docstring hygiene, and 6-way grammar lockstep rules.
 
@@ -26,7 +26,7 @@ cargo run -- version
 
 ---
 
-## 2. Canonical `.frasm` v3.3.0 Syntax Rules (Zero Hallucinations)
+## 2. Canonical `.frasm` v3.3.1 Syntax Rules (Zero Hallucinations)
 
 1. **Program Structure, Strict-Lowercase Keywords (`[a-z0-9]+`) & Flexible Identifiers**:
    - **Built-In Keywords**: `1,130+` tokens strictly lowercase alphanumeric with zero `_` and zero `-`, and no `ignore(ascii_case)` (`host`, `ip`, `mac`, `flow`, `repeat`, `compile`, `tcp`, `echorequest`, `innervlan`, `clienthello`, `hosthdr`, `transporthdr`, `sackperm`, `sackblock`, `tcpmd5`, `badipchecksum`, `badchecksum`, `nochecksum`, `badfcs`, `routeralert`, `readholdingregisters`).
